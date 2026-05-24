@@ -580,7 +580,7 @@ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'
 
 /* ── Icon config ── */
 const TRIP_ICONS=[
-  {key:'plane',label:'Plane'},{key:'globe',label:'Globe'},{key:'sun',label:'Beach'},
+  {key:'globe',label:'Globe'},{key:'sun',label:'Beach'},
   {key:'mountain',label:'Mountain'},{key:'camera',label:'Camera'},{key:'map',label:'Map'},
   {key:'train',label:'Train'},{key:'ship',label:'Ship'},{key:'tent',label:'Camping'},
   {key:'tree',label:'Nature'},{key:'star',label:'Star'},{key:'car',label:'Road trip'},
@@ -640,7 +640,7 @@ const DEFAULT_SECTIONS=()=>([
 /* ── State ── */
 let trips=loadAll();
 let activeId=null;
-let selTripIcon='plane';
+let selTripIcon='globe';
 let selCatIcon='list';
 let editingId=null;
 let luggageDraft=[];
@@ -708,7 +708,7 @@ window.deleteTrip=function(id){
 
 /* ── TRIP MODAL ── */
 window.openNewTripModal=function(){
-  editingId=null;selTripIcon='plane';
+  editingId=null;selTripIcon='globe';
   document.getElementById('tripModalTitle').textContent='New trip';
   document.getElementById('tripSaveBtn').textContent='Create trip';
   document.getElementById('mDest').value='';
@@ -721,7 +721,7 @@ window.openNewTripModal=function(){
 
 window.openEditModal=function(id){
   const t=trips.find(x=>x.id===id);if(!t)return;
-  editingId=id;selTripIcon=t.iconKey||'plane';
+  editingId=id;selTripIcon=t.iconKey||'globe';
   document.getElementById('tripModalTitle').textContent='Edit trip';
   document.getElementById('tripSaveBtn').textContent='Save changes';
   document.getElementById('mDest').value=t.name;
