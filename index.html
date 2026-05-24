@@ -37,7 +37,17 @@ svg.lucide-2xl{width:28px;height:28px}
 /* ── TRIPS VIEW ── */
 #tripsView{max-width:780px;margin:0 auto;padding:52px 32px 100px}
 
-.top-nav{display:flex;align-items:center;margin-bottom:56px}
+.top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:56px}
+.btn-refresh{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 16px;border-radius:99px;
+  border:1.5px solid var(--border);background:var(--white);
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;
+  color:var(--muted);cursor:pointer;transition:all .12s;min-height:40px;
+}
+.btn-refresh:hover{border-color:var(--accent);color:var(--accent);background:var(--tint)}
+.btn-refresh svg{transition:transform .4s ease}
+.btn-refresh:hover svg{transform:rotate(180deg)}
 .brand-pill{
   display:inline-flex;align-items:center;gap:10px;
   background:var(--white);border:1px solid var(--border);
@@ -365,6 +375,10 @@ svg.lucide-2xl{width:28px;height:28px}
       <svg class="lucide lucide-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
       Packly
     </div>
+    <button class="btn-refresh" onclick="location.reload()" title="Get latest updates">
+      <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
   </nav>
   <div class="hero">
     <h1 class="hero-title">Pack like you've <em>already arrived.</em></h1>
