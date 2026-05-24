@@ -672,7 +672,6 @@ function renderTrips(){
     card.style.animationDelay=i*40+'ms';
     card.innerHTML=`
       <div class="trip-card-top">
-        <div class="icon-bubble">${svgStr(t.iconKey||'plane','lucide lucide-xl')}</div>
         <span class="trip-count-badge">${done}/${total}</span>
       </div>
       <div class="trip-card-menu">
