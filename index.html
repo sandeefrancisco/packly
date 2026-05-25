@@ -71,17 +71,21 @@ svg.lucide-2xl{width:28px;height:28px}
   animation:fadeUp .22s ease both;position:relative;
 }
 .trip-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
-.trip-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
-.trip-count-badge{font-size:13px;font-weight:500;color:var(--muted)}
-.trip-card-menu{display:flex;gap:4px;position:absolute;top:14px;right:14px;}
 
-.icon-bubble{
-  width:52px;height:52px;border-radius:14px;
-  background:var(--tint);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  color:var(--ink);flex-shrink:0;
+/* card layout */
+.trip-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
+.trip-name{font-size:18px;font-weight:800;line-height:1.25;color:var(--ink);flex:1;min-width:0}
+.trip-card-actions{display:flex;gap:0;flex-shrink:0;margin:-6px -6px 0 0}
+.card-btn{
+  width:34px;height:34px;border:none;background:none;color:#9896A8;
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .12s;min-width:36px;min-height:36px;
 }
+.card-btn svg{width:15px;height:15px;stroke-width:2}
+.card-btn:hover{background:var(--tint);color:var(--ink)}
+.card-btn.del:hover{background:#FEE2E2;color:var(--red)}
 
+/* keep ic-btn for checklist view */
 .ic-btn{
   width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
   background:var(--white);color:var(--muted);
@@ -91,16 +95,20 @@ svg.lucide-2xl{width:28px;height:28px}
 .ic-btn:hover{background:var(--tint);color:var(--ink)}
 .ic-btn.del:hover{background:#FEE2E2;color:var(--red);border-color:#FCA5A5}
 
-.trip-name{font-size:19px;font-weight:700;margin-bottom:4px;line-height:1.2}
-.trip-dates{font-size:13px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.trip-countdown{display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;}
-.trip-countdown.future{background:#EEF2FF;color:#4F46E5}
-.trip-countdown.soon{background:#FEF3C7;color:#D97706}
-.trip-countdown.today{background:#DCFCE7;color:#16A34A}
-.trip-countdown.past{background:var(--tint);color:var(--muted)}
-.trip-prog-bar{height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:8px}
+.trip-meta{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:14px;line-height:1.4}
+.trip-meta-sep{opacity:.4}
+.trip-cd{font-weight:600}
+.trip-cd.future{color:#4F46E5}
+.trip-cd.soon{color:#D97706}
+.trip-cd.today{color:#16A34A}
+.trip-cd.past{color:var(--muted)}
+.trip-shared-tag{font-size:11px;font-weight:700;color:#7C3AED;display:inline-flex;align-items:center;gap:3px}
+.trip-shared-tag svg{width:12px;height:12px}
+
+.trip-prog-bar{height:3px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:10px}
 .trip-prog-fill{height:100%;border-radius:99px;background:var(--green);transition:width .4s}
-.trip-prog-text{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;width:100%}
+.trip-prog-text{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;width:100%}
+.trip-prog-pct{margin-left:auto;font-size:12px;font-weight:700;color:var(--ink)}
 
 .empty-state{grid-column:1/-1;text-align:center;padding:80px 20px}
 .empty-icon-wrap{width:72px;height:72px;border-radius:20px;background:var(--tint);border:1px solid var(--border);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
@@ -383,12 +391,6 @@ svg.lucide-2xl{width:28px;height:28px}
   color:var(--ink);background:var(--tint);
   border:2px dashed var(--border);border-radius:16px;
   padding:22px 16px;text-align:center;
-}
-.shared-badge{
-  display:inline-flex;align-items:center;gap:5px;
-  font-size:11px;font-weight:700;color:#7C3AED;
-  background:#EDE9FE;padding:3px 10px;border-radius:99px;
-  margin-bottom:6px;
 }
 .join-code-input{
   text-transform:uppercase!important;letter-spacing:6px;
@@ -1046,21 +1048,23 @@ function renderTrips(){
     card.className='trip-card';
     card.style.animationDelay=i*40+'ms';
     const cd=tripCountdown(t.dateFrom);
-    const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave trip':'Delete';
+    const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave':'Delete';
     card.innerHTML=`
-      <div class="trip-card-top">
+      <div class="trip-card-header">
+        <div class="trip-name">${esc(t.name)}</div>
+        <div class="trip-card-actions">
+          <button class="card-btn" title="Share" id="share-${t.id}">${svgStr('share')}</button>
+          <button class="card-btn" title="Edit" id="edit-${t.id}">${svgStr('pen')}</button>
+          <button class="card-btn del" title="${delTitle}" id="del-${t.id}">${svgStr('trash')}</button>
+        </div>
       </div>
-      <div class="trip-card-menu">
-        <button class="ic-btn" title="Share" id="share-${t.id}">${svgStr('share')}</button>
-        <button class="ic-btn" title="Edit" id="edit-${t.id}">${svgStr('pen')}</button>
-        <button class="ic-btn del" title="${delTitle}" id="del-${t.id}">${svgStr('trash')}</button>
+      <div class="trip-meta">
+        ${svgStr('calendar')} ${esc(t.dates||'No dates set')}
+        ${cd?`<span class="trip-meta-sep">·</span><span class="trip-cd ${cd.type}">${cd.label}</span>`:''}
+        ${t.isShared?`<span class="trip-meta-sep">·</span><span class="trip-shared-tag">${svgStr('users')} Shared</span>`:''}
       </div>
-      ${t.isShared?`<div class="shared-badge">${svgStr('users')} Shared trip</div>`:''}
-      <div class="trip-name">${esc(t.name)}</div>
-      <div class="trip-dates">${svgStr('calendar')} ${esc(t.dates||'No dates set')}</div>
-      ${cd?`<div class="trip-countdown ${cd.type}">${svgStr('clock')} ${cd.label}</div>`:''}
       <div class="trip-prog-bar"><div class="trip-prog-fill" style="width:${pct}%"></div></div>
-      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed <span style="margin-left:auto;font-weight:700;color:var(--ink)">${pct}%</span></div>`;
+      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed<span class="trip-prog-pct">${pct}%</span></div>`;
     card.onclick=e=>{
       if(e.target.closest('.trip-card-menu'))return;
       showChecklist(t.id);
