@@ -813,7 +813,9 @@ function confirmDelete(title, msg, onConfirm){
 /* ── Storage ── */
 const STORE='packly-v1';
 const loadAll=()=>{try{return JSON.parse(localStorage.getItem(STORE))||[];}catch(e){return[];}};
-const saveLocalOnly=d=>localStorage.setItem(STORE,JSON.stringify(d));
+// Always deduplicate by trip.id before saving — shared copy wins over personal copy
+const dedup=d=>{const m=new Map();d.forEach(t=>m.set(t.id,t));return[...m.values()];};
+const saveLocalOnly=d=>localStorage.setItem(STORE,JSON.stringify(dedup(d)));
 const saveAll=d=>{saveLocalOnly(d);cloudSync(d);};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -862,11 +864,12 @@ async function onSignedIn(user){
     if(local.length>0)await sb.from('user_data').upsert({user_id:user.id,trips:local,updated_at:new Date().toISOString()});
     personal=local;
   }
-  // Load shared trips — deduplicate: drop any personal entry that's already in shared
+  // Load shared trips — merge by trip.id, shared copy always wins over personal copy
   const shared=await loadSharedTrips();
-  const sharedIds=new Set(shared.map(t=>t.sharedTripId).filter(Boolean));
-  personal=personal.filter(t=>!t.sharedTripId||!sharedIds.has(t.sharedTripId));
-  trips=[...personal,...shared];
+  const byId=new Map();
+  personal.filter(t=>!t.sharedTripId).forEach(t=>byId.set(t.id,t));
+  shared.forEach(t=>byId.set(t.id,t));
+  trips=[...byId.values()];
   saveLocalOnly(trips);
   showTrips();
   subscribeToSharedTrips();
@@ -1204,8 +1207,11 @@ async function showChecklist(id){
   if(trip?.sharedTripId){
     const{data}=await sb.from('shared_trips').select('data').eq('id',trip.sharedTripId).single();
     if(data?.data){
-      const idx=trips.findIndex(t=>t.id===id);
-      if(idx!==-1){trips[idx]={...data.data,sharedTripId:trip.sharedTripId,isShared:true};saveLocalOnly(trips);}
+      const fresh={...data.data,sharedTripId:trip.sharedTripId,isShared:true};
+      const idx=trips.findIndex(t=>t.id===fresh.id);
+      if(idx!==-1) trips[idx]=fresh; else trips.push(fresh);
+      trips=dedup(trips);
+      saveLocalOnly(trips);
     }
   }
   renderChecklist();
@@ -1645,12 +1651,14 @@ function subscribeToSharedTrips(){
       if(!updated)return;
       // Ignore my own changes
       if(updated.lastModifiedBy===_currentUserId)return;
-      // Update local copy
-      const idx=trips.findIndex(t=>t.sharedTripId===payload.new.id);
-      if(idx!==-1){
-        trips[idx]={...updated,sharedTripId:payload.new.id,isShared:true};
-        saveLocalOnly(trips);
-      }
+      // Overwrite in-place by trip.id (handles any stale duplicates too)
+      const incoming={...updated,sharedTripId:payload.new.id,isShared:true};
+      const existing=trips.findIndex(t=>t.id===incoming.id);
+      if(existing!==-1) trips[existing]=incoming;
+      else trips.push(incoming);
+      trips=dedup(trips); // collapse any residual duplicates
+      saveLocalOnly(trips);
+      renderTrips();
       // If currently viewing this trip, refresh silently
       if(activeId===trip.id){
         renderChecklist();
