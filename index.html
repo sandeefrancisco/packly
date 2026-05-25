@@ -385,6 +385,33 @@ svg.lucide-2xl{width:28px;height:28px}
 .btn-signout:hover{color:var(--red)}
 .nav-right{display:flex;align-items:center;gap:8px}
 
+/* ── Share / Join ── */
+.share-code-box{
+  font-size:34px;font-weight:800;letter-spacing:10px;
+  color:var(--ink);background:var(--tint);
+  border:2px dashed var(--border);border-radius:16px;
+  padding:22px 16px;text-align:center;
+}
+.shared-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;color:#7C3AED;
+  background:#EDE9FE;padding:3px 10px;border-radius:99px;
+  margin-bottom:6px;
+}
+.join-code-input{
+  text-transform:uppercase!important;letter-spacing:6px;
+  font-size:22px!important;text-align:center;font-weight:700;
+}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn-secondary{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:13px 26px;background:var(--white);color:var(--ink);
+  border:1.5px solid var(--border);border-radius:var(--r-btn);
+  font-family:'Figtree',sans-serif;font-size:16px;font-weight:600;
+  cursor:pointer;transition:all .15s;min-height:50px;
+}
+.btn-secondary:hover{border-color:var(--accent);background:var(--tint)}
+
 @media(max-width:600px){
   #tripsView{padding:32px 20px 80px}
   #checklistView{padding:28px 16px 100px}
@@ -417,11 +444,15 @@ svg.lucide-2xl{width:28px;height:28px}
   </nav>
   <div class="hero">
     <h1 class="hero-title">Pack like you've <em>already arrived.</em></h1>
-    <p class="hero-sub">A pocket-sized checklist for every trip. Everything lives in your browser — no accounts, no cloud, no fuss.</p>
-    <div>
+    <p class="hero-sub">Create your packing list, sync across devices, and share with your travel partner — ready for any trip.</p>
+    <div class="hero-actions">
       <button class="btn-primary" onclick="openNewTripModal()">
         <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         New trip
+      </button>
+      <button class="btn-secondary" onclick="openJoinModal()">
+        <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Join a trip
       </button>
     </div>
   </div>
@@ -544,6 +575,36 @@ svg.lucide-2xl{width:28px;height:28px}
   </div>
 </div>
 
+<!-- SHARE MODAL -->
+<div class="overlay" id="shareOverlay" onclick="handleShareOverlay(event)">
+  <div class="modal" style="max-width:380px">
+    <h2>Share this trip</h2>
+    <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Give this code to your travel partner. They open Packly and tap <strong>Join a trip</strong>.</p>
+    <div class="share-code-box" id="shareCodeBox"></div>
+    <div class="modal-footer" style="flex-direction:column;gap:10px;margin-top:20px">
+      <button class="btn-save" style="width:100%" id="copyCodeBtn" onclick="copyShareCode()">Copy code</button>
+      <button class="btn-cancel" style="width:100%;text-align:center" onclick="closeShareModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOIN MODAL -->
+<div class="overlay" id="joinOverlay" onclick="handleJoinOverlay(event)">
+  <div class="modal" style="max-width:380px">
+    <h2>Join a trip</h2>
+    <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Enter the 6-character code from your travel partner.</p>
+    <div class="field">
+      <label>Trip code</label>
+      <input id="joinCodeInput" class="join-code-input" placeholder="ABC123" maxlength="6" autocomplete="off">
+    </div>
+    <p id="joinError" style="font-size:13px;color:var(--red);min-height:18px;margin-bottom:8px"></p>
+    <button class="btn-save" style="width:100%;min-height:50px" id="joinSubmitBtn" onclick="handleJoinSubmit()">Join trip</button>
+    <div class="modal-footer" style="justify-content:center;margin-top:8px">
+      <button class="btn-cancel" onclick="closeJoinModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM MODAL -->
 <div class="overlay" id="confirmOverlay">
   <div class="modal confirm-modal">
@@ -596,6 +657,8 @@ const IC = {
   star:        SVG('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'),
   tree:        SVG('<path d="M17 14l3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3A1 1 0 0 1 15.2 9H15l3 3.3a1 1 0 0 1-.7 1.7H17z"/><line x1="12" y1="22" x2="12" y2="17"/>'),
   car:         SVG('<path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>'),
+  share:       SVG('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>'),
+  users:       SVG('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
   // Category icons
   idCard:      SVG('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h0M2 9.5h20"/><circle cx="7" cy="12" r="1"/>'),
   shirt:       SVG('<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/>'),
@@ -648,28 +711,54 @@ async function cloudSync(data){
   try{
     const{data:{user}}=await sb.auth.getUser();
     if(!user)return;
-    await sb.from('user_data').upsert({user_id:user.id,trips:data,updated_at:new Date().toISOString()});
+    // Personal trips → user_data blob
+    const personal=data.filter(t=>!t.sharedTripId);
+    await sb.from('user_data').upsert({user_id:user.id,trips:personal,updated_at:new Date().toISOString()});
+    // Shared trips → update their row in shared_trips
+    const shared=data.filter(t=>t.sharedTripId);
+    for(const trip of shared){
+      await sb.from('shared_trips').update({data:trip,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
+    }
   }catch(e){console.warn('Sync error',e);}
 }
 
+async function loadSharedTrips(){
+  try{
+    const{data:accessRows}=await sb.from('trip_access').select('trip_id');
+    if(!accessRows?.length)return[];
+    const ids=accessRows.map(r=>r.trip_id);
+    const{data:rows}=await sb.from('shared_trips').select('id,data').in('id',ids);
+    return(rows||[]).map(r=>({...r.data,sharedTripId:r.id,isShared:true}));
+  }catch(e){console.warn('Shared trips load error',e);return[];}
+}
+
 /* ── Auth helpers ── */
+let _currentUserId=null;
+
 async function onSignedIn(user){
+  _currentUserId=user.id;
   document.getElementById('userEmail').textContent=user.email;
   document.getElementById('userPill').style.display='inline-flex';
   document.getElementById('authOverlay').classList.remove('open');
-  // Load cloud data
-  const{data,error}=await sb.from('user_data').select('trips').eq('user_id',user.id).single();
+  // Load personal trips
+  const{data}=await sb.from('user_data').select('trips').eq('user_id',user.id).single();
+  let personal=[];
   if(data?.trips?.length>0){
-    saveLocalOnly(data.trips);trips=data.trips;
+    personal=data.trips;
   } else {
-    const local=loadAll();
-    if(local.length>0)await cloudSync(local);
-    trips=loadAll();
+    const local=loadAll().filter(t=>!t.sharedTripId);
+    if(local.length>0)await sb.from('user_data').upsert({user_id:user.id,trips:local,updated_at:new Date().toISOString()});
+    personal=local;
   }
+  // Load shared trips
+  const shared=await loadSharedTrips();
+  trips=[...personal,...shared];
+  saveLocalOnly(trips);
   showTrips();
 }
 
 function onSignedOut(){
+  _currentUserId=null;
   document.getElementById('userPill').style.display='none';
   document.getElementById('authOverlay').classList.add('open');
   trips=[];
@@ -841,14 +930,17 @@ function renderTrips(){
     card.className='trip-card';
     card.style.animationDelay=i*40+'ms';
     const cd=tripCountdown(t.dateFrom);
+    const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave trip':'Delete';
     card.innerHTML=`
       <div class="trip-card-top">
         <span class="trip-count-badge">${done}/${total}</span>
       </div>
       <div class="trip-card-menu">
+        <button class="ic-btn" title="Share" id="share-${t.id}">${svgStr('share')}</button>
         <button class="ic-btn" title="Edit" id="edit-${t.id}">${svgStr('pen')}</button>
-        <button class="ic-btn del" title="Delete" id="del-${t.id}">${svgStr('trash')}</button>
+        <button class="ic-btn del" title="${delTitle}" id="del-${t.id}">${svgStr('trash')}</button>
       </div>
+      ${t.isShared?`<div class="shared-badge">${svgStr('users')} Shared trip</div>`:''}
       <div class="trip-name">${esc(t.name)}</div>
       <div class="trip-dates">${svgStr('calendar')} ${esc(t.dates||'No dates set')}</div>
       ${cd?`<div class="trip-countdown ${cd.type}">${svgStr('clock')} ${cd.label}</div>`:''}
@@ -858,6 +950,7 @@ function renderTrips(){
       if(e.target.closest('.trip-card-menu'))return;
       showChecklist(t.id);
     };
+    card.querySelector(`#share-${t.id}`).onclick=e=>{e.stopPropagation();shareTrip(t.id);};
     card.querySelector(`#edit-${t.id}`).onclick=e=>{e.stopPropagation();openEditModal(t.id);};
     card.querySelector(`#del-${t.id}`).onclick=e=>{e.stopPropagation();deleteTrip(t.id);};
     grid.appendChild(card);
@@ -884,8 +977,24 @@ function stats(trip){
 
 window.deleteTrip=function(id){
   const t=trips.find(x=>x.id===id);if(!t)return;
+  if(t.isShared){
+    const isOwner=t.ownerId&&t.ownerId===_currentUserId;
+    if(isOwner){
+      confirmDelete('Delete shared trip?',`"${t.name}" will be deleted for all travelers.`,async()=>{
+        await sb.from('shared_trips').delete().eq('id',t.sharedTripId);
+        trips=trips.filter(x=>x.id!==id);saveLocalOnly(trips);renderTrips();
+      });
+    } else {
+      confirmDelete('Leave trip?',`You'll be removed from "${t.name}". The trip continues for your travel partner.`,async()=>{
+        const{data:{user}}=await sb.auth.getUser();
+        if(user)await sb.from('trip_access').delete().eq('trip_id',t.sharedTripId).eq('user_id',user.id);
+        trips=trips.filter(x=>x.id!==id);saveLocalOnly(trips);renderTrips();
+      });
+    }
+    return;
+  }
   confirmDelete('Delete trip?', `"${t.name}" and all its items will be permanently removed.`, ()=>{
-    trips=trips.filter(t=>t.id!==id);
+    trips=trips.filter(x=>x.id!==id);
     saveAll(trips);renderTrips();
   });
 };
@@ -965,10 +1074,19 @@ window.saveTrip=function(){
 document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('mDateFrom').focus();});
 
 /* ── CHECKLIST VIEW ── */
-function showChecklist(id){
+async function showChecklist(id){
   activeId=id;
   document.getElementById('tripsView').classList.remove('active');
   document.getElementById('checklistView').classList.add('active');
+  // For shared trips, always fetch latest from cloud
+  const trip=trips.find(t=>t.id===id);
+  if(trip?.sharedTripId){
+    const{data}=await sb.from('shared_trips').select('data').eq('id',trip.sharedTripId).single();
+    if(data?.data){
+      const idx=trips.findIndex(t=>t.id===id);
+      if(idx!==-1){trips[idx]={...data.data,sharedTripId:trip.sharedTripId,isShared:true};saveLocalOnly(trips);}
+    }
+  }
   renderChecklist();
 }
 function getTrip(){return trips.find(t=>t.id===activeId);}
@@ -1251,6 +1369,80 @@ window.saveLuggage=function(){
   trip.travelers=luggageDraft.filter(t=>t.name||t.checkin||t.cabin||t.personal);
   saveAll(trips);closeLuggageModal();renderLuggageBar();
 };
+
+/* ── Share / Join ── */
+function generateShareCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+window.shareTrip=async function(tripId){
+  const trip=trips.find(t=>t.id===tripId);if(!trip)return;
+  // Already shared — just show the existing code
+  if(trip.shareCode){window.showShareModal(trip.shareCode);return;}
+  const{data:{user}}=await sb.auth.getUser();if(!user)return;
+  const code=generateShareCode();
+  trip.ownerId=user.id;trip.shareCode=code;
+  const{data,error}=await sb.from('shared_trips').insert({
+    share_code:code,data:trip,owner_id:user.id
+  }).select('id').single();
+  if(error){console.error('Share error:',error);alert('Could not share trip. Try again.');return;}
+  trip.sharedTripId=data.id;trip.isShared=true;
+  await sb.from('trip_access').insert({trip_id:data.id,user_id:user.id});
+  saveAll(trips);renderTrips();
+  window.showShareModal(code);
+};
+
+let _shareCode='';
+window.showShareModal=function(code){
+  _shareCode=code;
+  document.getElementById('shareCodeBox').textContent=code;
+  document.getElementById('copyCodeBtn').textContent='Copy code';
+  document.getElementById('shareOverlay').classList.add('open');
+};
+window.closeShareModal=function(){document.getElementById('shareOverlay').classList.remove('open');};
+window.handleShareOverlay=function(e){if(e.target===document.getElementById('shareOverlay'))closeShareModal();};
+window.copyShareCode=function(){
+  navigator.clipboard.writeText(_shareCode).then(()=>{
+    const btn=document.getElementById('copyCodeBtn');
+    btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent='Copy code',2000);
+  });
+};
+
+window.openJoinModal=function(){
+  document.getElementById('joinCodeInput').value='';
+  document.getElementById('joinError').textContent='';
+  document.getElementById('joinSubmitBtn').disabled=false;
+  document.getElementById('joinSubmitBtn').textContent='Join trip';
+  document.getElementById('joinOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('joinCodeInput').focus(),50);
+};
+window.closeJoinModal=function(){document.getElementById('joinOverlay').classList.remove('open');};
+window.handleJoinOverlay=function(e){if(e.target===document.getElementById('joinOverlay'))closeJoinModal();};
+window.handleJoinSubmit=async function(){
+  const code=document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  const errEl=document.getElementById('joinError');
+  const btn=document.getElementById('joinSubmitBtn');
+  errEl.textContent='';
+  if(code.length<6){errEl.textContent='Please enter the full 6-character code.';return;}
+  btn.disabled=true;btn.textContent='Joining…';
+  const{data,error}=await sb.rpc('join_shared_trip',{p_code:code});
+  btn.disabled=false;btn.textContent='Join trip';
+  if(error||data?.error){errEl.textContent=data?.error||error?.message||'Something went wrong.';return;}
+  // data = { id: uuid, data: trip object }
+  const exists=trips.find(t=>t.sharedTripId===data.id);
+  if(!exists){
+    trips.push({...data.data,sharedTripId:data.id,isShared:true});
+    saveLocalOnly(trips);
+  }
+  closeJoinModal();showTrips();
+};
+
+// Enter key in join modal
+setTimeout(()=>{
+  const ji=document.getElementById('joinCodeInput');
+  if(ji)ji.addEventListener('keydown',e=>{if(e.key==='Enter')handleJoinSubmit();});
+},0);
 
 /* ── INIT ── */
 // Listen for auth changes (login/logout)
