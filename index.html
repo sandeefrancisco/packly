@@ -446,6 +446,41 @@ svg.lucide-2xl{width:28px;height:28px}
 .tab-btn.active{color:var(--accent)}
 .tab-btn.active svg{stroke-width:2.5}
 
+/* ── Trash Sheet ── */
+.trash-sheet{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--white);border-radius:24px 24px 0 0;
+  padding:12px 24px calc(36px + env(safe-area-inset-bottom));
+  z-index:210;box-shadow:0 -8px 40px rgba(26,26,46,.14);
+  max-height:85vh;overflow-y:auto;
+  transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);
+}
+.trash-sheet.open{transform:translateY(0)}
+.trash-sheet-head{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:20px}
+.trash-item{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 0;border-bottom:1px solid var(--border);
+}
+.trash-item:last-child{border-bottom:none}
+.trash-item-icon{width:40px;height:40px;border-radius:12px;background:var(--tint);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.trash-item-info{flex:1;min-width:0}
+.trash-item-name{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trash-item-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.trash-item-actions{display:flex;gap:8px;flex-shrink:0}
+.btn-restore{padding:7px 14px;border-radius:99px;border:1.5px solid var(--accent);background:none;font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;transition:all .12s;white-space:nowrap}
+.btn-restore:hover{background:var(--accent);color:#fff}
+.btn-perm-del{width:32px;height:32px;border:none;background:none;color:var(--muted);cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0}
+.btn-perm-del:hover{background:#FEE2E2;color:var(--red)}
+.btn-perm-del svg{width:16px;height:16px}
+.trash-empty{text-align:center;padding:48px 0 24px;color:var(--muted)}
+.trash-empty-icon{font-size:36px;margin-bottom:12px}
+.trash-empty p{font-size:15px}
+.sheet-action-badge{
+  margin-left:auto;background:#EF4444;color:#fff;
+  font-size:11px;font-weight:700;padding:2px 7px;
+  border-radius:99px;min-width:20px;text-align:center;
+}
+
 /* ── Account Sheet ── */
 .sheet-overlay{
   display:none;position:fixed;inset:0;
@@ -646,10 +681,22 @@ svg.lucide-2xl{width:28px;height:28px}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
     Check for updates
   </button>
+  <button class="sheet-action" onclick="closeAccountSheet();openTrashSheet()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Recently deleted<span class="sheet-action-badge" id="trashBadge" style="display:none"></span>
+  </button>
   <button class="sheet-action danger" onclick="signOut()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     Sign out
   </button>
+</div>
+
+<!-- TRASH SHEET -->
+<div class="sheet-overlay" id="trashOverlay" onclick="closeTrashSheet()"></div>
+<div class="trash-sheet" id="trashSheet">
+  <div class="sheet-handle"></div>
+  <div class="trash-sheet-head">Recently deleted</div>
+  <div id="trashList"></div>
 </div>
 
 <!-- AUTH OVERLAY -->
@@ -812,7 +859,10 @@ function confirmDelete(title, msg, onConfirm){
 
 /* ── Storage ── */
 const STORE='packly-v1';
+const TRASH_STORE='packly-trash-v1';
 const loadAll=()=>{try{return JSON.parse(localStorage.getItem(STORE))||[];}catch(e){return[];}};
+const loadTrash=()=>{try{return JSON.parse(localStorage.getItem(TRASH_STORE))||[];}catch(e){return[];}};
+const saveTrash=t=>localStorage.setItem(TRASH_STORE,JSON.stringify(t));
 // Always deduplicate by trip.id before saving — shared copy wins over personal copy
 const dedup=d=>{const m=new Map();d.forEach(t=>m.set(t.id,t));return[...m.values()];};
 const saveLocalOnly=d=>localStorage.setItem(STORE,JSON.stringify(dedup(d)));
@@ -825,9 +875,10 @@ async function cloudSync(data){
   try{
     const{data:{user}}=await sb.auth.getUser();
     if(!user)return;
-    // Personal trips → user_data blob
+    // Personal trips → user_data blob (include deleted_trips for recovery)
     const personal=data.filter(t=>!t.sharedTripId);
-    await sb.from('user_data').upsert({user_id:user.id,trips:personal,updated_at:new Date().toISOString()});
+    const deleted_trips=loadTrash();
+    await sb.from('user_data').upsert({user_id:user.id,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
     // Shared trips → update their row in shared_trips (tag with who changed it)
     const shared=data.filter(t=>t.sharedTripId);
     for(const trip of shared){
@@ -835,6 +886,15 @@ async function cloudSync(data){
       await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
     }
   }catch(e){console.warn('Sync error',e);}
+}
+
+async function syncTrashToCloud(){
+  try{
+    const{data:{user}}=await sb.auth.getUser();
+    if(!user)return;
+    const personal=trips.filter(t=>!t.sharedTripId);
+    await sb.from('user_data').upsert({user_id:user.id,deleted_trips:loadTrash(),trips:personal,updated_at:new Date().toISOString()});
+  }catch(e){console.warn('Trash sync error',e);}
 }
 
 async function loadSharedTrips(){
@@ -854,8 +914,9 @@ async function onSignedIn(user){
   _currentUserId=user.id;
   document.getElementById('sheetEmail').textContent=user.email;
   document.getElementById('authOverlay').classList.remove('open');
-  // Load personal trips
-  const{data}=await sb.from('user_data').select('trips').eq('user_id',user.id).single();
+  // Load personal trips (and restore trash from cloud)
+  const{data}=await sb.from('user_data').select('trips,deleted_trips').eq('user_id',user.id).single();
+  if(data?.deleted_trips?.length>0){saveTrash(data.deleted_trips);}
   let personal=[];
   if(data?.trips?.length>0){
     personal=data.trips;
@@ -873,6 +934,7 @@ async function onSignedIn(user){
   saveLocalOnly(trips);
   showTrips();
   subscribeToSharedTrips();
+  updateTrashBadge();
 }
 
 function onSignedOut(){
@@ -1079,6 +1141,86 @@ function renderTrips(){
   });
 }
 
+/* ── Trash / Recently Deleted ── */
+const TRASH_DAYS=30;
+
+function updateTrashBadge(){
+  const trash=loadTrash().filter(t=>Date.now()-t.deletedAt<TRASH_DAYS*864e5);
+  const badge=document.getElementById('trashBadge');
+  if(!badge)return;
+  if(trash.length>0){badge.textContent=trash.length;badge.style.display='';}
+  else{badge.style.display='none';}
+}
+
+window.openTrashSheet=function(){
+  updateTrashBadge();
+  renderTrashSheet();
+  document.getElementById('trashOverlay').classList.add('open');
+  document.getElementById('trashSheet').classList.add('open');
+};
+window.closeTrashSheet=function(){
+  document.getElementById('trashOverlay').classList.remove('open');
+  document.getElementById('trashSheet').classList.remove('open');
+};
+
+function renderTrashSheet(){
+  const all=loadTrash();
+  // Filter to within 30 days and prune expired
+  const valid=all.filter(t=>Date.now()-t.deletedAt<TRASH_DAYS*864e5);
+  if(valid.length!==all.length){saveTrash(valid);syncTrashToCloud();}
+  const el=document.getElementById('trashList');
+  if(!valid.length){
+    el.innerHTML=`<div class="trash-empty"><div class="trash-empty-icon">🗑️</div><p>No recently deleted trips</p></div>`;
+    return;
+  }
+  el.innerHTML=valid.map(t=>{
+    const daysAgo=Math.floor((Date.now()-t.deletedAt)/864e5);
+    const daysLeft=TRASH_DAYS-daysAgo;
+    const label=daysAgo===0?'Deleted today':`Deleted ${daysAgo} day${daysAgo!==1?'s':''} ago`;
+    const expiry=`${daysLeft} day${daysLeft!==1?'s':''} left to restore`;
+    const icon=t.icon||'✈️';
+    const {total,done}=stats(t);
+    return`<div class="trash-item">
+      <div class="trash-item-icon">${icon}</div>
+      <div class="trash-item-info">
+        <div class="trash-item-name">${esc(t.name)}</div>
+        <div class="trash-item-meta">${label} · ${expiry} · ${total} items</div>
+      </div>
+      <div class="trash-item-actions">
+        <button class="btn-restore" onclick="restoreTrip('${t.id}')">Restore</button>
+        <button class="btn-perm-del" title="Delete forever" onclick="permanentDelete('${t.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.restoreTrip=function(id){
+  const trash=loadTrash();
+  const idx=trash.findIndex(t=>t.id===id);
+  if(idx===-1)return;
+  const[restored]=trash.splice(idx,1);
+  delete restored.deletedAt;
+  saveTrash(trash);
+  trips=dedup([...trips,restored]);
+  saveAll(trips);
+  updateTrashBadge();
+  renderTrashSheet();
+  renderTrips();
+  showToast('✓ Trip restored');
+};
+
+window.permanentDelete=function(id){
+  confirmDelete('Delete forever?','This trip and all its items will be permanently removed and cannot be recovered.',()=>{
+    const trash=loadTrash().filter(t=>t.id!==id);
+    saveTrash(trash);
+    updateTrashBadge();
+    renderTrashSheet();
+    syncTrashToCloud();
+  });
+};
+
 function tripCountdown(dateFrom){
   if(!dateFrom) return null;
   const today=new Date();today.setHours(0,0,0,0);
@@ -1115,9 +1257,14 @@ window.deleteTrip=function(id){
     }
     return;
   }
-  confirmDelete('Delete trip?', `"${t.name}" and all its items will be permanently removed.`, ()=>{
+  confirmDelete('Delete trip?', `"${t.name}" will be moved to Recently deleted for 30 days.`, ()=>{
     trips=trips.filter(x=>x.id!==id);
+    const trash=loadTrash();
+    trash.unshift({...t,deletedAt:Date.now()});
+    saveTrash(trash);
+    updateTrashBadge();
     saveAll(trips);renderTrips();
+    syncTrashToCloud();
   });
 };
 
@@ -1525,6 +1672,7 @@ window.handleSharePickerOverlay=function(e){if(e.target===document.getElementByI
 
 /* ── Account Sheet ── */
 window.openAccountSheet=function(){
+  updateTrashBadge();
   document.getElementById('accountSheet').classList.add('open');
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById('tabAccount').classList.add('active');
