@@ -1403,6 +1403,7 @@ let luggageDraft=[];
 /* ── TRIPS VIEW ── */
 // Pure visual — no history manipulation. Call this from popstate too.
 function _doShowTrips(){
+  stopSharedTripPolling();
   trips=loadAll();
   document.getElementById('navStack').classList.remove('pushed');
   document.getElementById('tabTrips')?.classList.add('active');
@@ -1668,6 +1669,7 @@ async function showChecklist(id){
   document.getElementById('navStack').classList.add('pushed');
   // Push a history entry so the native back button returns to trips list
   history.pushState({packly:'checklist',tripId:id},'');
+  startSharedTripPolling(id);
   document.getElementById('tabTrips')?.classList.remove('active');
   document.getElementById('tabAccount')?.classList.remove('active');
   // For shared trips, always fetch latest from cloud
@@ -2133,37 +2135,66 @@ function subscribeToSharedTrips(){
   if(_realtimeChannel){sb.removeChannel(_realtimeChannel);_realtimeChannel=null;}
   const shared=trips.filter(t=>t.sharedTripId);
   if(!shared.length)return;
-  _realtimeChannel=sb.channel('packly-collab-'+Date.now());
-  shared.forEach(trip=>{
-    _realtimeChannel.on('postgres_changes',{
-      event:'UPDATE',schema:'public',table:'shared_trips',
-      filter:`id=eq.${trip.sharedTripId}`
-    },(payload)=>{
-      const updated=payload.new?.data;
-      if(!updated)return;
-      // Ignore my own changes
-      if(updated.lastModifiedBy===_currentUserId)return;
-      // Overwrite in-place by trip.id (handles any stale duplicates too)
-      const incoming={...updated,sharedTripId:payload.new.id,isShared:true};
-      const existing=trips.findIndex(t=>t.id===incoming.id);
-      if(existing!==-1) trips[existing]=incoming;
-      else trips.push(incoming);
-      trips=dedup(trips);
-      saveLocalOnly(trips);
-      renderTrips();
-      // Flag that cloud has updates newer than last sync
-      const badge=document.getElementById('updatesBadge');
-      if(badge)badge.style.display='';
-      // If currently viewing this trip, refresh silently
-      if(activeId===trip.id){
-        renderChecklist();
-        showToast('✓ Trip synced — co-traveler made changes');
-      } else {
-        showToast(`✈️ ${trip.name} — your co-traveler made changes`);
-      }
-    });
+  // Listen for ALL updates on shared_trips — no row-level filter because
+  // filter:`id=eq.UUID` requires REPLICA IDENTITY FULL on the table and
+  // silently delivers zero events without it. Filter client-side instead.
+  _realtimeChannel=sb.channel('packly-shared-'+_currentUserId);
+  _realtimeChannel.on('postgres_changes',{
+    event:'UPDATE',schema:'public',table:'shared_trips'
+  },(payload)=>{
+    const sharedId=payload.new?.id;
+    const ourTrip=trips.find(t=>t.sharedTripId===sharedId);
+    if(!ourTrip)return; // not a trip we're part of
+    const updated=payload.new?.data;
+    if(!updated)return;
+    // Ignore our own saves
+    if(updated.lastModifiedBy===_currentUserId)return;
+    const incoming={...updated,sharedTripId:sharedId,isShared:true};
+    const idx=trips.findIndex(t=>t.id===incoming.id);
+    if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
+    trips=dedup(trips);
+    saveLocalOnly(trips);
+    renderTrips();
+    if(activeId===ourTrip.id){
+      renderChecklist();
+      showToast('✓ Trip synced — co-traveler made changes');
+    } else {
+      showToast(`✈️ ${ourTrip.name} — your co-traveler made changes`);
+    }
   });
   _realtimeChannel.subscribe();
+}
+
+/* ── Poll for shared-trip updates while checklist is open ── */
+let _sharedTripPoller=null;
+let _polledUpdatedAt=null;
+function startSharedTripPolling(tripId){
+  stopSharedTripPolling();
+  const trip=trips.find(t=>t.id===tripId);
+  if(!trip?.sharedTripId||!_currentUserId)return;
+  const sid=trip.sharedTripId;
+  _polledUpdatedAt=null;
+  _sharedTripPoller=setInterval(async()=>{
+    try{
+      const{data}=await sb.from('shared_trips')
+        .select('data,updated_at').eq('id',sid).single();
+      if(!data)return;
+      // Skip if we haven't received anything newer
+      if(_polledUpdatedAt&&data.updated_at<=_polledUpdatedAt)return;
+      _polledUpdatedAt=data.updated_at;
+      // Skip if this is our own last save
+      if(data.data?.lastModifiedBy===_currentUserId)return;
+      const incoming={...data.data,sharedTripId:sid,isShared:true};
+      const idx=trips.findIndex(t=>t.id===incoming.id);
+      if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
+      trips=dedup(trips);
+      saveLocalOnly(trips);
+      if(activeId===tripId) renderChecklist();
+    }catch(_){}
+  },5000);
+}
+function stopSharedTripPolling(){
+  if(_sharedTripPoller){clearInterval(_sharedTripPoller);_sharedTripPoller=null;}
 }
 
 /* ── INIT ── */
