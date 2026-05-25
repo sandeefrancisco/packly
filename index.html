@@ -70,7 +70,7 @@ svg.lucide-xl{width:24px;height:24px}
 svg.lucide-2xl{width:28px;height:28px}
 
 /* ── TRIPS VIEW ── */
-#tripsView{max-width:780px;margin:0 auto;padding:52px 32px calc(88px + env(safe-area-inset-bottom))}
+#tripsView{max-width:780px;margin:0 auto;padding:52px 32px calc(104px + env(safe-area-inset-bottom))}
 
 .top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:56px}
 .brand-pill{
@@ -149,7 +149,7 @@ svg.lucide-2xl{width:28px;height:28px}
 /* ── CHECKLIST VIEW ── */
 #checklistView{
   max-width:680px;margin:0 auto;
-  padding:0 32px calc(100px + env(safe-area-inset-bottom));
+  padding:0 32px calc(116px + env(safe-area-inset-bottom));
   height:100vh;overflow-y:auto;overflow-x:hidden;
   /* sticky nav works relative to this scroll container */
 }
@@ -226,7 +226,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .section-label:hover{background:var(--tint)}
 .section-label.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
-.section-label-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.section-label-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden}
 
 .section-icon-bubble{
   width:36px;height:36px;border-radius:10px;
@@ -234,9 +234,9 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;justify-content:center;
   color:#4A4870;flex-shrink:0;
 }
-.section-title{font-size:18px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.section-label-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.section-count-badge{font-size:13px;font-weight:600;color:#4A4769}
+.section-title{font-size:18px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.section-label-right{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:8px}
+.section-count-badge{font-size:13px;font-weight:600;color:#4A4769;margin-right:2px}
 .section-del-btn{
   border:none;background:none;color:#6B6888;
   cursor:pointer;padding:4px;border-radius:8px;
@@ -273,8 +273,8 @@ svg.lucide-2xl{width:28px;height:28px}
 .long-press-ready .drag-handle{
   width:28px;padding:4px 6px;opacity:.7;
 }
-/* Desktop hover — sections only, still no item indentation */
-@media(hover:hover){
+/* Desktop mouse hover only — pointer:fine excludes touch so tap never triggers the width animation */
+@media(pointer:fine){
   .section-label:hover .drag-handle{width:28px;padding:4px 6px;opacity:.5;}
 }
 .section.is-dragging,.item-row.is-dragging{opacity:.2;pointer-events:none}
@@ -528,15 +528,17 @@ svg.lucide-2xl{width:28px;height:28px}
 /* ── Bottom Nav ── */
 .bottom-nav{
   position:fixed;bottom:0;left:0;right:0;
-  height:60px;background:var(--white);border-top:1px solid var(--border);
-  display:flex;align-items:stretch;z-index:100;
-  padding-bottom:env(safe-area-inset-bottom);
+  background:var(--white);border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;z-index:100;
+  padding-top:10px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom));
 }
 .tab-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;border:none;background:none;color:var(--muted);
+  gap:4px;border:none;background:none;color:var(--muted);
   font-family:'Figtree',sans-serif;font-size:11px;font-weight:600;
   cursor:pointer;transition:color .12s;
+  padding:0 8px;min-height:44px;
 }
 .tab-btn svg{width:22px;height:22px;stroke-width:2;transition:stroke-width .12s}
 .tab-btn.active{color:var(--accent)}
@@ -613,8 +615,8 @@ svg.lucide-2xl{width:28px;height:28px}
 .sheet-action.danger svg{color:var(--red)}
 
 @media(max-width:600px){
-  #tripsView{padding:32px 20px calc(80px + env(safe-area-inset-bottom))}
-  #checklistView{padding:28px 16px calc(100px + env(safe-area-inset-bottom))}
+  #tripsView{padding:32px 20px calc(104px + env(safe-area-inset-bottom))}
+  #checklistView{padding:28px 16px calc(116px + env(safe-area-inset-bottom))}
   .hero-title{font-size:38px;letter-spacing:-1.5px}
   .traveler-fields{grid-template-columns:1fr 1fr}
   .modal{padding:12px 20px calc(36px + env(safe-area-inset-bottom))}
@@ -1680,22 +1682,22 @@ function buildSection(sec){
   handle.innerHTML=svgStr('grip','lucide');
   handle.onclick=e=>e.stopPropagation();
   // long press anywhere on header activates drag
-  addLongPress(lbl,'section',wrap,'.section-del-btn,.chevron');
+  addLongPress(lbl,'section',wrap,'.section-del-btn');
 
   // icon + title
   const left=document.createElement('div');
   left.className='section-label-left';
   left.innerHTML=`
     <div class="section-icon-bubble">${svgStr(sec.iconKey||'list','lucide')}</div>
-    <span class="section-title">${esc(sec.name)}</span>`;
+    <span class="section-title">${esc(sec.name)}</span>
+    <span class="chevron${isOpen?' open':''}">${svgStr('chevDown','lucide')}</span>`;
 
-  // right: count + delete + chevron
+  // right: count + delete (chevron moved next to title)
   const right=document.createElement('div');
   right.className='section-label-right';
   right.innerHTML=`
     <span class="section-count-badge">${doneC}/${sec.items.length}</span>
-    <button class="section-del-btn" title="Delete category">${svgStr('trash')}</button>
-    <span class="chevron${isOpen?' open':''}">${svgStr('chevDown','lucide')}</span>`;
+    <button class="section-del-btn" title="Delete category">${svgStr('trash')}</button>`;
 
   right.querySelector('.section-del-btn').onclick=e=>{
     e.stopPropagation();
