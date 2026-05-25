@@ -395,6 +395,19 @@ svg.lucide-2xl{width:28px;height:28px}
   font-size:22px!important;text-align:center;font-weight:700;
 }
 .hero-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.share-trip-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);
+  background:var(--tint);cursor:pointer;transition:all .12s;gap:12px;
+}
+.share-trip-row:hover{border-color:var(--accent);background:var(--white)}
+.share-trip-row-name{font-size:15px;font-weight:700;color:var(--ink)}
+.share-trip-row-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.share-trip-row-badge{
+  font-size:12px;font-weight:700;color:#7C3AED;
+  background:#EDE9FE;padding:4px 10px;border-radius:99px;
+  white-space:nowrap;flex-shrink:0;letter-spacing:2px;
+}
 .btn-secondary{
   display:inline-flex;align-items:center;gap:10px;
   padding:13px 26px;background:var(--white);color:var(--ink);
@@ -609,6 +622,10 @@ svg.lucide-2xl{width:28px;height:28px}
       <div class="sheet-user-label">Signed in to Packly</div>
     </div>
   </div>
+  <button class="sheet-action" onclick="closeAccountSheet();openSharePickerModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+    Share a trip — get code
+  </button>
   <button class="sheet-action" onclick="closeAccountSheet();openJoinModal()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     Join a trip with code
@@ -643,6 +660,18 @@ svg.lucide-2xl{width:28px;height:28px}
     <p id="authError" class="auth-error"></p>
     <button class="btn-save" style="width:100%;min-height:50px;font-size:16px" id="authSubmitBtn" onclick="handleAuthSubmit()">Sign in</button>
     <p class="auth-switch">Don't have an account? <button id="authToggle" onclick="toggleAuthMode()">Sign up</button></p>
+  </div>
+</div>
+
+<!-- SHARE PICKER MODAL -->
+<div class="overlay" id="sharePickerOverlay" onclick="handleSharePickerOverlay(event)">
+  <div class="modal" style="max-width:400px">
+    <h2>Share a trip</h2>
+    <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Pick which trip to share — your travel partner will enter the code to join.</p>
+    <div id="sharePickerList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="modal-footer" style="justify-content:center;margin-top:20px">
+      <button class="btn-cancel" onclick="closeSharePickerModal()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1444,6 +1473,32 @@ window.saveLuggage=function(){
   trip.travelers=luggageDraft.filter(t=>t.name||t.checkin||t.cabin||t.personal);
   saveAll(trips);closeLuggageModal();renderLuggageBar();
 };
+
+/* ── Share Picker ── */
+window.openSharePickerModal=function(){
+  const list=document.getElementById('sharePickerList');
+  list.innerHTML='';
+  const myTrips=trips.filter(t=>!t.isShared||t.ownerId===_currentUserId);
+  if(!myTrips.length){
+    list.innerHTML=`<p style="color:var(--muted);font-size:15px;text-align:center;padding:16px 0">No trips yet — create one first!</p>`;
+  } else {
+    myTrips.forEach(t=>{
+      const row=document.createElement('div');
+      row.className='share-trip-row';
+      row.innerHTML=`
+        <div>
+          <div class="share-trip-row-name">${esc(t.name)}</div>
+          <div class="share-trip-row-sub">${t.shareCode?'Already shared — tap to see code':'Tap to generate a share code'}</div>
+        </div>
+        ${t.shareCode?`<span class="share-trip-row-badge">${t.shareCode}</span>`:'<svg style="width:18px;height:18px;color:var(--muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>'}`;
+      row.onclick=()=>{closeSharePickerModal();shareTrip(t.id);};
+      list.appendChild(row);
+    });
+  }
+  document.getElementById('sharePickerOverlay').classList.add('open');
+};
+window.closeSharePickerModal=function(){document.getElementById('sharePickerOverlay').classList.remove('open');};
+window.handleSharePickerOverlay=function(e){if(e.target===document.getElementById('sharePickerOverlay'))closeSharePickerModal();};
 
 /* ── Account Sheet ── */
 window.openAccountSheet=function(){
