@@ -710,7 +710,7 @@ svg.lucide-2xl{width:28px;height:28px}
   </button>
   <button class="sheet-action" onclick="handleRefresh()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-    Check for updates
+    Check for updates<span class="sheet-action-badge" id="updatesBadge" style="display:none">!</span>
   </button>
   <button class="sheet-action" onclick="closeAccountSheet();openTrashSheet()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -891,6 +891,7 @@ function confirmDelete(title, msg, onConfirm){
 /* ── Storage ── */
 const STORE='packly-v1';
 const TRASH_STORE='packly-trash-v1';
+const SYNC_KEY='packly-last-sync';
 const loadAll=()=>{try{return JSON.parse(localStorage.getItem(STORE))||[];}catch(e){return[];}};
 const loadTrash=()=>{try{return JSON.parse(localStorage.getItem(TRASH_STORE))||[];}catch(e){return[];}};
 const saveTrash=t=>localStorage.setItem(TRASH_STORE,JSON.stringify(t));
@@ -963,6 +964,7 @@ async function onSignedIn(user){
   shared.forEach(t=>byId.set(t.id,t));
   trips=[...byId.values()];
   saveLocalOnly(trips);
+  localStorage.setItem(SYNC_KEY, new Date().toISOString());
   showTrips();
   subscribeToSharedTrips();
   updateTrashBadge();
@@ -1704,6 +1706,7 @@ window.handleSharePickerOverlay=function(e){if(e.target===document.getElementByI
 /* ── Account Sheet ── */
 window.openAccountSheet=function(){
   updateTrashBadge();
+  checkForUpdates();
   document.getElementById('accountSheet').classList.add('open');
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById('tabAccount').classList.add('active');
@@ -1713,7 +1716,33 @@ window.closeAccountSheet=function(){
   document.getElementById('sheetOverlay').classList.remove('open');
   document.getElementById('tabAccount').classList.remove('active');
 };
+/* ── Update badge ── */
+async function checkForUpdates(){
+  const badge=document.getElementById('updatesBadge');
+  if(!badge)return;
+  try{
+    const{data:{user}}=await sb.auth.getUser();
+    if(!user)return;
+    const lastSync=localStorage.getItem(SYNC_KEY)||'1970-01-01T00:00:00Z';
+    // Check user_data updated_at
+    const{data:ud}=await sb.from('user_data').select('updated_at').eq('user_id',user.id).single();
+    // Check any shared trip updated_at
+    const{data:access}=await sb.from('trip_access').select('trip_id');
+    let sharedNewer=false;
+    if(access?.length){
+      const ids=access.map(r=>r.trip_id);
+      const{data:rows}=await sb.from('shared_trips').select('updated_at').in('id',ids);
+      sharedNewer=(rows||[]).some(r=>r.updated_at>lastSync);
+    }
+    const hasUpdates=(ud?.updated_at&&ud.updated_at>lastSync)||sharedNewer;
+    badge.style.display=hasUpdates?'':'none';
+  }catch(e){/* silent */}
+}
+
 window.handleRefresh=function(){
+  localStorage.setItem(SYNC_KEY, new Date().toISOString());
+  const badge=document.getElementById('updatesBadge');
+  if(badge)badge.style.display='none';
   closeAccountSheet();
   setTimeout(()=>location.reload(),200);
 };
@@ -1835,9 +1864,12 @@ function subscribeToSharedTrips(){
       const existing=trips.findIndex(t=>t.id===incoming.id);
       if(existing!==-1) trips[existing]=incoming;
       else trips.push(incoming);
-      trips=dedup(trips); // collapse any residual duplicates
+      trips=dedup(trips);
       saveLocalOnly(trips);
       renderTrips();
+      // Flag that cloud has updates newer than last sync
+      const badge=document.getElementById('updatesBadge');
+      if(badge)badge.style.display='';
       // If currently viewing this trip, refresh silently
       if(activeId===trip.id){
         renderChecklist();
