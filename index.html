@@ -1550,10 +1550,20 @@ window.showShareModal=function(code){
 window.closeShareModal=function(){document.getElementById('shareOverlay').classList.remove('open');};
 window.handleShareOverlay=function(e){if(e.target===document.getElementById('shareOverlay'))closeShareModal();};
 window.copyShareCode=function(){
-  navigator.clipboard.writeText(_shareCode).then(()=>{
-    const btn=document.getElementById('copyCodeBtn');
-    btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent='Copy code',2000);
-  });
+  const btn=document.getElementById('copyCodeBtn');
+  const done=()=>{btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent='Copy code',2000);};
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(_shareCode).then(done).catch(()=>fallbackCopy());
+  } else {
+    fallbackCopy();
+  }
+  function fallbackCopy(){
+    const ta=document.createElement('textarea');
+    ta.value=_shareCode;ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    try{document.execCommand('copy');done();}catch(e){btn.textContent=_shareCode;}
+    document.body.removeChild(ta);
+  }
 };
 
 window.openJoinModal=function(){
