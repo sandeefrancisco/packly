@@ -72,7 +72,8 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* card layout */
 .trip-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
-.trip-name{font-size:22px;font-weight:800;line-height:1.25;color:var(--ink);flex:1;min-width:0}
+.trip-name{font-size:22px;font-weight:800;line-height:1.25;color:var(--ink);flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+.lucide-trip-icon{width:22px;height:22px;flex-shrink:0;opacity:.7}
 .trip-card-actions{display:flex;gap:0;flex-shrink:0;margin:-6px -6px 0 0}
 .card-btn{
   width:36px;height:36px;border:none;background:none;color:#9896A8;
@@ -1249,7 +1250,7 @@ function renderTrips(){
     const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave':'Delete';
     card.innerHTML=`
       <div class="trip-card-header">
-        <div class="trip-name">${esc(t.name)}</div>
+        <div class="trip-name">${svgStr(t.iconKey||'globe','lucide lucide-trip-icon')} ${esc(t.name)}</div>
         <div class="trip-card-actions">
           <button class="card-btn" title="Share" id="share-${t.id}">${svgStr('share')}</button>
           <button class="card-btn" title="Edit" id="edit-${t.id}">${svgStr('pen')}</button>
