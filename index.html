@@ -1800,6 +1800,8 @@ function buildSection(sec){
   cfm.onclick=doAdd;
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')doAdd();});
   card.appendChild(addRow);
+  // Always render unchecked first, checked last
+  sec.items.sort((a,b)=>(a.done===b.done)?0:a.done?1:-1);
   sec.items.forEach(item=>card.appendChild(buildItemRow(item,sec)));
   body.appendChild(card);
   wrap.appendChild(body);
@@ -2040,6 +2042,7 @@ window.shareTrip=async function(tripId){
   trip.sharedTripId=data.id;trip.isShared=true;
   await sb.from('trip_access').insert({trip_id:data.id,user_id:user.id});
   saveAll(trips);renderTrips();
+  subscribeToSharedTrips(); // pick up realtime for newly shared trip
   window.showShareModal(code);
 };
 
@@ -2095,6 +2098,7 @@ window.handleJoinSubmit=async function(){
     trips.push({...data.data,sharedTripId:data.id,isShared:true});
     saveLocalOnly(trips);
   }
+  subscribeToSharedTrips(); // pick up realtime for newly joined trip
   closeJoinModal();showTrips();
 };
 
@@ -2283,6 +2287,35 @@ document.querySelectorAll('.overlay').forEach(overlay=>{
   const modal=overlay.querySelector('.modal');
   if(!modal)return;
   addSwipeDismiss(modal, ()=>overlay.classList.remove('open'), {onlyMobile:true, threshold:100});
+});
+
+/* ── Shared-trip refresh on tab focus ── */
+document.addEventListener('visibilitychange',async()=>{
+  if(document.hidden)return;
+  if(!_currentUserId)return;
+  const sharedTrips=trips.filter(t=>t.sharedTripId);
+  if(!sharedTrips.length)return;
+  try{
+    const ids=sharedTrips.map(t=>t.sharedTripId);
+    const{data:rows}=await sb.from('shared_trips').select('id,data').in('id',ids);
+    if(!rows?.length)return;
+    let changed=false;
+    rows.forEach(r=>{
+      if(!r.data)return;
+      const incoming={...r.data,sharedTripId:r.id,isShared:true};
+      const idx=trips.findIndex(t=>t.id===incoming.id);
+      if(idx!==-1){trips[idx]=incoming;changed=true;}
+      else{trips.push(incoming);changed=true;}
+    });
+    if(changed){
+      trips=dedup(trips);
+      saveLocalOnly(trips);
+      renderTrips();
+      if(activeId&&rows.some(r=>trips.find(t=>t.id===activeId&&t.sharedTripId===r.id))){
+        renderChecklist();
+      }
+    }
+  }catch(_){}
 });
 
 /* ── Auto-update: detect new deploy via ETag / Last-Modified ── */
