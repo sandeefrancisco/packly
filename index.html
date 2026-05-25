@@ -198,19 +198,46 @@ svg.lucide-2xl{width:28px;height:28px}
 .luggage-bar-summary{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
 .luggage-bar-chevron{color:var(--muted);flex-shrink:0}
 
-/* luggage sheet inner nav */
-/* Strip the modal's horizontal padding so overflow:hidden clips flush at the edge,
-   then each page adds its own horizontal padding */
-#luggageOverlay .modal{padding-left:0;padding-right:0}
-.lug-sheet-wrap{overflow:hidden;position:relative;width:100%}
-/* lug-inner is 200% wide; each page is 50% of that = 100% of the visible area */
-.lug-inner{display:flex;width:200%;transition:transform .26s cubic-bezier(.4,0,.2,1);will-change:transform}
+/* ── Luggage sheet — flex column so footer never gets pushed off-screen ── */
+/* Modal is a flex column: handle → lug-inner (grows to fill) */
+#luggageOverlay .modal{
+  padding:12px 0 0;          /* top for drag handle; no horizontal (pages add their own) */
+  overflow:hidden;           /* clip the second page horizontally */
+  display:flex;
+  flex-direction:column;
+}
+/* lug-sheet-wrap is the same element as .modal — position:relative still needed */
+.lug-sheet-wrap{position:relative;width:100%;}
+/* lug-inner fills the available height; contains both pages side-by-side */
+.lug-inner{
+  display:flex;width:200%;
+  flex:1;min-height:0;       /* flex:1 so it fills modal; min-height:0 lets it shrink */
+  transition:transform .26s cubic-bezier(.4,0,.2,1);will-change:transform;
+}
 .lug-inner.editing{transform:translateX(-50%)}
-.lug-page{flex:0 0 50%;min-width:0;box-sizing:border-box;padding:0 24px}
-@media(max-width:600px){.lug-page{padding:0 20px}}
+/* Each page is a flex column: optional fixed header + scrollable body + fixed footer */
+.lug-page{
+  flex:0 0 50%;min-width:0;box-sizing:border-box;padding:0;
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+}
+/* Scrollable content area */
+.lug-page-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding:0 24px 12px}
+/* Sticky footer — always visible at bottom of page */
+.lug-page-footer{
+  flex-shrink:0;
+  padding:12px 24px;
+  padding-bottom:max(12px, env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:10px;
+  background:var(--white);
+}
+@media(max-width:600px){
+  .lug-page-body{padding:0 20px 12px}
+  .lug-page-footer{padding:12px 20px;padding-bottom:max(12px, env(safe-area-inset-bottom))}
+}
 
-/* details page */
-.lug-detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+/* details page — head lives inside .lug-page-body which provides horizontal padding */
+.lug-detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-top:4px}
 .lug-detail-title{font-size:20px;font-weight:800;letter-spacing:-.3px;color:var(--ink)}
 .lug-traveler-item{padding:14px 0;border-bottom:1px solid var(--border)}
 .lug-traveler-item:last-child{border-bottom:none}
@@ -225,8 +252,15 @@ svg.lucide-2xl{width:28px;height:28px}
 .kg-chip .kv{font-weight:600}
 .lug-empty{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px;padding:8px 0}
 
-/* edit page */
-.lug-edit-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+/* edit page — head is OUTSIDE the scroll body, so it needs its own padding */
+.lug-edit-head{
+  display:flex;align-items:center;gap:10px;
+  flex-shrink:0;
+  padding:4px 24px 14px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:0;
+}
+@media(max-width:600px){.lug-edit-head{padding:4px 20px 14px}}
 .btn-lug-back{border:none;background:none;color:var(--accent);font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px}
 .lug-edit-title{font-size:18px;font-weight:800;color:var(--ink);flex:1}
 .btn-ghost-sm{
@@ -870,17 +904,20 @@ svg.lucide-2xl{width:28px;height:28px}
     <div class="lug-inner" id="lugInner">
       <!-- Page 1: Details -->
       <div class="lug-page" id="lugDetailPage">
-        <div class="lug-detail-head">
-          <span class="lug-detail-title">Luggage allowances</span>
-          <button class="btn-ghost-sm" onclick="lugGoEdit()">Edit</button>
+        <div class="lug-page-body">
+          <div class="lug-detail-head">
+            <span class="lug-detail-title">Luggage allowances</span>
+            <button class="btn-ghost-sm" onclick="lugGoEdit()">Edit</button>
+          </div>
+          <div id="lugDetailList"></div>
         </div>
-        <div id="lugDetailList"></div>
-        <div class="modal-footer" style="margin-top:16px">
+        <div class="lug-page-footer">
           <button class="btn-cancel" onclick="closeLuggageModal()">Done</button>
         </div>
       </div>
       <!-- Page 2: Edit -->
       <div class="lug-page" id="lugEditPage">
+        <!-- Header fixed outside scroll area -->
         <div class="lug-edit-head">
           <button class="btn-lug-back" onclick="lugGoDetails()">
             <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -888,12 +925,16 @@ svg.lucide-2xl{width:28px;height:28px}
           </button>
           <span class="lug-edit-title">Edit allowances</span>
         </div>
-        <div id="travelerList"></div>
-        <button class="btn-add-traveler" onclick="addTravelerField()">
-          <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add traveller
-        </button>
-        <div class="modal-footer">
+        <!-- Scrollable traveller list -->
+        <div class="lug-page-body">
+          <div id="travelerList"></div>
+          <button class="btn-add-traveler" onclick="addTravelerField()">
+            <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add traveller
+          </button>
+        </div>
+        <!-- Footer always pinned to bottom -->
+        <div class="lug-page-footer">
           <button class="btn-save" onclick="saveLuggage()">Save</button>
           <button class="btn-cancel" onclick="lugGoDetails()">Cancel</button>
         </div>
