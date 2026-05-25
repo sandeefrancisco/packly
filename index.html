@@ -43,28 +43,10 @@ html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:'Fig
   background:var(--bg);
 }
 /* default: trips on screen, checklist off to the right */
-#tripsView{
-  transform:translateX(0);
-  transition:transform .38s cubic-bezier(.4,0,.2,1);
-  z-index:1;
-}
-#checklistView{
-  transform:translateX(100%);
-  transition:transform .38s cubic-bezier(.4,0,.2,1);
-  z-index:2;
-}
-/* pushed: trips slides left (30% parallax), checklist on screen */
-#navStack.pushed #tripsView   {transform:translateX(-30%);}
+#tripsView{transform:translateX(0);z-index:1;}
+#checklistView{transform:translateX(100%);z-index:2;}
+#navStack.pushed #tripsView{transform:translateX(0);}
 #navStack.pushed #checklistView{transform:translateX(0);}
-/* dim scrim on the trips view while checklist is in front */
-#tripsView::after{
-  content:'';position:absolute;inset:0;
-  background:rgba(0,0,0,.18);
-  opacity:0;pointer-events:none;
-  transition:opacity .38s cubic-bezier(.4,0,.2,1);
-  z-index:10;
-}
-#navStack.pushed #tripsView::after{opacity:1;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bannerSlideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 
@@ -203,10 +185,45 @@ svg.lucide-2xl{width:28px;height:28px}
 .cl-prog-bar-fill{height:100%;background:var(--green);border-radius:99px;transition:width .4s}
 .cl-pct{font-size:15px;font-weight:700;white-space:nowrap}
 
-/* luggage */
-.luggage-card{background:var(--white);border-radius:var(--r-card);border:1px solid var(--border);padding:20px 24px;margin-bottom:28px}
-.luggage-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.luggage-card-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--ink)}
+/* luggage compact bar */
+.luggage-bar{
+  display:flex;align-items:center;gap:12px;
+  background:var(--white);border-radius:var(--r-card);border:1px solid var(--border);
+  padding:13px 16px;margin-bottom:20px;cursor:pointer;
+  transition:background .12s;
+}
+.luggage-bar:active{background:var(--tint)}
+.luggage-bar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.luggage-bar-label{font-size:15px;font-weight:700;color:var(--ink)}
+.luggage-bar-summary{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.luggage-bar-chevron{color:var(--muted);flex-shrink:0}
+
+/* luggage sheet inner nav */
+.lug-sheet-wrap{overflow:hidden;position:relative}
+.lug-inner{display:flex;transition:transform .26s cubic-bezier(.4,0,.2,1);will-change:transform}
+.lug-inner.editing{transform:translateX(-100%)}
+.lug-page{flex:0 0 100%;min-width:0}
+
+/* details page */
+.lug-detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.lug-detail-title{font-size:20px;font-weight:800;letter-spacing:-.3px;color:var(--ink)}
+.lug-traveler-item{padding:14px 0;border-bottom:1px solid var(--border)}
+.lug-traveler-item:last-child{border-bottom:none}
+.lug-traveler-item-name{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.lug-chips{display:flex;flex-wrap:wrap;gap:6px}
+.kg-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--tint);border-radius:99px;border:1px solid var(--border);
+  padding:5px 12px;font-size:13px;white-space:nowrap;
+}
+.kg-chip .kl{color:var(--muted);font-size:12px}
+.kg-chip .kv{font-weight:600}
+.lug-empty{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px;padding:8px 0}
+
+/* edit page */
+.lug-edit-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.btn-lug-back{border:none;background:none;color:var(--accent);font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px}
+.lug-edit-title{font-size:18px;font-weight:800;color:var(--ink);flex:1}
 .btn-ghost-sm{
   padding:7px 16px;border-radius:99px;border:1.5px solid var(--border);background:none;
   font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;
@@ -218,13 +235,6 @@ svg.lucide-2xl{width:28px;height:28px}
 .traveler-row{display:flex;align-items:center;gap:10px;min-width:0}
 .traveler-name{font-size:15px;font-weight:600;width:100px;flex-shrink:0}
 .traveler-chips{display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap}
-.kg-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  background:var(--tint);border-radius:99px;border:1px solid var(--border);
-  padding:6px 14px;font-size:13px;white-space:nowrap;
-}
-.kg-chip .kl{color:var(--muted);font-size:12px}
-.kg-chip .kv{font-weight:600}
 .luggage-empty{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px}
 
 /* section */
@@ -795,18 +805,40 @@ svg.lucide-2xl{width:28px;height:28px}
   </div>
 </div>
 
-<!-- LUGGAGE MODAL -->
+<!-- LUGGAGE SHEET -->
 <div class="overlay" id="luggageOverlay" onclick="handleLuggageOverlay(event)">
-  <div class="modal wide">
-    <h2>Luggage allowances</h2>
-    <div id="travelerList"></div>
-    <button class="btn-add-traveler" onclick="addTravelerField()">
-      <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add traveller
-    </button>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeLuggageModal()">Cancel</button>
-      <button class="btn-save" onclick="saveLuggage()">Save</button>
+  <div class="modal wide lug-sheet-wrap">
+    <div class="lug-inner" id="lugInner">
+      <!-- Page 1: Details -->
+      <div class="lug-page" id="lugDetailPage">
+        <div class="lug-detail-head">
+          <span class="lug-detail-title">Luggage allowances</span>
+          <button class="btn-ghost-sm" onclick="lugGoEdit()">Edit</button>
+        </div>
+        <div id="lugDetailList"></div>
+        <div class="modal-footer" style="justify-content:center;margin-top:16px">
+          <button class="btn-cancel" onclick="closeLuggageModal()">Done</button>
+        </div>
+      </div>
+      <!-- Page 2: Edit -->
+      <div class="lug-page" id="lugEditPage">
+        <div class="lug-edit-head">
+          <button class="btn-lug-back" onclick="lugGoDetails()">
+            <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Details
+          </button>
+          <span class="lug-edit-title">Edit allowances</span>
+        </div>
+        <div id="travelerList"></div>
+        <button class="btn-add-traveler" onclick="addTravelerField()">
+          <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add traveller
+        </button>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="lugGoDetails()">Cancel</button>
+          <button class="btn-save" onclick="saveLuggage()">Save</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1985,36 +2017,57 @@ function renderLuggageBar(){
   const el=document.getElementById('luggageBarEl');
   if(!trip){el.innerHTML='';return;}
   const travelers=trip.travelers||[];
-  let html=`<div class="luggage-card">
-    <div class="luggage-card-head">
-      <div class="luggage-card-title">${svgStr('scale','lucide lucide-lg')} Luggage allowances</div>
-      <button class="btn-ghost-sm" onclick="openLuggageModal()">${svgStr('pen')} Edit</button>
+  const summary=travelers.length
+    ? travelers.map(t=>esc(t.name||'Traveller')).join(' · ')
+    : 'Tap to set allowances';
+  el.innerHTML=`<div class="luggage-bar" onclick="openLuggageModal()">
+    <div class="luggage-bar-left">
+      ${svgStr('scale','lucide')}
+      <span class="luggage-bar-label">Luggage</span>
+      <span class="luggage-bar-summary">${summary}</span>
     </div>
-    <div class="luggage-travelers">`;
+    <svg class="lucide luggage-bar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </div>`;
+}
+
+function renderLugDetailList(){
+  const trip=getTrip();
+  const travelers=trip?.travelers||[];
+  const el=document.getElementById('lugDetailList');
   if(!travelers.length){
-    html+=`<div class="luggage-empty">${svgStr('info')} No allowances set — tap Edit to add travellers</div>`;
-  } else {
-    travelers.forEach(t=>{
-      html+=`<div class="traveler-row"><span class="traveler-name">${esc(t.name||'Traveller')}</span><div class="traveler-chips">`;
-      if(t.checkin) html+=`<span class="kg-chip">${svgStr('suitcase')}<span class="kl">Check-in</span><span class="kv">${esc(t.checkin)} kg</span></span>`;
-      if(t.cabin)   html+=`<span class="kg-chip">${svgStr('backpack')}<span class="kl">Cabin</span><span class="kv">${esc(t.cabin)} kg</span></span>`;
-      if(t.personal)html+=`<span class="kg-chip">${svgStr('briefcase')}<span class="kl">Personal</span><span class="kv">${esc(t.personal)} kg</span></span>`;
-      html+=`</div></div>`;
-    });
+    el.innerHTML=`<div class="lug-empty">${svgStr('info')} No allowances set — tap Edit to add travellers</div>`;
+    return;
   }
-  html+=`</div></div>`;
-  el.innerHTML=html;
+  el.innerHTML=travelers.map(t=>`
+    <div class="lug-traveler-item">
+      <div class="lug-traveler-item-name">${esc(t.name||'Traveller')}</div>
+      <div class="lug-chips">
+        ${t.checkin?`<span class="kg-chip">${svgStr('suitcase')}<span class="kl">Check-in</span><span class="kv">${esc(t.checkin)} kg</span></span>`:''}
+        ${t.cabin?`<span class="kg-chip">${svgStr('backpack')}<span class="kl">Cabin</span><span class="kv">${esc(t.cabin)} kg</span></span>`:''}
+        ${t.personal?`<span class="kg-chip">${svgStr('briefcase')}<span class="kl">Personal</span><span class="kv">${esc(t.personal)} kg</span></span>`:''}
+      </div>
+    </div>`).join('');
 }
 
 window.openLuggageModal=function(){
   const trip=getTrip();
   luggageDraft=JSON.parse(JSON.stringify(trip.travelers||[]));
   if(!luggageDraft.length)luggageDraft.push({name:'',checkin:'',cabin:'',personal:''});
+  renderLugDetailList();
   renderTravelerList();
+  document.getElementById('lugInner').classList.remove('editing');
   document.getElementById('luggageOverlay').classList.add('open');
 };
 window.closeLuggageModal=function(){document.getElementById('luggageOverlay').classList.remove('open');};
 window.handleLuggageOverlay=function(e){if(e.target===document.getElementById('luggageOverlay'))closeLuggageModal();};
+window.lugGoEdit=function(){document.getElementById('lugInner').classList.add('editing');};
+window.lugGoDetails=function(){
+  // Re-sync draft from current saved state (cancel edit)
+  const trip=getTrip();
+  luggageDraft=JSON.parse(JSON.stringify(trip.travelers||[]));
+  renderTravelerList();
+  document.getElementById('lugInner').classList.remove('editing');
+};
 
 function renderTravelerList(){
   const el=document.getElementById('travelerList');el.innerHTML='';
@@ -2042,7 +2095,9 @@ window.addTravelerField=function(){luggageDraft.push({name:'',checkin:'',cabin:'
 window.saveLuggage=function(){
   const trip=getTrip();
   trip.travelers=luggageDraft.filter(t=>t.name||t.checkin||t.cabin||t.personal);
-  saveAll(trips);closeLuggageModal();renderLuggageBar();
+  saveAll(trips);renderLuggageBar();
+  renderLugDetailList();
+  document.getElementById('lugInner').classList.remove('editing');
 };
 
 /* ── Share Picker ── */
@@ -2337,29 +2392,19 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
     sw.dx=Math.max(0,dx);
     const p=Math.min(sw.dx/window.innerWidth,1);
     cv.style.cssText=`transition:none;transform:translateX(${p*100}%)`;
-    tv.style.cssText=`transition:none;transform:translateX(${(-30+30*p)}%)`;
   },{passive:true});
 
   function finish(e){
     if(!sw||e.pointerId!==sw.id)return;
     const p=Math.min(sw.dx/window.innerWidth,1);
     sw=null;
+    cv.style.cssText='';
     if(p>0.35){
-      // Complete swipe back — animate to final then swap class
-      cv.style.cssText='transition:transform .22s cubic-bezier(.4,0,.2,1);transform:translateX(100%)';
-      tv.style.cssText='transition:transform .22s cubic-bezier(.4,0,.2,1);transform:translateX(0%)';
-      setTimeout(()=>{
-        stack.classList.remove('pushed');
-        cv.style.cssText=''; tv.style.cssText='';
-        trips=loadAll(); renderTrips();
-        document.getElementById('tabTrips')?.classList.add('active');
-        document.getElementById('tabAccount')?.classList.remove('active');
-        // Sync history after swipe-back
-        if(history.state&&history.state.packly==='checklist')history.back();
-      },220);
-    } else {
-      // Spring back to checklist
-      cv.style.cssText=''; tv.style.cssText='';
+      stack.classList.remove('pushed');
+      trips=loadAll(); renderTrips();
+      document.getElementById('tabTrips')?.classList.add('active');
+      document.getElementById('tabAccount')?.classList.remove('active');
+      if(history.state&&history.state.packly==='checklist')history.back();
     }
   }
   cv.addEventListener('pointerup',finish);
