@@ -71,7 +71,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 .hero{margin-bottom:52px}
 .hero-title{font-size:clamp(40px,6vw,70px);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:16px}
-.hero-title em{color:var(--muted);font-style:normal}
+.hero-title em{color:var(--ink);font-style:normal}
 .hero-sub{font-size:17px;color:var(--muted);line-height:1.6;max-width:460px;margin-bottom:28px}
 
 .btn-primary{
@@ -2253,8 +2253,8 @@ window.saveDisplayName=async function(){
   if(error){showToast('⚠️ Could not save — try again');return;}
   _currentUserName=name;
   updateHeroGreeting();
+  closeAccountSheet();
   showToast('✓ Name saved!');
-  inp.blur();
 };
 window.closeAccountSheet=function(){
   document.getElementById('accountSheet').classList.remove('open');
