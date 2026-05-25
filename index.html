@@ -2235,6 +2235,8 @@ function addSwipeDismiss(el, closeFn, {onlyMobile=false, threshold=150}={}){
   let sw=null;
   el.addEventListener('pointerdown',e=>{
     if(onlyMobile&&window.innerWidth>600)return;
+    // Don't intercept taps on interactive elements (inputs, buttons, etc.)
+    if(e.target.closest('input,button,textarea,select,a,[contenteditable]'))return;
     // Allow from handle area or when not scrolled
     const r=el.getBoundingClientRect();
     const fromTop=e.clientY-r.top;
