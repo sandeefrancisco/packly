@@ -1524,15 +1524,16 @@ function generateShareCode(){
 
 window.shareTrip=async function(tripId){
   const trip=trips.find(t=>t.id===tripId);if(!trip)return;
-  // Already shared — just show the existing code
-  if(trip.shareCode){window.showShareModal(trip.shareCode);return;}
+  // Only skip if fully synced to Supabase (has both code AND sharedTripId)
+  if(trip.shareCode&&trip.sharedTripId){window.showShareModal(trip.shareCode);return;}
   const{data:{user}}=await sb.auth.getUser();if(!user)return;
+  // Generate a fresh code (previous attempt may have failed mid-way)
   const code=generateShareCode();
-  trip.ownerId=user.id;trip.shareCode=code;
+  trip.ownerId=user.id;trip.shareCode=code;trip.sharedTripId=null;
   const{data,error}=await sb.from('shared_trips').insert({
     share_code:code,data:trip,owner_id:user.id
   }).select('id').single();
-  if(error){console.error('Share error:',error);alert('Could not share trip. Try again.');return;}
+  if(error){console.error('Share error:',error);alert('Could not share trip: '+error.message);return;}
   trip.sharedTripId=data.id;trip.isShared=true;
   await sb.from('trip_access').insert({trip_id:data.id,user_id:user.id});
   saveAll(trips);renderTrips();
