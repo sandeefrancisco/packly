@@ -657,11 +657,13 @@ svg.lucide-2xl{width:28px;height:28px}
     padding:24px 28px 32px;
     transform:translate(-50%,-54%) scale(.97);
     opacity:0;
+    pointer-events:none;
     transition:transform .26s cubic-bezier(.32,.72,0,1),opacity .2s ease;
   }
   .account-sheet.open,.trash-sheet.open{
     transform:translate(-50%,-50%) scale(1);
     opacity:1;
+    pointer-events:auto;
   }
   .sheet-handle{display:none}
 }
