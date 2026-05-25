@@ -1401,12 +1401,18 @@ let editingId=null;
 let luggageDraft=[];
 
 /* ── TRIPS VIEW ── */
-window.showTrips=function(){
+// Pure visual — no history manipulation. Call this from popstate too.
+function _doShowTrips(){
   trips=loadAll();
   document.getElementById('navStack').classList.remove('pushed');
   document.getElementById('tabTrips')?.classList.add('active');
   document.getElementById('tabAccount')?.classList.remove('active');
   renderTrips();
+}
+window.showTrips=function(){
+  _doShowTrips();
+  // Sync browser history: if we own the current state, pop it
+  if(history.state&&history.state.packly==='checklist')history.back();
 };
 
 function renderTrips(){
@@ -1660,6 +1666,8 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 async function showChecklist(id){
   activeId=id;
   document.getElementById('navStack').classList.add('pushed');
+  // Push a history entry so the native back button returns to trips list
+  history.pushState({packly:'checklist',tripId:id},'');
   document.getElementById('tabTrips')?.classList.remove('active');
   document.getElementById('tabAccount')?.classList.remove('active');
   // For shared trips, always fetch latest from cloud
@@ -2226,6 +2234,8 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
         trips=loadAll(); renderTrips();
         document.getElementById('tabTrips')?.classList.add('active');
         document.getElementById('tabAccount')?.classList.remove('active');
+        // Sync history after swipe-back
+        if(history.state&&history.state.packly==='checklist')history.back();
       },220);
     } else {
       // Spring back to checklist
@@ -2235,6 +2245,14 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
   cv.addEventListener('pointerup',finish);
   cv.addEventListener('pointercancel',finish);
 })();
+
+/* ── Native back button / browser history ── */
+window.addEventListener('popstate',()=>{
+  // Any popstate while checklist is visible = back to trips
+  if(document.getElementById('navStack').classList.contains('pushed')){
+    _doShowTrips();
+  }
+});
 
 /* ── 2. Swipe-down to dismiss sheets & modals ── */
 function addSwipeDismiss(el, closeFn, {onlyMobile=false, threshold=150}={}){
