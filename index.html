@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Packly — Travel Checklist</title>
+<title>Master Packer — Travel Checklist</title>
 <link rel="icon" type="image/png" href="Logo-colored.png">
 <link rel="apple-touch-icon" href="Logo-colored.png">
 <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
@@ -524,6 +524,37 @@ svg.lucide-2xl{width:28px;height:28px}
   .modal{padding:12px 20px calc(36px + env(safe-area-inset-bottom))}
   .icon-picker-grid{grid-template-columns:repeat(6,1fr)}
 }
+
+/* ── Desktop: floating sheets ── */
+@media(min-width:601px){
+  /* Modals — centered floating card */
+  .overlay{align-items:center;justify-content:center;padding:24px}
+  .modal{
+    border-radius:24px;max-width:480px;
+    padding:36px;max-height:85vh;
+    animation:floatIn .22s cubic-bezier(.32,.72,0,1);
+  }
+  .modal::before{display:none}
+  .modal.wide{max-width:560px}
+
+  /* Account + Trash sheets — floating centered card */
+  .account-sheet,.trash-sheet{
+    top:50%;left:50%;
+    bottom:auto;right:auto;
+    width:420px;max-width:calc(100vw - 48px);
+    border-radius:24px;
+    padding:24px 28px 32px;
+    transform:translate(-50%,-54%) scale(.97);
+    opacity:0;
+    transition:transform .26s cubic-bezier(.32,.72,0,1),opacity .2s ease;
+  }
+  .account-sheet.open,.trash-sheet.open{
+    transform:translate(-50%,-50%) scale(1);
+    opacity:1;
+  }
+  .sheet-handle{display:none}
+}
+@keyframes floatIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
 </style>
 </head>
 <body>
@@ -532,8 +563,8 @@ svg.lucide-2xl{width:28px;height:28px}
 <div class="view active" id="tripsView">
   <nav class="top-nav">
     <div class="brand-pill">
-      <img src="Logo-colored.png" alt="Packly" style="width:28px;height:28px;display:block;mix-blend-mode:multiply;">
-      Packly
+      <img src="Logo-colored.png" alt="Master Packer" style="width:28px;height:28px;display:block;mix-blend-mode:multiply;">
+      Master Packer
     </div>
   </nav>
   <div class="hero">
@@ -663,10 +694,10 @@ svg.lucide-2xl{width:28px;height:28px}
 <div class="account-sheet" id="accountSheet">
   <div class="sheet-handle"></div>
   <div class="sheet-user">
-    <img src="Logo-colored.png" alt="Packly" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;mix-blend-mode:multiply;">
+    <img src="Logo-colored.png" alt="Master Packer" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;mix-blend-mode:multiply;">
     <div class="sheet-user-info">
       <div class="sheet-user-email" id="sheetEmail">—</div>
-      <div class="sheet-user-label">Signed in to Packly</div>
+      <div class="sheet-user-label">Signed in to Master Packer</div>
     </div>
   </div>
   <button class="sheet-action" onclick="closeAccountSheet();openSharePickerModal()">
@@ -703,8 +734,8 @@ svg.lucide-2xl{width:28px;height:28px}
 <div class="overlay open" id="authOverlay">
   <div class="modal auth-modal">
     <div class="auth-brand" style="flex-direction:column;align-items:center;text-align:center;gap:12px;margin-bottom:28px">
-      <img src="Logo-colored.png" alt="Packly" style="width:72px;height:72px;border-radius:50%;display:block;mix-blend-mode:multiply;">
-      Packly
+      <img src="Logo-colored.png" alt="Master Packer" style="width:72px;height:72px;border-radius:50%;display:block;mix-blend-mode:multiply;">
+      Master Packer
     </div>
     <h2 id="authTitle">Welcome back</h2>
     <p class="auth-sub">Sign in to sync your packing lists across all your devices.</p>
@@ -738,7 +769,7 @@ svg.lucide-2xl{width:28px;height:28px}
 <div class="overlay" id="shareOverlay" onclick="handleShareOverlay(event)">
   <div class="modal">
     <h2>Share this trip</h2>
-    <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Give this code to your travel partner. They open Packly and tap <strong>Join a trip</strong>.</p>
+    <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Give this code to your travel partner. They open Master Packer and tap <strong>Join a trip</strong>.</p>
     <div class="share-code-box" id="shareCodeBox"></div>
     <div class="modal-footer" style="flex-direction:column;gap:10px;margin-top:20px">
       <button class="btn-save" style="width:100%" id="copyCodeBtn" onclick="copyShareCode()">Copy code</button>
