@@ -76,7 +76,10 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* ── TRIPS VIEW ── */
 /* no max-width / margin:auto — view must be full viewport width so translateX(100%) goes fully off-screen */
-#tripsView{padding:52px var(--trips-px) calc(104px + env(safe-area-inset-bottom))}
+#tripsView{
+  padding:52px var(--trips-px) calc(104px + env(safe-area-inset-bottom));
+  height:100vh;overflow-y:auto;overflow-x:clip;
+}
 
 .top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:56px}
 .brand-pill{
@@ -393,6 +396,41 @@ svg.lucide-2xl{width:28px;height:28px}
   color:var(--muted);cursor:pointer;transition:all .15s;min-height:48px;
 }
 .btn-add-section:hover{border-color:var(--accent);color:var(--accent);background:var(--white)}
+
+/* ── Skeleton loading ── */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skel{
+  background:linear-gradient(90deg,var(--border) 25%,#e8e9f0 50%,var(--border) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s ease infinite;
+  border-radius:8px;
+}
+.skel-trip-card{
+  background:var(--white);border-radius:var(--r-card);
+  padding:18px 20px;display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 2px 12px rgba(26,26,46,.07);
+}
+.skel-trip-header{display:flex;align-items:center;gap:12px}
+.skel-trip-icon{width:40px;height:40px;border-radius:12px;flex-shrink:0}
+.skel-trip-lines{flex:1;display:flex;flex-direction:column;gap:8px}
+.skel-line{height:13px;}
+.skel-line.w60{width:60%}
+.skel-line.w40{width:40%}
+.skel-line.w80{width:80%}
+.skel-bar{height:7px;border-radius:99px}
+.skel-prog{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.skel-prog .skel-line{flex:1}
+
+.skel-section-header{height:52px;border-radius:16px;margin-bottom:10px}
+.skel-items-card{background:var(--white);border-radius:var(--r-card);overflow:hidden}
+.skel-item-row{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  border-bottom:1px solid var(--border);
+}
+.skel-item-row:last-child{border-bottom:none}
+.skel-item-cb{width:24px;height:24px;border-radius:50%;flex-shrink:0}
+.skel-item-label{height:13px;flex:1}
+.skel-item-qty{width:72px;height:32px;border-radius:99px;flex-shrink:0}
 
 /* ── MODAL → Bottom Sheet ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
@@ -1204,6 +1242,10 @@ async function onSignedIn(user){
   _currentUserId=user.id;
   document.getElementById('sheetEmail').textContent=user.email;
   document.getElementById('authOverlay').classList.remove('open');
+  // Show skeleton while cloud loads
+  document.getElementById('navStack').classList.remove('pushed');
+  document.getElementById('tabTrips')?.classList.add('active');
+  showTripsSkeleton();
 
   // Fetch cloud state
   const{data}=await sb.from('user_data').select('trips,deleted_trips').eq('user_id',user.id).single();
@@ -1412,9 +1454,43 @@ function _doShowTrips(){
 }
 window.showTrips=function(){
   _doShowTrips();
-  // Sync browser history: if we own the current state, pop it
-  if(history.state&&history.state.packly==='checklist')history.back();
+  // Pop the checklist history entry so back exits the app (not loops)
+  if(history.state?.packly==='checklist')history.back();
 };
+
+function showTripsSkeleton(n=3){
+  const grid=document.getElementById('tripsGrid');
+  grid.innerHTML=Array.from({length:n},()=>`
+    <div class="skel-trip-card">
+      <div class="skel-trip-header">
+        <div class="skel skel-trip-icon"></div>
+        <div class="skel-trip-lines">
+          <div class="skel skel-line w60"></div>
+          <div class="skel skel-line w40"></div>
+        </div>
+      </div>
+      <div class="skel skel-bar"></div>
+      <div class="skel-prog">
+        <div class="skel skel-line w80"></div>
+        <div class="skel skel-line w40"></div>
+      </div>
+    </div>`).join('');
+}
+
+function showChecklistSkeleton(){
+  const c=document.getElementById('sectionsContainer');
+  c.innerHTML=Array.from({length:2},()=>`
+    <div style="margin-bottom:20px">
+      <div class="skel skel-section-header"></div>
+      <div class="skel-items-card">${Array.from({length:3},()=>`
+        <div class="skel-item-row">
+          <div class="skel skel-item-cb"></div>
+          <div class="skel skel-item-label"></div>
+          <div class="skel skel-item-qty"></div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
 
 function renderTrips(){
   const grid=document.getElementById('tripsGrid');
@@ -1667,14 +1743,16 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 async function showChecklist(id){
   activeId=id;
   document.getElementById('navStack').classList.add('pushed');
-  // Push a history entry so the native back button returns to trips list
-  history.pushState({packly:'checklist',tripId:id},'');
+  // Push a history entry with a hash so iOS sees a real URL change for its
+  // back-swipe animation, avoiding the "ghost page" layer artifact
+  history.pushState({packly:'checklist',tripId:id},'','#checklist');
   startSharedTripPolling(id);
   document.getElementById('tabTrips')?.classList.remove('active');
   document.getElementById('tabAccount')?.classList.remove('active');
-  // For shared trips, always fetch latest from cloud
+  // For shared trips, always fetch latest from cloud — show skeleton during the wait
   const trip=trips.find(t=>t.id===id);
   if(trip?.sharedTripId){
+    showChecklistSkeleton();
     const{data}=await sb.from('shared_trips').select('data').eq('id',trip.sharedTripId).single();
     if(data?.data){
       const fresh={...data.data,sharedTripId:trip.sharedTripId,isShared:true};
@@ -2198,6 +2276,11 @@ function stopSharedTripPolling(){
 }
 
 /* ── INIT ── */
+// Prevent browser from restoring scroll position (we manage it)
+if('scrollRestoration' in history) history.scrollRestoration='manual';
+// Clear any stale #checklist hash left from a previous session reload
+if(location.hash==='#checklist') history.replaceState(null,'',location.pathname);
+
 // Listen for auth changes (login/logout)
 sb.auth.onAuthStateChange((event,session)=>{
   if(session)onSignedIn(session.user);
