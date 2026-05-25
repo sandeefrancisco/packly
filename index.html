@@ -243,17 +243,23 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* ── Drag & Drop ── */
 .drag-handle{
-  color:var(--muted);cursor:grab;padding:4px 6px;border-radius:6px;
+  /* hidden + takes NO space by default — no indentation */
+  width:0;overflow:hidden;padding:0;opacity:0;flex-shrink:0;
+  color:var(--muted);cursor:grab;border-radius:6px;
   display:flex;align-items:center;justify-content:center;
-  opacity:0;transition:opacity .15s;flex-shrink:0;
   touch-action:none;-webkit-user-select:none;user-select:none;
+  transition:width .18s ease,padding .18s ease,opacity .15s ease;
 }
-.drag-handle svg{width:16px;height:16px;pointer-events:none}
-.drag-handle:active,.drag-handle.grabbing{cursor:grabbing}
-.section-label:hover .drag-handle,
-.item-row:hover .drag-handle,
-.drag-handle.always-show{opacity:.55}
-.drag-handle:hover{opacity:1!important}
+.drag-handle svg{width:16px;height:16px;pointer-events:none;flex-shrink:0}
+/* Show handle only when actively dragging */
+.is-dragging .drag-handle,
+.long-press-ready .drag-handle{
+  width:28px;padding:4px 6px;opacity:.7;
+}
+/* Desktop hover — sections only, still no item indentation */
+@media(hover:hover){
+  .section-label:hover .drag-handle{width:28px;padding:4px 6px;opacity:.5;}
+}
 .section.is-dragging,.item-row.is-dragging{opacity:.2;pointer-events:none}
 /* Section drop placeholder — full card-shaped empty slot */
 .dnd-placeholder-section{
@@ -945,6 +951,32 @@ const svgStr = (key, cls='lucide') => {
   return IC[key].replace('class="lucide"', `class="${cls}"`);
 };
 
+/* ── Long-press → drag (no indentation until held) ── */
+function addLongPress(el, type, dragEl, skipSel){
+  let timer=null, sx=0, sy=0, live=false;
+  el.addEventListener('pointerdown', e=>{
+    if(skipSel&&e.target.closest(skipSel))return;
+    live=true; sx=e.clientX; sy=e.clientY;
+    dragEl.classList.add('long-press-ready');
+    timer=setTimeout(()=>{
+      if(!live)return;
+      live=false;
+      // swallow the next click so tap doesn't fire after drag
+      el.addEventListener('click',ev=>{ev.stopPropagation();ev.preventDefault();},{once:true,capture:true});
+      startDrag(e,type,dragEl);
+    },380);
+  });
+  const cancel=()=>{
+    clearTimeout(timer);live=false;
+    dragEl.classList.remove('long-press-ready');
+  };
+  el.addEventListener('pointermove',e=>{
+    if(live&&(Math.abs(e.clientX-sx)>8||Math.abs(e.clientY-sy)>8))cancel();
+  });
+  el.addEventListener('pointerup',cancel);
+  el.addEventListener('pointercancel',cancel);
+}
+
 /* ── Drag & Drop engine (pointer events — works mouse + touch) ── */
 let _dnd=null;
 let _placeholder=null;
@@ -1618,12 +1650,13 @@ function buildSection(sec){
   const lbl=document.createElement('div');
   lbl.className='section-label'+(isOpen?' open':'');
 
-  // drag handle
+  // drag handle — hidden until long press
   const handle=document.createElement('div');
   handle.className='drag-handle';
   handle.innerHTML=svgStr('grip','lucide');
-  handle.addEventListener('pointerdown',e=>startDrag(e,'section',wrap));
   handle.onclick=e=>e.stopPropagation();
+  // long press anywhere on header activates drag
+  addLongPress(lbl,'section',wrap,'.section-del-btn,.chevron');
 
   // icon + title
   const left=document.createElement('div');
@@ -1700,7 +1733,8 @@ function buildItemRow(item,sec){
   const ihandle=document.createElement('div');
   ihandle.className='drag-handle';
   ihandle.innerHTML=svgStr('grip','lucide');
-  ihandle.addEventListener('pointerdown',e=>startDrag(e,'item',row));
+  // long press on row (not on interactive controls) activates drag
+  addLongPress(row,'item',row,'.round-cb,.qty-stepper,.qty-btn,.item-del-btn,.item-label');
 
   const cb=document.createElement('div');cb.className='round-cb';
   cb.innerHTML=svgStr('checkSmall');
