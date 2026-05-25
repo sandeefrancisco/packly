@@ -688,7 +688,31 @@ window.handleAuthSubmit=async function(){
     ?await sb.auth.signUp({email,password})
     :await sb.auth.signInWithPassword({email,password});
   btn.disabled=false;btn.textContent=isSignUp?'Sign up':'Sign in';
-  if(error){errEl.textContent=error.message;return;}
+  if(error){
+    // Friendly error messages
+    const msg=error.message||'';
+    const secondsMatch=msg.match(/after (\d+) second/);
+    if(secondsMatch){
+      // Rate limit — show countdown
+      let secs=parseInt(secondsMatch[1]);
+      errEl.textContent=`Please wait ${secs}s before trying again…`;
+      btn.disabled=true;
+      const t=setInterval(()=>{
+        secs--;
+        if(secs<=0){clearInterval(t);errEl.textContent='';btn.disabled=false;}
+        else errEl.textContent=`Please wait ${secs}s before trying again…`;
+      },1000);
+    } else if(msg.includes('Invalid login')||msg.includes('invalid_credentials')){
+      errEl.textContent='Incorrect email or password.';
+    } else if(msg.includes('already registered')){
+      errEl.textContent='An account with this email already exists. Try signing in.';
+    } else if(msg.includes('Password should')){
+      errEl.textContent='Password must be at least 6 characters.';
+    } else {
+      errEl.textContent=msg;
+    }
+    return;
+  }
   if(isSignUp&&data.user&&!data.session){
     errEl.className='auth-error auth-success';
     errEl.textContent='Check your email to confirm your account!';
