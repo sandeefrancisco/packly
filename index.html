@@ -238,7 +238,7 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;flex-direction:column;min-height:0;overflow:hidden;
 }
 /* Scrollable content area */
-.lug-page-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding:0 24px 12px}
+.lug-page-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding:12px 24px 12px}
 /* Sticky footer — always visible at bottom of page */
 .lug-page-footer{
   flex-shrink:0;
@@ -249,13 +249,13 @@ svg.lucide-2xl{width:28px;height:28px}
   background:var(--white);
 }
 @media(max-width:600px){
-  .lug-page-body{padding:0 20px 12px}
+  .lug-page-body{padding:12px 20px 12px}
   .lug-page-footer{padding:12px 20px;padding-bottom:max(12px, env(safe-area-inset-bottom))}
 }
 
 /* details page — head lives inside .lug-page-body which provides horizontal padding */
-.lug-detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-top:4px}
-.lug-detail-title{font-size:20px;font-weight:800;letter-spacing:-.3px;color:var(--ink)}
+.lug-detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-top:0;padding-right:52px}
+.lug-detail-title{font-size:20px;font-weight:800;letter-spacing:-.3px;color:var(--ink);line-height:44px}
 .lug-traveler-item{padding:14px 0;border-bottom:1px solid var(--border)}
 .lug-traveler-item:last-child{border-bottom:none}
 .lug-traveler-item-name{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:8px}
@@ -271,15 +271,17 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* edit page — head is OUTSIDE the scroll body, so it needs its own padding */
 .lug-edit-head{
-  display:flex;align-items:center;gap:10px;
+  position:relative;
+  display:flex;align-items:center;
   flex-shrink:0;
   padding:4px 24px 14px;
   border-bottom:1px solid var(--border);
   margin-bottom:0;
+  min-height:44px;
 }
 @media(max-width:600px){.lug-edit-head{padding:4px 20px 14px}}
-.btn-lug-back{border:none;background:none;color:var(--accent);font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px}
-.lug-edit-title{font-size:18px;font-weight:800;color:var(--ink);flex:1;text-align:center}
+.btn-lug-back{border:none;background:none;color:var(--accent);font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;position:relative;z-index:1}
+.lug-edit-title{position:absolute;left:0;right:0;text-align:center;font-size:18px;font-weight:800;color:var(--ink);pointer-events:none}
 .btn-ghost-sm{
   padding:7px 16px;border-radius:99px;border:1.5px solid var(--border);background:none;
   font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;
@@ -510,9 +512,9 @@ svg.lucide-2xl{width:28px;height:28px}
 .overlay.open{display:flex}
 .modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px 24px calc(36px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 -8px 40px rgba(26,26,46,.14);animation:slideUp .28s cubic-bezier(.32,.72,0,1)}
 .modal{position:relative}
-.modal .sheet-close-btn{position:absolute;top:12px;right:12px;z-index:1}
+.modal .sheet-close-btn{position:absolute;top:20px;right:20px;z-index:1}
 .modal.wide{max-width:none}
-.modal h2{font-size:23px;font-weight:800;letter-spacing:-.4px;margin-bottom:24px}
+.modal h2{font-size:23px;font-weight:800;letter-spacing:-.4px;margin-bottom:24px;line-height:44px;padding-right:52px}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 .field{margin-bottom:18px}
@@ -570,7 +572,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .tfield label{font-size:13px;font-weight:600;letter-spacing:0;color:var(--muted);display:block;margin-bottom:5px}
 .tfield input{width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--white);font-family:'Figtree',sans-serif;font-size:16px;color:var(--ink);outline:none;transition:border-color .12s}
 .tfield input:focus{border-color:var(--accent)}
-.btn-add-traveler{width:100%;padding:11px;border-radius:12px;border:1.5px dashed var(--border);background:none;font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .12s;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-add-traveler{width:100%;padding:11px;border-radius:12px;border:1.5px dashed var(--border);background:none;font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .12s;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:7px}
 .btn-add-traveler:hover{border-color:var(--accent);color:var(--accent);background:var(--white)}
 
 /* ── Confirm modal ── */
@@ -708,7 +710,7 @@ svg.lucide-2xl{width:28px;height:28px}
   transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);
 }
 .trash-sheet.open{transform:translateY(0)}
-.trash-sheet-head{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:20px}
+.trash-sheet-head{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:20px;line-height:44px;padding-right:52px}
 .trash-item{
   display:flex;align-items:center;gap:14px;
   padding:14px 0;border-bottom:1px solid var(--border);
@@ -748,13 +750,13 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .account-sheet.open{transform:translateY(0)}
 .sheet-close-btn{
-  position:absolute;top:16px;right:16px;
-  width:36px;height:36px;border-radius:50%;border:none;
+  position:absolute;top:20px;right:20px;
+  width:44px;height:44px;border-radius:50%;border:none;
   background:var(--tint);cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  color:var(--muted);transition:background .12s,color .12s;
+  color:var(--muted);transition:background .12s,color .12s;z-index:1;
 }
-.sheet-close-btn svg{width:20px;height:20px}
+.sheet-close-btn svg{width:22px;height:22px}
 .sheet-close-btn:hover{background:var(--border);color:var(--ink)}
 .sheet-user{
   display:flex;align-items:center;gap:14px;
@@ -958,7 +960,6 @@ svg.lucide-2xl{width:28px;height:28px}
             Details
           </button>
           <span class="lug-edit-title">Edit allowances</span>
-          <span class="btn-lug-back" style="visibility:hidden">Details</span>
         </div>
         <!-- Scrollable traveller list -->
         <div class="lug-page-body">
@@ -1313,6 +1314,8 @@ const IC = {
   chevDown:    SVG('<polyline points="6 9 12 15 18 9"/>'),
   chevUp:      SVG('<polyline points="18 15 12 9 6 15"/>'),
   list:        SVG('<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>'),
+  heart:       SVG('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'),
+  paw:         SVG('<circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/>'),
 };
 
 // Helper to build an SVG at a given size
@@ -2327,6 +2330,7 @@ function renderLugDetailList(){
         ${t.checkin?`<span class="kg-chip">${svgStr('suitcase')}<span class="kl">Check-in</span><span class="kv">${esc(t.checkin)} kg</span></span>`:''}
         ${t.cabin?`<span class="kg-chip">${svgStr('backpack')}<span class="kl">Cabin</span><span class="kv">${esc(t.cabin)} kg</span></span>`:''}
         ${t.personal?`<span class="kg-chip">${svgStr('briefcase')}<span class="kl">Personal</span><span class="kv">${esc(t.personal)} kg</span></span>`:''}
+        ${t.pet?`<span class="kg-chip">${svgStr('paw')}<span class="kl">Pet</span><span class="kv">${esc(t.pet)} kg</span></span>`:''}
       </div>
     </div>`).join('');
 }
@@ -2334,7 +2338,7 @@ function renderLugDetailList(){
 window.openLuggageModal=function(){
   const trip=getTrip();
   luggageDraft=JSON.parse(JSON.stringify(trip.travelers||[]));
-  if(!luggageDraft.length)luggageDraft.push({name:'',checkin:'',cabin:'',personal:''});
+  if(!luggageDraft.length)luggageDraft.push({name:'',checkin:'',cabin:'',personal:'',pet:''});
   renderLugDetailList();
   renderTravelerList();
   document.getElementById('lugInner').classList.remove('editing');
@@ -2365,6 +2369,7 @@ function renderTravelerList(){
         <div class="tfield"><label>Check-in (kg)</label><input type="number" min="0" placeholder="23" value="${esc(t.checkin)}" data-field="checkin"></div>
         <div class="tfield"><label>Cabin (kg)</label><input type="number" min="0" placeholder="10" value="${esc(t.cabin)}" data-field="cabin"></div>
         <div class="tfield"><label>Personal (kg)</label><input type="number" min="0" placeholder="5" value="${esc(t.personal)}" data-field="personal"></div>
+        <div class="tfield"><label>Pet (kg)</label><input type="number" min="0" placeholder="0" value="${esc(t.pet||'')}" data-field="pet"></div>
       </div>`;
     b.querySelector('.rm-traveler').onclick=()=>{luggageDraft.splice(i,1);renderTravelerList();};
     b.querySelectorAll('input[data-field]').forEach(inp=>{
@@ -2373,10 +2378,10 @@ function renderTravelerList(){
     el.appendChild(b);
   });
 }
-window.addTravelerField=function(){luggageDraft.push({name:'',checkin:'',cabin:'',personal:''});renderTravelerList();};
+window.addTravelerField=function(){luggageDraft.push({name:'',checkin:'',cabin:'',personal:'',pet:''});renderTravelerList();};
 window.saveLuggage=function(){
   const trip=getTrip();
-  trip.travelers=luggageDraft.filter(t=>t.name||t.checkin||t.cabin||t.personal);
+  trip.travelers=luggageDraft.filter(t=>t.name||t.checkin||t.cabin||t.personal||t.pet);
   saveAll(trips);renderLuggageBar();
   renderLugDetailList();
   document.getElementById('lugInner').classList.remove('editing');
