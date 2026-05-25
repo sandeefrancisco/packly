@@ -62,6 +62,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:'Fig
 }
 #navStack.pushed #tripsView::after{opacity:1;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bannerSlideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 
 /* lucide inline SVG sizing */
 svg.lucide{width:16px;height:16px;stroke-width:2;vertical-align:middle;flex-shrink:0}
@@ -158,13 +159,19 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;gap:16px;
   position:sticky;top:0;z-index:50;
   background:var(--bg);
-  padding:14px 0 14px;margin-bottom:24px;
+  /* bleed into the container's horizontal padding so no content peeks through the sides */
+  margin:0 -32px;
+  padding:14px 32px 14px;
+  margin-bottom:24px;
   border-bottom:1px solid transparent;
   transition:border-color .15s, box-shadow .15s;
 }
 .cl-nav.scrolled{
   border-bottom-color:var(--border);
-  box-shadow:0 2px 12px rgba(26,26,46,.07);
+  box-shadow:0 2px 16px rgba(26,26,46,.09);
+}
+@media(max-width:600px){
+  .cl-nav{margin:0 -16px;padding:12px 16px 12px;}
 }
 .btn-back{
   display:inline-flex;align-items:center;gap:8px;
@@ -777,6 +784,11 @@ svg.lucide-2xl{width:28px;height:28px}
   </div>
 </div>
 
+<!-- UPDATE BANNER -->
+<div id="updateBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:#1A1A2E;color:#fff;font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;padding:12px 20px;text-align:center;cursor:pointer;letter-spacing:.01em;animation:bannerSlideDown .3s cubic-bezier(.32,.72,0,1)" onclick="location.reload(true)">
+  ✨ App updated — tap to reload
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottomNav">
   <button class="tab-btn active" id="tabTrips" onclick="showTrips()">
@@ -1063,15 +1075,18 @@ function startDrag(e,type,el){
   function onEnd(){
     document.removeEventListener('pointermove',onMove);
     document.removeEventListener('pointerup',onEnd);
+    document.removeEventListener('pointercancel',onEnd);
     ghost.remove();
     el.classList.remove('is-dragging');
+    el.classList.remove('long-press-ready'); // always clean up — was keeping drag handle visible
     if(_placeholder){_placeholder.remove();_placeholder=null;}
-    if(_dnd.current)commitDrop(type,el,_dnd.current,_dnd.above);
+    if(_dnd&&_dnd.current)commitDrop(type,el,_dnd.current,_dnd.above);
     _dnd=null;
   }
 
   document.addEventListener('pointermove',onMove,{passive:false});
   document.addEventListener('pointerup',onEnd);
+  document.addEventListener('pointercancel',onEnd);
 }
 
 function commitDrop(type,src,target,above){
@@ -2220,6 +2235,81 @@ document.querySelectorAll('.overlay').forEach(overlay=>{
   if(!modal)return;
   addSwipeDismiss(modal, ()=>overlay.classList.remove('open'), {onlyMobile:true, threshold:100});
 });
+
+/* ── Auto-update: detect new deploy via ETag / Last-Modified ── */
+(function(){
+  const ETAG_KEY='mp-page-etag';
+  async function checkForNewDeploy(){
+    try{
+      const r=await fetch(location.pathname+'?_='+Date.now(),{method:'HEAD',cache:'no-store'});
+      const tag=r.headers.get('etag')||r.headers.get('last-modified')||'';
+      if(!tag)return;
+      const stored=sessionStorage.getItem(ETAG_KEY);
+      if(!stored){sessionStorage.setItem(ETAG_KEY,tag);return;}
+      if(stored!==tag){
+        sessionStorage.setItem(ETAG_KEY,tag);
+        document.getElementById('updateBanner').style.display='block';
+      }
+    }catch(_){}
+  }
+  // Check once on load (after a short delay so the app is interactive first)
+  setTimeout(checkForNewDeploy,4000);
+  // Re-check whenever the tab becomes visible (user switches back)
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden)checkForNewDeploy();
+  });
+})();
+
+/* ── Pull-to-refresh on Trips view ── */
+(function(){
+  const PTR_THRESHOLD=72; // px pulled down to trigger
+  let sy=0,dy=0,active=false,indicator=null;
+
+  function makeIndicator(){
+    const d=document.createElement('div');
+    d.id='ptr-indicator';
+    d.style.cssText=`position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-100%);
+      background:#1A1A2E;color:#fff;border-radius:0 0 20px 20px;
+      padding:10px 20px;font-family:'Figtree',sans-serif;font-size:13px;font-weight:700;
+      z-index:998;transition:transform .2s ease;white-space:nowrap;pointer-events:none;letter-spacing:.02em`;
+    d.textContent='↓  Pull to refresh';
+    document.body.appendChild(d);
+    return d;
+  }
+
+  window.addEventListener('touchstart',e=>{
+    // Only when trips view is showing and page is at top
+    if(document.getElementById('navStack').classList.contains('pushed'))return;
+    if(window.scrollY>2)return;
+    // Ignore if any overlay is open
+    if(document.querySelector('.overlay.open,.account-sheet.open,.trash-sheet.open'))return;
+    sy=e.touches[0].clientY;dy=0;active=true;
+    if(!indicator)indicator=makeIndicator();
+  },{passive:true});
+
+  window.addEventListener('touchmove',e=>{
+    if(!active)return;
+    dy=Math.max(0,e.touches[0].clientY-sy);
+    const pct=Math.min(dy/PTR_THRESHOLD,1);
+    const show=Math.min(dy*0.5,PTR_THRESHOLD*0.7); // rubber band
+    indicator.style.transform=`translateX(-50%) translateY(${show-100}%)`;
+    indicator.textContent=pct>=1?'↑  Release to refresh':'↓  Pull to refresh';
+  },{passive:true});
+
+  window.addEventListener('touchend',async()=>{
+    if(!active)return;
+    active=false;
+    if(dy>=PTR_THRESHOLD){
+      indicator.textContent='⟳  Refreshing…';
+      indicator.style.transform='translateX(-50%) translateY(0)';
+      await new Promise(r=>setTimeout(r,600)); // let the user see feedback
+      location.reload(true);
+    } else {
+      indicator.style.transform='translateX(-50%) translateY(-100%)';
+    }
+    dy=0;
+  });
+})();
 </script>
 </body>
 </html>
