@@ -222,11 +222,22 @@ svg.lucide-2xl{width:28px;height:28px}
 .item-row:hover .drag-handle,
 .drag-handle.always-show{opacity:.55}
 .drag-handle:hover{opacity:1!important}
-.section.is-dragging,.item-row.is-dragging{opacity:.25;background:var(--tint)}
-.section.drop-above{border-top:2.5px solid var(--accent)!important}
-.section.drop-below{border-bottom:2.5px solid var(--accent)!important}
-.item-row.drop-above{border-top:2.5px solid var(--accent)!important}
-.item-row.drop-below{border-bottom:2.5px solid var(--accent)!important}
+.section.is-dragging,.item-row.is-dragging{opacity:.2;pointer-events:none}
+/* Section drop placeholder — full card-shaped empty slot */
+.dnd-placeholder-section{
+  border-radius:var(--r-card);
+  border:2px dashed var(--accent);
+  background:rgba(26,26,46,.04);
+  margin-bottom:16px;
+  transition:height .1s;
+  box-sizing:border-box;
+}
+/* Item drop placeholder — row-shaped slot with accent stripe */
+.dnd-placeholder-item{
+  border-left:3px solid var(--accent);
+  background:rgba(26,26,46,.04);
+  box-sizing:border-box;
+}
 .dnd-ghost{
   position:fixed;pointer-events:none;z-index:9999;
   border-radius:12px;box-shadow:0 10px 36px rgba(26,26,46,.22);
@@ -890,21 +901,28 @@ const svgStr = (key, cls='lucide') => {
 
 /* ── Drag & Drop engine (pointer events — works mouse + touch) ── */
 let _dnd=null;
+let _placeholder=null;
 
 function startDrag(e,type,el){
   e.preventDefault();e.stopPropagation();
   const rect=el.getBoundingClientRect();
+
+  // Floating ghost follows the finger/cursor
   const ghost=el.cloneNode(true);
   ghost.className=(ghost.className||'')+' dnd-ghost';
   ghost.style.width=rect.width+'px';
   ghost.style.left=rect.left+'px';
   ghost.style.top=rect.top+'px';
   document.body.appendChild(ghost);
-  el.classList.add('is-dragging');
 
-  _dnd={type,el,ghost,
-    ox:e.clientX-rect.left,oy:e.clientY-rect.top,
-    current:null};
+  // Placeholder: a full-size empty slot inserted in the list
+  _placeholder=document.createElement('div');
+  _placeholder.className=type==='section'?'dnd-placeholder-section':'dnd-placeholder-item';
+  _placeholder.style.height=rect.height+'px';
+  el.parentNode.insertBefore(_placeholder,el); // start in original position
+
+  el.classList.add('is-dragging');
+  _dnd={type,el,ghost,ox:e.clientX-rect.left,oy:e.clientY-rect.top,current:null,above:true};
 
   function onMove(ev){
     const cx=ev.clientX??ev.touches?.[0]?.clientX;
@@ -912,21 +930,28 @@ function startDrag(e,type,el){
     if(cx==null)return;
     ghost.style.left=(cx-_dnd.ox)+'px';
     ghost.style.top=(cy-_dnd.oy)+'px';
-    // find element under ghost
-    ghost.style.display='none';
+
+    // Hide ghost+placeholder briefly to hit-test underneath
+    ghost.style.visibility='hidden';
+    _placeholder.style.visibility='hidden';
     const under=document.elementFromPoint(cx,cy);
-    ghost.style.display='';
-    clearDropIndicators();
+    ghost.style.visibility='';
+    _placeholder.style.visibility='';
+
     if(!under)return;
     const target=type==='section'
       ?under.closest('.section[data-sid]')
       :under.closest('.item-row[data-iid]');
-    if(!target||target===el)return;
-    // Same section check for items
+    if(!target||target===el||target===_placeholder)return;
     if(type==='item'&&target.dataset.sid!==el.dataset.sid)return;
+
     const tr=target.getBoundingClientRect();
     const above=cy<tr.top+tr.height/2;
-    target.classList.add(above?'drop-above':'drop-below');
+
+    // Move placeholder to show drop position
+    if(above) target.parentNode.insertBefore(_placeholder,target);
+    else target.parentNode.insertBefore(_placeholder,target.nextSibling);
+
     _dnd.current=target;
     _dnd.above=above;
   }
@@ -936,19 +961,13 @@ function startDrag(e,type,el){
     document.removeEventListener('pointerup',onEnd);
     ghost.remove();
     el.classList.remove('is-dragging');
-    clearDropIndicators();
+    if(_placeholder){_placeholder.remove();_placeholder=null;}
     if(_dnd.current)commitDrop(type,el,_dnd.current,_dnd.above);
     _dnd=null;
   }
 
   document.addEventListener('pointermove',onMove,{passive:false});
   document.addEventListener('pointerup',onEnd);
-}
-
-function clearDropIndicators(){
-  document.querySelectorAll('.drop-above,.drop-below').forEach(e=>{
-    e.classList.remove('drop-above','drop-below');
-  });
 }
 
 function commitDrop(type,src,target,above){
