@@ -17,6 +17,10 @@
   --ink:#1A1A2E;
   --muted:#5C5975;
   --border:#EBEBF0;
+  /* Responsive horizontal padding — achieves max-width centering WITHOUT
+     setting max-width on the view elements (which breaks translateX on wide screens) */
+  --trips-px:max(32px, calc((100vw - 780px) / 2));
+  --cl-px:max(32px, calc((100vw - 680px) / 2));
   --accent:#1A1A2E;
   --accent-h:#2D2D4A;
   --tint:#F3F3F8;
@@ -71,7 +75,8 @@ svg.lucide-xl{width:24px;height:24px}
 svg.lucide-2xl{width:28px;height:28px}
 
 /* ── TRIPS VIEW ── */
-#tripsView{max-width:780px;margin:0 auto;padding:52px 32px calc(104px + env(safe-area-inset-bottom))}
+/* no max-width / margin:auto — view must be full viewport width so translateX(100%) goes fully off-screen */
+#tripsView{padding:52px var(--trips-px) calc(104px + env(safe-area-inset-bottom))}
 
 .top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:56px}
 .brand-pill{
@@ -148,9 +153,9 @@ svg.lucide-2xl{width:28px;height:28px}
 .empty-state p{font-size:15px;color:var(--muted);line-height:1.6}
 
 /* ── CHECKLIST VIEW ── */
+/* no max-width / margin:auto — must be full viewport width for translateX(100%) to go off-screen */
 #checklistView{
-  max-width:680px;margin:0 auto;
-  padding:0 32px calc(116px + env(safe-area-inset-bottom));
+  padding:0 var(--cl-px) calc(116px + env(safe-area-inset-bottom));
   height:100vh;overflow-y:auto;
   /* overflow-x:clip does NOT create a scroll container, so position:sticky still works in Safari */
   overflow-x:clip;
@@ -161,8 +166,8 @@ svg.lucide-2xl{width:28px;height:28px}
   position:sticky;top:0;z-index:50;
   background:var(--bg);
   /* bleed into the container's horizontal padding so no content peeks through the sides */
-  margin:0 -32px;
-  padding:14px 32px 14px;
+  margin:0 calc(var(--cl-px) * -1);
+  padding:14px var(--cl-px);
   margin-bottom:24px;
   border-bottom:1px solid transparent;
   transition:border-color .15s, box-shadow .15s;
@@ -170,9 +175,6 @@ svg.lucide-2xl{width:28px;height:28px}
 .cl-nav.scrolled{
   border-bottom-color:var(--border);
   box-shadow:0 2px 16px rgba(26,26,46,.09);
-}
-@media(max-width:600px){
-  .cl-nav{margin:0 -16px;padding:12px 16px 12px;}
 }
 .btn-back{
   display:inline-flex;align-items:center;gap:8px;
@@ -625,9 +627,9 @@ svg.lucide-2xl{width:28px;height:28px}
 .sheet-action.danger svg{color:var(--red)}
 
 @media(max-width:600px){
-  #tripsView{padding:32px 20px calc(104px + env(safe-area-inset-bottom))}
-  /* padding-top:0 so sticky nav sits flush at top — no gap for content to sneak through */
-  #checklistView{padding:0 16px calc(116px + env(safe-area-inset-bottom))}
+  :root{--trips-px:20px;--cl-px:16px}
+  /* #tripsView, #checklistView, .cl-nav all auto-adjust via the CSS variables above */
+  #tripsView{padding-top:32px}
   .hero-title{font-size:38px;letter-spacing:-1.5px}
   .traveler-fields{grid-template-columns:1fr 1fr}
   .modal{padding:12px 20px calc(36px + env(safe-area-inset-bottom))}
@@ -1253,10 +1255,20 @@ window.handleAuthSubmit=async function(){
   errEl.textContent='';errEl.className='auth-error';
   if(!email||!password){errEl.textContent='Please fill in all fields.';return;}
   btn.disabled=true;btn.textContent='Please wait…';
-  const{data,error}=isSignUp
-    ?await sb.auth.signUp({email,password})
-    :await sb.auth.signInWithPassword({email,password});
-  btn.disabled=false;btn.textContent=isSignUp?'Sign up':'Sign in';
+  let data,error;
+  try{
+    const res=isSignUp
+      ?await sb.auth.signUp({email,password})
+      :await sb.auth.signInWithPassword({email,password});
+    data=res.data;error=res.error;
+  }catch(e){
+    error=e;
+  }finally{
+    // Always re-enable unless a rate-limit countdown below will manage it
+    if(!error?.message?.match(/after \d+ second/)){
+      btn.disabled=false;btn.textContent=isSignUp?'Sign up':'Sign in';
+    }
+  }
   if(error){
     // Friendly error messages
     const msg=error.message||'';
@@ -1306,7 +1318,9 @@ window.toggleAuthMode=function(){
   toggle.dataset.mode=isSignUp?'signin':'signup';
   toggle.textContent=isSignUp?'Sign up':'Sign in';
   document.getElementById('authTitle').textContent=isSignUp?'Welcome back':'Create account';
-  document.getElementById('authSubmitBtn').textContent=isSignUp?'Sign in':'Sign up';
+  const btn=document.getElementById('authSubmitBtn');
+  btn.textContent=isSignUp?'Sign in':'Sign up';
+  btn.disabled=false; // always re-enable on mode switch (clears any stuck rate-limit disable)
   document.querySelector('.auth-switch').firstChild.textContent=isSignUp?'Don\'t have an account? ':'Already have an account? ';
   document.getElementById('authError').textContent='';
 };
