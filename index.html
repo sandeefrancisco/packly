@@ -1820,7 +1820,11 @@ function buildItemRow(item,sec){
 
   const cb=document.createElement('div');cb.className='round-cb';
   cb.innerHTML=svgStr('checkSmall');
-  cb.onclick=()=>{item.done=!item.done;saveAll(trips);renderChecklist();};
+  cb.onclick=()=>{
+    item.done=!item.done;
+    sec.items.sort((a,b)=>(a.done===b.done)?0:a.done?1:-1);
+    saveAll(trips);renderChecklist();
+  };
 
   const lbl=document.createElement('div');lbl.className='item-label';lbl.textContent=item.label;
   lbl.setAttribute('contenteditable','true');lbl.setAttribute('spellcheck','false');
