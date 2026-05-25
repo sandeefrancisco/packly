@@ -42,18 +42,11 @@ html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:'Fig
   will-change:transform;
   background:var(--bg);
 }
-/* tripsView stays in navStack, full screen */
+/* default: trips on screen, checklist off to the right */
 #tripsView{transform:translateX(0);z-index:1;}
-
-/* ── Checklist bottom sheet backdrop ── */
-#clBackdrop{
-  position:fixed;inset:0;z-index:90;
-  background:rgba(26,26,46,.48);
-  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
-  opacity:0;pointer-events:none;
-  transition:opacity .35s ease;
-}
-#clBackdrop.open{opacity:1;pointer-events:auto;}
+#checklistView{transform:translateX(100%);z-index:2;}
+#navStack.pushed #tripsView{transform:translateX(0);}
+#navStack.pushed #checklistView{transform:translateX(0);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bannerSlideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 
@@ -145,53 +138,28 @@ svg.lucide-2xl{width:28px;height:28px}
 .empty-state p{font-size:15px;color:var(--muted);line-height:1.6}
 
 /* ── CHECKLIST VIEW ── */
-/* ── Checklist: Gorhom-style bottom sheet ── */
+/* no max-width — must be full viewport width so translateX(100%) goes fully off-screen */
 #checklistView{
-  position:fixed !important;
-  inset:auto 0 0 0;
-  /* 96vh fallback, then dvh for browsers that track address-bar height dynamically */
-  height:96vh;height:96dvh;
-  border-radius:24px 24px 0 0;
-  background:var(--bg);
-  z-index:100;
-  transform:translateY(110%);
-  transition:transform .38s cubic-bezier(.32,.72,0,1);
-  will-change:transform;
-  overflow-y:auto;overflow-x:clip;
-  padding:0 var(--cl-px) calc(100px + env(safe-area-inset-bottom));
-  box-shadow:0 -6px 40px rgba(26,26,46,.18);
-}
-#checklistView.open{
-  transform:translateY(0);
-}
-/* drag handle pill */
-.cl-drag-handle{
-  width:40px;height:5px;
-  background:rgba(26,26,46,.13);border-radius:99px;
-  margin:12px auto 0;
-  touch-action:none;cursor:grab;
-  flex-shrink:0;
+  padding:0 var(--cl-px) calc(116px + env(safe-area-inset-bottom));
+  height:100vh;overflow-y:auto;
+  /* overflow-x:clip does NOT create a scroll container, so position:sticky still works in Safari */
+  overflow-x:clip;
 }
 
 .cl-nav{
-  display:flex;flex-direction:column;
+  display:flex;align-items:center;gap:16px;
   position:sticky;top:0;z-index:50;
   background:var(--bg);
-  /* bleed to sheet edges so background covers content scrolling under it */
+  /* bleed into the container's horizontal padding so no content peeks through the sides */
   margin:0 calc(var(--cl-px) * -1);
-  padding:0 var(--cl-px) 14px;
-  margin-bottom:20px;
+  padding:14px var(--cl-px);
+  margin-bottom:24px;
   border-bottom:1px solid transparent;
   transition:border-color .15s, box-shadow .15s;
 }
 .cl-nav.scrolled{
   border-bottom-color:var(--border);
   box-shadow:0 2px 16px rgba(26,26,46,.09);
-}
-/* back btn + trip meta row inside nav */
-.cl-nav-inner{
-  display:flex;align-items:center;gap:16px;
-  padding-top:12px;
 }
 .btn-back{
   display:inline-flex;align-items:center;gap:8px;
@@ -798,9 +766,6 @@ svg.lucide-2xl{width:28px;height:28px}
 </head>
 <body>
 
-<!-- Checklist sheet backdrop -->
-<div id="clBackdrop" onclick="showTrips()"></div>
-
 <div id="navStack">
 <!-- TRIPS VIEW -->
 <div class="view" id="tripsView">
@@ -828,18 +793,15 @@ svg.lucide-2xl{width:28px;height:28px}
 </div>
 
 <!-- CHECKLIST VIEW -->
-<div id="checklistView">
+<div class="view" id="checklistView">
   <div class="cl-nav">
-    <div class="cl-drag-handle" id="clDragHandle"></div>
-    <div class="cl-nav-inner">
-      <button class="btn-back" onclick="showTrips()">
-        <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-        Trips
-      </button>
-      <div class="cl-trip-meta">
-        <div class="cl-trip-name" id="clTripName"></div>
-        <div class="cl-trip-dates" id="clTripDates"></div>
-      </div>
+    <button class="btn-back" onclick="showTrips()">
+      <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Trips
+    </button>
+    <div class="cl-trip-meta">
+      <div class="cl-trip-name" id="clTripName"></div>
+      <div class="cl-trip-dates" id="clTripDates"></div>
     </div>
   </div>
   <div class="cl-progress-strip" id="clProgressStrip"></div>
@@ -1609,10 +1571,9 @@ let luggageDraft=[];
 
 /* ── TRIPS VIEW ── */
 // Pure visual — no history manipulation. Call this from popstate too.
-function _clOpen(){ document.getElementById('checklistView').classList.add('open'); document.getElementById('clBackdrop').classList.add('open'); }
+function _clOpen(){ document.getElementById('navStack').classList.add('pushed'); }
 function _clClose(){
-  document.getElementById('checklistView').classList.remove('open');
-  document.getElementById('clBackdrop').classList.remove('open');
+  document.getElementById('navStack').classList.remove('pushed');
   document.getElementById('backToTopBtn')?.classList.remove('visible');
 }
 function _doShowTrips(){
@@ -1913,6 +1874,8 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
   activeId=id;
+  // Always start at the top — never resume stale scroll position
+  document.getElementById('checklistView').scrollTop=0;
   _clOpen();
   history.pushState({packly:'checklist',tripId:id},'','#checklist');
   startSharedTripPolling(id);
@@ -2520,48 +2483,42 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
    SWIPE GESTURES
    ════════════════════════════════════════ */
 
-/* ── 1. Swipe-down to dismiss checklist bottom sheet ── */
+/* ── 1. Swipe-right edge gesture → go back to trips ── */
 (function(){
+  const stack=document.getElementById('navStack');
   const cv=document.getElementById('checklistView');
   let sw=null;
 
   cv.addEventListener('pointerdown',e=>{
-    if(!cv.classList.contains('open'))return;
-    // Never activate sheet-swipe on interactive elements or DnD targets
-    if(e.target.closest(
-      'input,button,textarea,select,a,[contenteditable],[draggable],.section-label,.item-row'
-    ))return;
-    // Only from handle area (top 80px) OR when sheet is at scroll top
-    const fromTop=e.clientY-cv.getBoundingClientRect().top;
-    if(fromTop>80&&cv.scrollTop>2)return;
-    sw={sy:e.clientY,dy:0,id:e.pointerId,started:false,sx:e.clientX};
+    if(!stack.classList.contains('pushed'))return;
+    if(e.clientX>60)return;          // left-edge swipe only
+    sw={sx:e.clientX,sy:e.clientY,dx:0,started:false,id:e.pointerId};
     try{cv.setPointerCapture(e.pointerId);}catch(_){}
   },{passive:true});
 
   cv.addEventListener('pointermove',e=>{
     if(!sw||e.pointerId!==sw.id)return;
-    // If DnD engine took over, abort sheet swipe
-    if(_dnd){sw=null;cv.style.transition='';cv.style.transform='';return;}
-    const dy=e.clientY-sw.sy;
-    const dx=e.clientX-sw.sx;
+    const dx=e.clientX-sw.sx, dy=e.clientY-sw.sy;
     if(!sw.started){
-      if(dy<0){sw=null;return;}                   // pulling up = scroll
-      if(Math.abs(dx)>Math.abs(dy)){sw=null;return;} // horizontal = not ours
-      if(Math.abs(dy)<6)return;                   // dead-zone
+      if(Math.abs(dy)>Math.abs(dx)){sw=null;return;} // vertical → scroll
       sw.started=true;
     }
-    sw.dy=Math.max(0,dy);
-    cv.style.transition='none';
-    cv.style.transform=`translateY(${sw.dy}px)`;
+    sw.dx=Math.max(0,dx);
+    const p=Math.min(sw.dx/window.innerWidth,1);
+    cv.style.cssText=`transition:none;transform:translateX(${p*100}%)`;
   },{passive:true});
 
   function finish(e){
     if(!sw||e.pointerId!==sw.id)return;
-    const dy=sw.dy; sw=null;
-    cv.style.transition='';
-    cv.style.transform='';
-    if(dy>160){
-      showTrips();
+    const p=Math.min(sw.dx/window.innerWidth,1);
+    sw=null;
+    cv.style.cssText='';
+    if(p>0.35){
+      stack.classList.remove('pushed');
+      trips=loadAll(); renderTrips();
+      document.getElementById('tabTrips')?.classList.add('active');
+      document.getElementById('tabAccount')?.classList.remove('active');
+      if(history.state&&history.state.packly==='checklist')history.back();
     }
   }
   cv.addEventListener('pointerup',finish);
@@ -2570,7 +2527,7 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
 
 /* ── Native back button / browser history ── */
 window.addEventListener('popstate',()=>{
-  if(document.getElementById('checklistView').classList.contains('open')){
+  if(document.getElementById('navStack').classList.contains('pushed')){
     _doShowTrips();
   }
 });
@@ -2700,7 +2657,7 @@ document.addEventListener('visibilitychange',async()=>{
 
   window.addEventListener('touchstart',e=>{
     // Only when trips view is showing and page is at top
-    if(document.getElementById('checklistView').classList.contains('open'))return;
+    if(document.getElementById('navStack').classList.contains('pushed'))return;
     if(window.scrollY>2)return;
     // Ignore if any overlay is open
     if(document.querySelector('.overlay.open,.account-sheet.open,.trash-sheet.open'))return;
