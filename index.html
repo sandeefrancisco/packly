@@ -199,11 +199,15 @@ svg.lucide-2xl{width:28px;height:28px}
 .luggage-bar-chevron{color:var(--muted);flex-shrink:0}
 
 /* luggage sheet inner nav */
+/* Strip the modal's horizontal padding so overflow:hidden clips flush at the edge,
+   then each page adds its own horizontal padding */
+#luggageOverlay .modal{padding-left:0;padding-right:0}
 .lug-sheet-wrap{overflow:hidden;position:relative;width:100%}
 /* lug-inner is 200% wide; each page is 50% of that = 100% of the visible area */
 .lug-inner{display:flex;width:200%;transition:transform .26s cubic-bezier(.4,0,.2,1);will-change:transform}
 .lug-inner.editing{transform:translateX(-50%)}
-.lug-page{flex:0 0 50%;min-width:0;box-sizing:border-box}
+.lug-page{flex:0 0 50%;min-width:0;box-sizing:border-box;padding:0 24px}
+@media(max-width:600px){.lug-page{padding:0 20px}}
 
 /* details page */
 .lug-detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
@@ -726,12 +730,12 @@ svg.lucide-2xl{width:28px;height:28px}
 <div class="view" id="tripsView">
   <nav class="top-nav">
     <div class="brand-pill">
-      <img src="Logo-colored.png" alt="Master Packer" style="width:28px;height:28px;display:block;mix-blend-mode:multiply;">
+      <img src="Logo-colored.png" alt="Master Packer" style="width:44px;height:44px;display:block;mix-blend-mode:multiply;">
       Master Packer
     </div>
   </nav>
   <div class="hero">
-    <h1 class="hero-title">Pack like you're <em>already there.</em></h1>
+    <h1 class="hero-title" id="heroTitle">Pack like you're <em>already there.</em></h1>
     <p class="hero-sub">Create your packing list, sync across devices, and share with your travel partner — ready for any trip.</p>
     <div class="hero-actions">
       <button class="btn-primary" onclick="openNewTripModal()">
@@ -1276,9 +1280,29 @@ async function loadSharedTrips(){
 
 /* ── Auth helpers ── */
 let _currentUserId=null;
+let _currentUserName=null;
+
+function _extractName(user){
+  // Prefer display name, fall back to the part before @ in the email
+  return user.user_metadata?.full_name
+    || user.user_metadata?.name
+    || user.email.split('@')[0].replace(/[._+\-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+function updateHeroGreeting(){
+  const el=document.getElementById('heroTitle');
+  if(!el)return;
+  if(_currentUserName){
+    el.innerHTML=`Hi, <em>${_currentUserName}!</em>`;
+  } else {
+    el.innerHTML=`Pack like you're <em>already there.</em>`;
+  }
+}
 
 async function onSignedIn(user){
   _currentUserId=user.id;
+  _currentUserName=_extractName(user);
+  updateHeroGreeting();
   document.getElementById('sheetEmail').textContent=user.email;
   document.getElementById('authOverlay').classList.remove('open');
   // Show skeleton while cloud loads
@@ -1323,6 +1347,8 @@ async function onSignedIn(user){
 
 function onSignedOut(){
   _currentUserId=null;
+  _currentUserName=null;
+  updateHeroGreeting();
   document.getElementById('sheetEmail').textContent='—';
   closeAccountSheet();
   document.getElementById('authOverlay').classList.add('open');
