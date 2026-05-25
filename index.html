@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="packly-version" content="1.2.0">
 <title>Master Packer — Travel Checklist</title>
 <link rel="icon" type="image/png" href="Logo-colored.png">
@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+input,textarea,select{font-size:16px!important;touch-action:manipulation}
 
 :root{
   --bg:#F3F4F6;
@@ -32,7 +33,8 @@
   --shadow-lg:0 8px 32px rgba(26,26,46,.13);
 }
 
-html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:'Figtree',sans-serif;-webkit-font-smoothing:antialiased;font-size:16px}
+html{height:100%;overflow:hidden}
+body{min-height:100%;height:100%;background:var(--bg);color:var(--ink);font-family:'Figtree',sans-serif;-webkit-font-smoothing:antialiased;font-size:16px;overflow:auto;-webkit-text-size-adjust:100%}
 /* ── iOS-style push/pop navigation ── */
 #navStack{
   position:relative;overflow-x:hidden;
@@ -214,9 +216,9 @@ svg.lucide-2xl{width:28px;height:28px}
 .luggage-bar-chevron{color:var(--muted);flex-shrink:0}
 
 /* ── Luggage sheet — flex column so footer never gets pushed off-screen ── */
-/* Modal is a flex column: handle → lug-inner (grows to fill) */
+/* Modal is a flex column: close btn → lug-inner (grows to fill) */
 #luggageOverlay .modal{
-  padding:12px 0 0;          /* top for drag handle; no horizontal (pages add their own) */
+  padding:20px 0 0;
   overflow:hidden;           /* clip the second page horizontally */
   display:flex;
   flex-direction:column;
@@ -277,7 +279,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 @media(max-width:600px){.lug-edit-head{padding:4px 20px 14px}}
 .btn-lug-back{border:none;background:none;color:var(--accent);font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px}
-.lug-edit-title{font-size:18px;font-weight:800;color:var(--ink);flex:1}
+.lug-edit-title{font-size:18px;font-weight:800;color:var(--ink);flex:1;text-align:center}
 .btn-ghost-sm{
   padding:7px 16px;border-radius:99px;border:1.5px solid var(--border);background:none;
   font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;
@@ -506,8 +508,9 @@ svg.lucide-2xl{width:28px;height:28px}
 /* ── MODAL → Bottom Sheet ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
 .overlay.open{display:flex}
-.modal{background:var(--white);border-radius:24px 24px 0 0;padding:12px 24px calc(36px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 -8px 40px rgba(26,26,46,.14);animation:slideUp .28s cubic-bezier(.32,.72,0,1)}
-.modal::before{content:'';display:block;width:36px;height:4px;border-radius:99px;background:var(--border);margin:0 auto 24px}
+.modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px 24px calc(36px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 -8px 40px rgba(26,26,46,.14);animation:slideUp .28s cubic-bezier(.32,.72,0,1)}
+.modal{position:relative}
+.modal .sheet-close-btn{position:absolute;top:12px;right:12px;z-index:1}
 .modal.wide{max-width:none}
 .modal h2{font-size:23px;font-weight:800;letter-spacing:-.4px;margin-bottom:24px}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -536,7 +539,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .date-field{flex:1;background:var(--tint);border-radius:12px;border:1.5px solid var(--border);padding:10px 14px;transition:border-color .12s}
 .date-field:focus-within{border-color:var(--accent);background:var(--white)}
 .date-field-label{display:block;font-size:13px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:4px}
-.date-field input[type="date"]{width:100%;border:none;background:none;font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--ink);outline:none;padding:0;min-height:unset;border-radius:0;cursor:pointer}
+.date-field input[type="date"]{width:100%;border:none;background:none;font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;color:var(--ink);outline:none;padding:0;min-height:unset;border-radius:0;cursor:pointer}
 .date-range-arrow{color:var(--muted);display:flex;align-items:center}
 
 /* ── Modal footer — always stacked, full-width, primary on top ── */
@@ -565,7 +568,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .traveler-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .traveler-fields .full{grid-column:1/-1}
 .tfield label{font-size:13px;font-weight:600;letter-spacing:0;color:var(--muted);display:block;margin-bottom:5px}
-.tfield input{width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--white);font-family:'Figtree',sans-serif;font-size:14px;color:var(--ink);outline:none;transition:border-color .12s}
+.tfield input{width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--white);font-family:'Figtree',sans-serif;font-size:16px;color:var(--ink);outline:none;transition:border-color .12s}
 .tfield input:focus{border-color:var(--accent)}
 .btn-add-traveler{width:100%;padding:11px;border-radius:12px;border:1.5px dashed var(--border);background:none;font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .12s;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:7px}
 .btn-add-traveler:hover{border-color:var(--accent);color:var(--accent);background:var(--white)}
@@ -699,7 +702,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .trash-sheet{
   position:fixed;bottom:0;left:0;right:0;
   background:var(--white);border-radius:24px 24px 0 0;
-  padding:12px 24px calc(36px + env(safe-area-inset-bottom));
+  padding:20px 24px calc(36px + env(safe-area-inset-bottom));
   z-index:210;box-shadow:0 -8px 40px rgba(26,26,46,.14);
   max-height:85vh;overflow-y:auto;
   transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);
@@ -739,12 +742,20 @@ svg.lucide-2xl{width:28px;height:28px}
 .account-sheet{
   position:fixed;bottom:0;left:0;right:0;
   background:var(--white);border-radius:24px 24px 0 0;
-  padding:12px 24px calc(28px + env(safe-area-inset-bottom));
+  padding:20px 24px calc(28px + env(safe-area-inset-bottom));
   z-index:200;box-shadow:0 -8px 40px rgba(26,26,46,.14);
   transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);
 }
 .account-sheet.open{transform:translateY(0)}
-.sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--border);margin:0 auto 20px}
+.sheet-close-btn{
+  position:absolute;top:16px;right:16px;
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:var(--tint);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:background .12s,color .12s;
+}
+.sheet-close-btn svg{width:20px;height:20px}
+.sheet-close-btn:hover{background:var(--border);color:var(--ink)}
 .sheet-user{
   display:flex;align-items:center;gap:14px;
   padding:4px 0 16px;
@@ -759,7 +770,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .sheet-name-row input{
   flex:1;border:1.5px solid var(--border);border-radius:12px;
-  padding:10px 14px;font-family:'Figtree',sans-serif;font-size:15px;color:var(--ink);
+  padding:10px 14px;font-family:'Figtree',sans-serif;font-size:16px;color:var(--ink);
   background:var(--tint);outline:none;min-width:0;
 }
 .sheet-name-row input:focus{border-color:var(--accent);}
@@ -791,7 +802,7 @@ svg.lucide-2xl{width:28px;height:28px}
   #tripsView{padding-top:20px}
   .hero-title{font-size:38px;letter-spacing:-1.5px}
   .traveler-fields{grid-template-columns:1fr 1fr}
-  .modal{padding:12px 20px calc(36px + env(safe-area-inset-bottom))}
+  .modal{padding:24px 20px calc(36px + env(safe-area-inset-bottom))}
   .icon-picker-grid{grid-template-columns:repeat(6,1fr)}
 }
 
@@ -804,7 +815,6 @@ svg.lucide-2xl{width:28px;height:28px}
     padding:36px;max-height:85vh;
     animation:floatIn .22s cubic-bezier(.32,.72,0,1);
   }
-  .modal::before{display:none}
   .modal.wide{max-width:560px}
 
   /* Account + Trash sheets — floating centered card */
@@ -824,7 +834,6 @@ svg.lucide-2xl{width:28px;height:28px}
     opacity:1;
     pointer-events:auto;
   }
-  .sheet-handle{display:none}
 }
 @keyframes floatIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
 </style>
@@ -845,7 +854,7 @@ svg.lucide-2xl{width:28px;height:28px}
   </nav>
   <div class="hero">
     <h1 class="hero-title" id="heroTitle">Pack like you're <em>already there.</em></h1>
-    <p class="hero-sub">Create your packing list, sync across devices, and share with your travel partner — ready for any trip.</p>
+    <p class="hero-sub">Create your packing list, sync across devices, and share with your travel partner – ready for any trip.</p>
     <div class="hero-actions">
       <button class="btn-primary" onclick="openNewTripModal()">
         <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -891,6 +900,7 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- TRIP MODAL -->
 <div class="overlay" id="tripOverlay" onclick="handleTripOverlay(event)">
   <div class="modal">
+    <button class="sheet-close-btn" onclick="closeTripModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2 id="tripModalTitle">New trip</h2>
     <div class="field">
       <label>Destination</label>
@@ -918,7 +928,6 @@ svg.lucide-2xl{width:28px;height:28px}
     </div>
     <div class="modal-footer">
       <button class="btn-save" id="tripSaveBtn" onclick="saveTrip()">Create trip</button>
-      <button class="btn-cancel" onclick="closeTripModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -926,18 +935,18 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- LUGGAGE SHEET -->
 <div class="overlay" id="luggageOverlay" onclick="handleLuggageOverlay(event)">
   <div class="modal wide lug-sheet-wrap">
+    <button class="sheet-close-btn" onclick="closeLuggageModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div class="lug-inner" id="lugInner">
       <!-- Page 1: Details -->
       <div class="lug-page" id="lugDetailPage">
         <div class="lug-page-body">
           <div class="lug-detail-head">
             <span class="lug-detail-title">Luggage allowances</span>
-            <button class="btn-ghost-sm" onclick="lugGoEdit()">Edit</button>
           </div>
           <div id="lugDetailList"></div>
-        </div>
-        <div class="lug-page-footer">
-          <button class="btn-cancel" onclick="closeLuggageModal()">Done</button>
+          <div style="margin-top:20px">
+            <button class="btn-save" onclick="lugGoEdit()">Edit allowances</button>
+          </div>
         </div>
       </div>
       <!-- Page 2: Edit -->
@@ -949,6 +958,7 @@ svg.lucide-2xl{width:28px;height:28px}
             Details
           </button>
           <span class="lug-edit-title">Edit allowances</span>
+          <span class="btn-lug-back" style="visibility:hidden">Details</span>
         </div>
         <!-- Scrollable traveller list -->
         <div class="lug-page-body">
@@ -961,7 +971,6 @@ svg.lucide-2xl{width:28px;height:28px}
         <!-- Footer always pinned to bottom -->
         <div class="lug-page-footer">
           <button class="btn-save" onclick="saveLuggage()">Save</button>
-          <button class="btn-cancel" onclick="lugGoDetails()">Cancel</button>
         </div>
       </div>
     </div>
@@ -971,6 +980,7 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- ADD CATEGORY MODAL -->
 <div class="overlay" id="addCatOverlay" onclick="handleAddCatOverlay(event)">
   <div class="modal">
+    <button class="sheet-close-btn" onclick="closeAddCatModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2>New category</h2>
     <div class="field">
       <label>Name</label>
@@ -982,7 +992,6 @@ svg.lucide-2xl{width:28px;height:28px}
     </div>
     <div class="modal-footer">
       <button class="btn-save" onclick="saveNewSection()">Add category</button>
-      <button class="btn-cancel" onclick="closeAddCatModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -1008,7 +1017,9 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- ACCOUNT SHEET -->
 <div class="sheet-overlay" id="sheetOverlay" onclick="closeAccountSheet()"></div>
 <div class="account-sheet" id="accountSheet">
-  <div class="sheet-handle"></div>
+  <button class="sheet-close-btn" onclick="closeAccountSheet()" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
   <div class="sheet-user">
     <img src="Logo-colored.png" alt="Master Packer" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;mix-blend-mode:multiply;">
     <div class="sheet-user-info">
@@ -1048,13 +1059,13 @@ svg.lucide-2xl{width:28px;height:28px}
 </div>
 <div class="overlay" id="aboutOverlay" onclick="handleAboutOverlay(event)">
   <div class="modal">
+    <button class="sheet-close-btn" onclick="closeAboutModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2>About Packly</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:16px">A calm, collaborative travel packing app.</p>
     <p id="aboutVersionLabel" style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px">Current version: —</p>
     <p id="aboutLatestLabel" style="font-size:13px;color:var(--muted);margin-bottom:18px">Latest deployed: checking…</p>
     <div class="modal-footer" style="margin-top:0">
       <button class="btn-save" onclick="checkForUpdates({manual:true})">Check app updates</button>
-      <button class="btn-cancel" onclick="closeAboutModal()">Done</button>
     </div>
   </div>
 </div>
@@ -1062,7 +1073,9 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- TRASH SHEET -->
 <div class="sheet-overlay" id="trashOverlay" onclick="closeTrashSheet()"></div>
 <div class="trash-sheet" id="trashSheet">
-  <div class="sheet-handle"></div>
+  <button class="sheet-close-btn" onclick="closeTrashSheet()" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
   <div class="trash-sheet-head">Recently deleted</div>
   <div id="trashList"></div>
 </div>
@@ -1093,24 +1106,22 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- SHARE PICKER MODAL -->
 <div class="overlay" id="sharePickerOverlay" onclick="handleSharePickerOverlay(event)">
   <div class="modal">
+    <button class="sheet-close-btn" onclick="closeSharePickerModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2>Share a trip</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Pick which trip to share — your travel partner will enter the code to join.</p>
     <div id="sharePickerList" style="display:flex;flex-direction:column;gap:8px"></div>
-    <div class="modal-footer" style="margin-top:20px">
-      <button class="btn-cancel" onclick="closeSharePickerModal()">Cancel</button>
-    </div>
   </div>
 </div>
 
 <!-- SHARE MODAL -->
 <div class="overlay" id="shareOverlay" onclick="handleShareOverlay(event)">
   <div class="modal">
+    <button class="sheet-close-btn" onclick="closeShareModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2>Share this trip</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Give this code to your travel partner. They open Master Packer and tap <strong>Join a trip</strong>.</p>
     <div class="share-code-box" id="shareCodeBox"></div>
     <div class="modal-footer" style="margin-top:20px">
       <button class="btn-save" id="copyCodeBtn" onclick="copyShareCode()">Copy code</button>
-      <button class="btn-cancel" onclick="closeShareModal()">Done</button>
     </div>
   </div>
 </div>
@@ -1118,6 +1129,7 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- JOIN MODAL -->
 <div class="overlay" id="joinOverlay" onclick="handleJoinOverlay(event)">
   <div class="modal">
+    <button class="sheet-close-btn" onclick="closeJoinModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2>Join a trip</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Enter the 6-character code from your travel partner.</p>
     <div class="field">
@@ -1127,7 +1139,6 @@ svg.lucide-2xl{width:28px;height:28px}
     <p id="joinError" style="font-size:13px;color:var(--red);min-height:18px;margin-bottom:8px"></p>
     <div class="modal-footer">
       <button class="btn-save" id="joinSubmitBtn" onclick="handleJoinSubmit()">Join trip</button>
-      <button class="btn-cancel" onclick="closeJoinModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -1135,6 +1146,7 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- CONFIRM MODAL -->
 <div class="overlay" id="confirmOverlay">
   <div class="modal confirm-modal">
+    <button class="sheet-close-btn" onclick="document.getElementById('confirmOverlay').classList.remove('open')" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div class="confirm-icon-wrap" id="confirmIcon"></div>
     <h2 id="confirmTitle"></h2>
     <p id="confirmMsg"></p>
