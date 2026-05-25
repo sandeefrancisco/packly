@@ -483,11 +483,22 @@ svg.lucide-2xl{width:28px;height:28px}
 .date-field input[type="date"]{width:100%;border:none;background:none;font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--ink);outline:none;padding:0;min-height:unset;border-radius:0;cursor:pointer}
 .date-range-arrow{color:var(--muted);display:flex;align-items:center}
 
-.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:28px}
-.btn-cancel{padding:12px 22px;border-radius:99px;border:1.5px solid var(--border);background:none;font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .12s;min-height:48px}
-.btn-cancel:hover{background:var(--tint);color:var(--ink)}
-.btn-save{padding:12px 26px;border-radius:99px;border:none;background:var(--accent);color:#fff;font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .12s;min-height:48px}
+/* ── Modal footer — always stacked, full-width, primary on top ── */
+.modal-footer{display:flex;flex-direction:column;gap:10px;margin-top:28px}
+.btn-save{
+  width:100%;padding:15px 26px;border-radius:99px;border:none;
+  background:var(--accent);color:#fff;
+  font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;
+  cursor:pointer;transition:opacity .12s;min-height:52px;text-align:center;
+}
 .btn-save:hover{opacity:.88}
+.btn-cancel{
+  width:100%;padding:14px 22px;border-radius:99px;
+  border:1.5px solid var(--border);background:none;
+  font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;color:var(--muted);
+  cursor:pointer;transition:all .12s;min-height:52px;text-align:center;
+}
+.btn-cancel:hover{background:var(--tint);color:var(--ink)}
 
 /* luggage modal */
 .traveler-block{background:var(--tint);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--border);margin-bottom:10px}
@@ -512,10 +523,10 @@ svg.lucide-2xl{width:28px;height:28px}
   color:var(--red);margin-bottom:18px;
 }
 .btn-danger{
-  padding:12px 26px;border-radius:99px;border:none;
+  width:100%;padding:15px 26px;border-radius:99px;border:none;
   background:var(--red);color:#fff;
-  font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;
-  cursor:pointer;transition:opacity .12s;min-height:48px;
+  font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;
+  cursor:pointer;transition:opacity .12s;min-height:52px;text-align:center;
 }
 .btn-danger:hover{opacity:.88}
 
@@ -598,27 +609,29 @@ svg.lucide-2xl{width:28px;height:28px}
   padding-top:10px;
   padding-bottom:calc(12px + env(safe-area-inset-bottom));
 }
-/* Back to top button — floats above the bottom nav */
+/* Back to top — centered pill floats above bottom bar, same weight as primary button */
 #backToTopBtn{
   position:fixed;
-  right:20px;
-  bottom:calc(72px + env(safe-area-inset-bottom));
+  left:50%;
+  bottom:calc(76px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(16px);
   z-index:110;
-  width:44px;height:44px;
+  padding:14px 28px;
+  border-radius:99px;
   background:var(--accent);color:#fff;
-  border:none;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 20px rgba(26,26,46,.28);
+  border:none;
+  font-family:'Figtree',sans-serif;font-size:15px;font-weight:700;
+  display:inline-flex;align-items:center;gap:8px;
+  white-space:nowrap;
+  box-shadow:0 4px 24px rgba(26,26,46,.30);
   cursor:pointer;
   opacity:0;pointer-events:none;
   transition:opacity .22s,transform .22s;
-  transform:translateY(10px);
 }
 #backToTopBtn.visible{
   opacity:1;pointer-events:auto;
-  transform:translateY(0);
+  transform:translateX(-50%) translateY(0);
 }
-#backToTopBtn svg{flex-shrink:0;}
 .tab-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:4px;border:none;background:none;color:var(--muted);
@@ -845,8 +858,8 @@ svg.lucide-2xl{width:28px;height:28px}
       <div class="icon-picker-grid" id="iconPickerGrid"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeTripModal()">Cancel</button>
       <button class="btn-save" id="tripSaveBtn" onclick="saveTrip()">Create trip</button>
+      <button class="btn-cancel" onclick="closeTripModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -862,7 +875,7 @@ svg.lucide-2xl{width:28px;height:28px}
           <button class="btn-ghost-sm" onclick="lugGoEdit()">Edit</button>
         </div>
         <div id="lugDetailList"></div>
-        <div class="modal-footer" style="justify-content:center;margin-top:16px">
+        <div class="modal-footer" style="margin-top:16px">
           <button class="btn-cancel" onclick="closeLuggageModal()">Done</button>
         </div>
       </div>
@@ -881,8 +894,8 @@ svg.lucide-2xl{width:28px;height:28px}
           Add traveller
         </button>
         <div class="modal-footer">
-          <button class="btn-cancel" onclick="lugGoDetails()">Cancel</button>
           <button class="btn-save" onclick="saveLuggage()">Save</button>
+          <button class="btn-cancel" onclick="lugGoDetails()">Cancel</button>
         </div>
       </div>
     </div>
@@ -902,8 +915,8 @@ svg.lucide-2xl{width:28px;height:28px}
       <div class="icon-picker-grid" id="catIconGrid"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeAddCatModal()">Cancel</button>
       <button class="btn-save" onclick="saveNewSection()">Add category</button>
+      <button class="btn-cancel" onclick="closeAddCatModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -925,8 +938,9 @@ svg.lucide-2xl{width:28px;height:28px}
 </div>
 
 <!-- BACK TO TOP -->
-<button id="backToTopBtn" aria-label="Back to top" onclick="scrollChecklistToTop()">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+<button id="backToTopBtn" onclick="scrollChecklistToTop()">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+  Back to top
 </button>
 
 <!-- BOTTOM NAV -->
@@ -1015,7 +1029,7 @@ svg.lucide-2xl{width:28px;height:28px}
     <h2>Share a trip</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Pick which trip to share — your travel partner will enter the code to join.</p>
     <div id="sharePickerList" style="display:flex;flex-direction:column;gap:8px"></div>
-    <div class="modal-footer" style="justify-content:center;margin-top:20px">
+    <div class="modal-footer" style="margin-top:20px">
       <button class="btn-cancel" onclick="closeSharePickerModal()">Cancel</button>
     </div>
   </div>
@@ -1027,9 +1041,9 @@ svg.lucide-2xl{width:28px;height:28px}
     <h2>Share this trip</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Give this code to your travel partner. They open Master Packer and tap <strong>Join a trip</strong>.</p>
     <div class="share-code-box" id="shareCodeBox"></div>
-    <div class="modal-footer" style="flex-direction:column;gap:10px;margin-top:20px">
-      <button class="btn-save" style="width:100%" id="copyCodeBtn" onclick="copyShareCode()">Copy code</button>
-      <button class="btn-cancel" style="width:100%;text-align:center" onclick="closeShareModal()">Done</button>
+    <div class="modal-footer" style="margin-top:20px">
+      <button class="btn-save" id="copyCodeBtn" onclick="copyShareCode()">Copy code</button>
+      <button class="btn-cancel" onclick="closeShareModal()">Done</button>
     </div>
   </div>
 </div>
@@ -1044,8 +1058,8 @@ svg.lucide-2xl{width:28px;height:28px}
       <input id="joinCodeInput" class="join-code-input" placeholder="ABC123" maxlength="6" autocomplete="off">
     </div>
     <p id="joinError" style="font-size:13px;color:var(--red);min-height:18px;margin-bottom:8px"></p>
-    <button class="btn-save" style="width:100%;min-height:50px" id="joinSubmitBtn" onclick="handleJoinSubmit()">Join trip</button>
-    <div class="modal-footer" style="justify-content:center;margin-top:8px">
+    <div class="modal-footer">
+      <button class="btn-save" id="joinSubmitBtn" onclick="handleJoinSubmit()">Join trip</button>
       <button class="btn-cancel" onclick="closeJoinModal()">Cancel</button>
     </div>
   </div>
@@ -1058,8 +1072,8 @@ svg.lucide-2xl{width:28px;height:28px}
     <h2 id="confirmTitle"></h2>
     <p id="confirmMsg"></p>
     <div class="modal-footer">
-      <button class="btn-cancel" id="confirmCancel">Cancel</button>
       <button class="btn-danger" id="confirmOk">Delete</button>
+      <button class="btn-cancel" id="confirmCancel">Cancel</button>
     </div>
   </div>
 </div>
