@@ -2082,6 +2082,112 @@ sb.auth.onAuthStateChange((event,session)=>{
 // Allow Enter key on auth form
 document.getElementById('authPassword').addEventListener('keydown',e=>{if(e.key==='Enter')handleAuthSubmit();});
 document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('authPassword').focus();});
+
+/* ════════════════════════════════════════
+   SWIPE GESTURES
+   ════════════════════════════════════════ */
+
+/* ── 1. Swipe-right to go back (navigation) ── */
+(function(){
+  const stack=document.getElementById('navStack');
+  const tv=document.getElementById('tripsView');
+  const cv=document.getElementById('checklistView');
+  let sw=null;
+
+  cv.addEventListener('pointerdown',e=>{
+    if(!stack.classList.contains('pushed'))return;
+    if(e.clientX>60)return;            // edge swipe only (left 60px)
+    sw={sx:e.clientX,sy:e.clientY,dx:0,started:false,id:e.pointerId};
+    try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  },{passive:true});
+
+  cv.addEventListener('pointermove',e=>{
+    if(!sw||e.pointerId!==sw.id)return;
+    const dx=e.clientX-sw.sx, dy=e.clientY-sw.sy;
+    if(!sw.started){
+      if(Math.abs(dy)>Math.abs(dx)){sw=null;return;} // vertical scroll, cancel
+      sw.started=true;
+    }
+    sw.dx=Math.max(0,dx);
+    const p=Math.min(sw.dx/window.innerWidth,1);
+    cv.style.cssText=`transition:none;transform:translateX(${p*100}%)`;
+    tv.style.cssText=`transition:none;transform:translateX(${(-30+30*p)}%)`;
+  },{passive:true});
+
+  function finish(e){
+    if(!sw||e.pointerId!==sw.id)return;
+    const p=Math.min(sw.dx/window.innerWidth,1);
+    sw=null;
+    if(p>0.35){
+      // Complete swipe back — animate to final then swap class
+      cv.style.cssText='transition:transform .22s cubic-bezier(.4,0,.2,1);transform:translateX(100%)';
+      tv.style.cssText='transition:transform .22s cubic-bezier(.4,0,.2,1);transform:translateX(0%)';
+      setTimeout(()=>{
+        stack.classList.remove('pushed');
+        cv.style.cssText=''; tv.style.cssText='';
+        trips=loadAll(); renderTrips();
+        document.getElementById('tabTrips')?.classList.add('active');
+        document.getElementById('tabAccount')?.classList.remove('active');
+      },220);
+    } else {
+      // Spring back to checklist
+      cv.style.cssText=''; tv.style.cssText='';
+    }
+  }
+  cv.addEventListener('pointerup',finish);
+  cv.addEventListener('pointercancel',finish);
+})();
+
+/* ── 2. Swipe-down to dismiss sheets & modals ── */
+function addSwipeDismiss(el, closeFn, {onlyMobile=false, threshold=150}={}){
+  let sw=null;
+  el.addEventListener('pointerdown',e=>{
+    if(onlyMobile&&window.innerWidth>600)return;
+    // Allow from handle area or when not scrolled
+    const r=el.getBoundingClientRect();
+    const fromTop=e.clientY-r.top;
+    if(fromTop>64&&el.scrollTop>0)return; // inside scrolled content
+    sw={sy:e.clientY,dy:0,id:e.pointerId};
+    try{el.setPointerCapture(e.pointerId);}catch(_){}
+  },{passive:true});
+
+  el.addEventListener('pointermove',e=>{
+    if(!sw||e.pointerId!==sw.id)return;
+    sw.dy=Math.max(0,e.clientY-sw.sy);
+    el.style.transition='none';
+    // Desktop centered sheets use translate(-50%,-50%) — preserve it
+    const base=window.innerWidth>600?'translate(-50%,-50%) scale(1)':'translateY(0)';
+    const offset=window.innerWidth>600
+      ?`translate(-50%, calc(-50% + ${sw.dy}px)) scale(1)`
+      :`translateY(${sw.dy}px)`;
+    el.style.transform=offset;
+  },{passive:true});
+
+  function finish(e){
+    if(!sw||e.pointerId!==sw.id)return;
+    const dy=sw.dy; sw=null;
+    el.style.transition='';
+    if(dy>threshold){
+      el.style.transform='';
+      closeFn();
+    } else {
+      el.style.transform=''; // spring back via CSS transition
+    }
+  }
+  el.addEventListener('pointerup',finish);
+  el.addEventListener('pointercancel',finish);
+}
+
+// Wire up sheets
+addSwipeDismiss(document.getElementById('accountSheet'), window.closeAccountSheet);
+addSwipeDismiss(document.getElementById('trashSheet'), window.closeTrashSheet);
+
+// Wire up all modal overlays (swipe down on the modal card itself)
+document.querySelectorAll('.overlay').forEach(overlay=>{
+  const modal=overlay.querySelector('.modal');
+  if(!modal)return;
+  addSwipeDismiss(modal, ()=>overlay.classList.remove('open'), {onlyMobile:true, threshold:100});
+});
 </script>
 </body>
 </html>
