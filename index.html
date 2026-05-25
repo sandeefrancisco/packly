@@ -208,17 +208,31 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .section-body.open{max-height:9999px}
 
-/* drag states — removed, replaced with arrow buttons */
-
-.move-btn{
-  border:none;background:none;color:#6B6888;
-  cursor:pointer;padding:2px;border-radius:7px;
-  transition:color .12s,background .12s;
+/* ── Drag & Drop ── */
+.drag-handle{
+  color:var(--muted);cursor:grab;padding:4px 6px;border-radius:6px;
   display:flex;align-items:center;justify-content:center;
-  min-width:30px;min-height:30px;
+  opacity:0;transition:opacity .15s;flex-shrink:0;
+  touch-action:none;-webkit-user-select:none;user-select:none;
 }
-.move-btn:hover{color:#4A4870;background:#E8E6F0}
-.move-btn:disabled{opacity:.2;cursor:default;pointer-events:none}
+.drag-handle svg{width:16px;height:16px;pointer-events:none}
+.drag-handle:active,.drag-handle.grabbing{cursor:grabbing}
+.section-label:hover .drag-handle,
+.item-row:hover .drag-handle,
+.drag-handle.always-show{opacity:.55}
+.drag-handle:hover{opacity:1!important}
+.section.is-dragging,.item-row.is-dragging{opacity:.25;background:var(--tint)}
+.section.drop-above{border-top:2.5px solid var(--accent)!important}
+.section.drop-below{border-bottom:2.5px solid var(--accent)!important}
+.item-row.drop-above{border-top:2.5px solid var(--accent)!important}
+.item-row.drop-below{border-bottom:2.5px solid var(--accent)!important}
+.dnd-ghost{
+  position:fixed;pointer-events:none;z-index:9999;
+  border-radius:12px;box-shadow:0 10px 36px rgba(26,26,46,.22);
+  opacity:.88;transform:scale(1.02);
+  background:var(--white);border:1px solid var(--border);
+  transition:none;
+}
 
 .items-card{background:var(--white);border-radius:0 0 var(--r-card) var(--r-card);border:1px solid var(--border);border-top:none;overflow:hidden;margin-bottom:36px}
 .item-row{
@@ -873,6 +887,92 @@ const svgStr = (key, cls='lucide') => {
   return IC[key].replace('class="lucide"', `class="${cls}"`);
 };
 
+/* ── Drag & Drop engine (pointer events — works mouse + touch) ── */
+let _dnd=null;
+
+function startDrag(e,type,el){
+  e.preventDefault();e.stopPropagation();
+  const rect=el.getBoundingClientRect();
+  const ghost=el.cloneNode(true);
+  ghost.className=(ghost.className||'')+' dnd-ghost';
+  ghost.style.width=rect.width+'px';
+  ghost.style.left=rect.left+'px';
+  ghost.style.top=rect.top+'px';
+  document.body.appendChild(ghost);
+  el.classList.add('is-dragging');
+
+  _dnd={type,el,ghost,
+    ox:e.clientX-rect.left,oy:e.clientY-rect.top,
+    current:null};
+
+  function onMove(ev){
+    const cx=ev.clientX??ev.touches?.[0]?.clientX;
+    const cy=ev.clientY??ev.touches?.[0]?.clientY;
+    if(cx==null)return;
+    ghost.style.left=(cx-_dnd.ox)+'px';
+    ghost.style.top=(cy-_dnd.oy)+'px';
+    // find element under ghost
+    ghost.style.display='none';
+    const under=document.elementFromPoint(cx,cy);
+    ghost.style.display='';
+    clearDropIndicators();
+    if(!under)return;
+    const target=type==='section'
+      ?under.closest('.section[data-sid]')
+      :under.closest('.item-row[data-iid]');
+    if(!target||target===el)return;
+    // Same section check for items
+    if(type==='item'&&target.dataset.sid!==el.dataset.sid)return;
+    const tr=target.getBoundingClientRect();
+    const above=cy<tr.top+tr.height/2;
+    target.classList.add(above?'drop-above':'drop-below');
+    _dnd.current=target;
+    _dnd.above=above;
+  }
+
+  function onEnd(){
+    document.removeEventListener('pointermove',onMove);
+    document.removeEventListener('pointerup',onEnd);
+    ghost.remove();
+    el.classList.remove('is-dragging');
+    clearDropIndicators();
+    if(_dnd.current)commitDrop(type,el,_dnd.current,_dnd.above);
+    _dnd=null;
+  }
+
+  document.addEventListener('pointermove',onMove,{passive:false});
+  document.addEventListener('pointerup',onEnd);
+}
+
+function clearDropIndicators(){
+  document.querySelectorAll('.drop-above,.drop-below').forEach(e=>{
+    e.classList.remove('drop-above','drop-below');
+  });
+}
+
+function commitDrop(type,src,target,above){
+  const trip=getTrip();if(!trip)return;
+  if(type==='section'){
+    const secs=trip.sections;
+    const fi=secs.findIndex(s=>s.id===src.dataset.sid);
+    const ti=secs.findIndex(s=>s.id===target.dataset.sid);
+    if(fi<0||ti<0||fi===ti)return;
+    const[moved]=secs.splice(fi,1);
+    const ni=secs.findIndex(s=>s.id===target.dataset.sid);
+    secs.splice(above?ni:ni+1,0,moved);
+  } else {
+    const sid=src.dataset.sid;
+    const sec=trip.sections.find(s=>s.id===sid);if(!sec)return;
+    const fi=sec.items.findIndex(i=>i.id===src.dataset.iid);
+    const ti=sec.items.findIndex(i=>i.id===target.dataset.iid);
+    if(fi<0||ti<0||fi===ti)return;
+    const[moved]=sec.items.splice(fi,1);
+    const ni=sec.items.findIndex(i=>i.id===target.dataset.iid);
+    sec.items.splice(above?ni:ni+1,0,moved);
+  }
+  saveAll(trips);renderChecklist();
+}
+
 /* ── Confirm modal helper ── */
 function confirmDelete(title, msg, onConfirm){
   const overlay=document.getElementById('confirmOverlay');
@@ -1448,39 +1548,18 @@ function buildSection(sec){
   const wrap=document.createElement('div');
   wrap.className='section';
   wrap.dataset.sid=sec.id;
+  wrap.draggable=false; // pointer-based DnD, not HTML5
 
   /* ── header ── */
   const lbl=document.createElement('div');
   lbl.className='section-label'+(isOpen?' open':'');
 
-  // up / down move buttons
-  const moveWrap=document.createElement('div');
-  moveWrap.style.cssText='display:flex;flex-direction:column;gap:1px;flex-shrink:0';
-
-  const upBtn=document.createElement('button');
-  upBtn.className='move-btn';upBtn.title='Move up';
-  upBtn.innerHTML=svgStr('chevUp','lucide');
-  upBtn.disabled=(idx===0);
-  upBtn.onclick=e=>{
-    e.stopPropagation();
-    if(idx<=0)return;
-    [secs[idx-1],secs[idx]]=[secs[idx],secs[idx-1]];
-    saveAll(trips);renderChecklist();
-  };
-
-  const downBtn=document.createElement('button');
-  downBtn.className='move-btn';downBtn.title='Move down';
-  downBtn.innerHTML=svgStr('chevDown','lucide');
-  downBtn.disabled=(idx===secs.length-1);
-  downBtn.onclick=e=>{
-    e.stopPropagation();
-    if(idx>=secs.length-1)return;
-    [secs[idx],secs[idx+1]]=[secs[idx+1],secs[idx]];
-    saveAll(trips);renderChecklist();
-  };
-
-  moveWrap.appendChild(upBtn);
-  moveWrap.appendChild(downBtn);
+  // drag handle
+  const handle=document.createElement('div');
+  handle.className='drag-handle';
+  handle.innerHTML=svgStr('grip','lucide');
+  handle.addEventListener('pointerdown',e=>startDrag(e,'section',wrap));
+  handle.onclick=e=>e.stopPropagation();
 
   // icon + title
   const left=document.createElement('div');
@@ -1502,12 +1581,12 @@ function buildSection(sec){
     deleteSection(sec.id);
   };
 
-  lbl.appendChild(moveWrap);
+  lbl.appendChild(handle);
   lbl.appendChild(left);
   lbl.appendChild(right);
 
   lbl.onclick=e=>{
-    if(e.target.closest('.move-btn')||e.target.closest('.section-del-btn'))return;
+    if(e.target.closest('.drag-handle')||e.target.closest('.section-del-btn'))return;
     const oSet=getOpenSet(trip.id);
     if(oSet.has(sec.id)) oSet.delete(sec.id);
     else oSet.add(sec.id);
@@ -1551,6 +1630,13 @@ function buildSection(sec){
 function buildItemRow(item,sec){
   const row=document.createElement('div');
   row.className='item-row'+(item.done?' done':'');
+  row.dataset.iid=item.id;
+  row.dataset.sid=sec.id;
+
+  const ihandle=document.createElement('div');
+  ihandle.className='drag-handle';
+  ihandle.innerHTML=svgStr('grip','lucide');
+  ihandle.addEventListener('pointerdown',e=>startDrag(e,'item',row));
 
   const cb=document.createElement('div');cb.className='round-cb';
   cb.innerHTML=svgStr('checkSmall');
@@ -1576,7 +1662,7 @@ function buildItemRow(item,sec){
     });
   };
 
-  row.appendChild(cb);row.appendChild(lbl);row.appendChild(stepper);row.appendChild(del);
+  row.appendChild(ihandle);row.appendChild(cb);row.appendChild(lbl);row.appendChild(stepper);row.appendChild(del);
   return row;
 }
 
