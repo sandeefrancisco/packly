@@ -38,19 +38,9 @@ svg.lucide-xl{width:24px;height:24px}
 svg.lucide-2xl{width:28px;height:28px}
 
 /* ── TRIPS VIEW ── */
-#tripsView{max-width:780px;margin:0 auto;padding:52px 32px 100px}
+#tripsView{max-width:780px;margin:0 auto;padding:52px 32px calc(88px + env(safe-area-inset-bottom))}
 
 .top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:56px}
-.btn-refresh{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:9px 16px;border-radius:99px;
-  border:1.5px solid var(--border);background:var(--white);
-  font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;
-  color:var(--muted);cursor:pointer;transition:all .12s;min-height:40px;
-}
-.btn-refresh:hover{border-color:var(--accent);color:var(--accent);background:var(--tint)}
-.btn-refresh svg{transition:transform .4s ease}
-.btn-refresh:hover svg{transform:rotate(180deg)}
 .brand-pill{
   display:inline-flex;align-items:center;gap:10px;
   background:var(--white);border:1px solid var(--border);
@@ -118,7 +108,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .empty-state p{font-size:15px;color:var(--muted);line-height:1.6}
 
 /* ── CHECKLIST VIEW ── */
-#checklistView{max-width:680px;margin:0 auto;padding:40px 32px 120px}
+#checklistView{max-width:680px;margin:0 auto;padding:40px 32px calc(100px + env(safe-area-inset-bottom))}
 
 .cl-nav{display:flex;align-items:center;gap:16px;margin-bottom:40px}
 .btn-back{
@@ -414,9 +404,61 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .btn-secondary:hover{border-color:var(--accent);background:var(--tint)}
 
+/* ── Bottom Nav ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:60px;background:var(--white);border-top:1px solid var(--border);
+  display:flex;align-items:stretch;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.tab-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;border:none;background:none;color:var(--muted);
+  font-family:'Figtree',sans-serif;font-size:11px;font-weight:600;
+  cursor:pointer;transition:color .12s;
+}
+.tab-btn svg{width:22px;height:22px;stroke-width:2;transition:stroke-width .12s}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active svg{stroke-width:2.5}
+
+/* ── Account Sheet ── */
+.sheet-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(26,26,46,.3);backdrop-filter:blur(3px);z-index:190;
+}
+.sheet-overlay.open{display:block}
+.account-sheet{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--white);border-radius:24px 24px 0 0;
+  padding:12px 24px calc(28px + env(safe-area-inset-bottom));
+  z-index:200;box-shadow:0 -8px 40px rgba(26,26,46,.14);
+  transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);
+}
+.account-sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--border);margin:0 auto 20px}
+.sheet-user{
+  display:flex;align-items:center;gap:14px;
+  padding:4px 0 20px;border-bottom:1px solid var(--border);margin-bottom:4px;
+}
+.sheet-user-info{min-width:0;flex:1}
+.sheet-user-email{font-size:15px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-user-label{font-size:12px;color:var(--muted);margin-top:2px}
+.sheet-action{
+  display:flex;align-items:center;gap:14px;width:100%;
+  padding:17px 4px;border:none;background:none;
+  font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;color:var(--ink);
+  cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s;
+  text-align:left;border-radius:0;
+}
+.sheet-action:last-child{border-bottom:none}
+.sheet-action:active{background:var(--tint)}
+.sheet-action.danger{color:var(--red)}
+.sheet-action svg{width:20px;height:20px;color:#6B6888;flex-shrink:0}
+.sheet-action.danger svg{color:var(--red)}
+
 @media(max-width:600px){
-  #tripsView{padding:32px 20px 80px}
-  #checklistView{padding:28px 16px 100px}
+  #tripsView{padding:32px 20px calc(80px + env(safe-area-inset-bottom))}
+  #checklistView{padding:28px 16px calc(100px + env(safe-area-inset-bottom))}
   .hero-title{font-size:38px;letter-spacing:-1.5px}
   .traveler-fields{grid-template-columns:1fr 1fr}
   .modal{padding:28px 20px}
@@ -432,16 +474,6 @@ svg.lucide-2xl{width:28px;height:28px}
     <div class="brand-pill">
       <img src="Logo-colored.png" alt="Packly" style="width:28px;height:28px;border-radius:50%;display:block;">
       Packly
-    </div>
-    <div class="nav-right">
-      <div class="user-pill" id="userPill">
-        <span id="userEmail"></span>
-        <button class="btn-signout" onclick="signOut()">Sign out</button>
-      </div>
-      <button class="btn-refresh" onclick="location.reload()" title="Get latest updates">
-        <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Refresh
-      </button>
     </div>
   </nav>
   <div class="hero">
@@ -552,6 +584,39 @@ svg.lucide-2xl{width:28px;height:28px}
       <button class="btn-save" onclick="saveNewSection()">Add category</button>
     </div>
   </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="tab-btn active" id="tabTrips" onclick="showTrips()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+    Trips
+  </button>
+  <button class="tab-btn" id="tabAccount" onclick="openAccountSheet()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Account
+  </button>
+</nav>
+
+<!-- ACCOUNT SHEET -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeAccountSheet()"></div>
+<div class="account-sheet" id="accountSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-user">
+    <img src="Logo-colored.png" alt="Packly" style="width:48px;height:48px;border-radius:50%;flex-shrink:0">
+    <div class="sheet-user-info">
+      <div class="sheet-user-email" id="sheetEmail">—</div>
+      <div class="sheet-user-label">Signed in to Packly</div>
+    </div>
+  </div>
+  <button class="sheet-action" onclick="handleRefresh()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    Check for updates
+  </button>
+  <button class="sheet-action danger" onclick="signOut()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign out
+  </button>
 </div>
 
 <!-- AUTH OVERLAY -->
@@ -739,8 +804,7 @@ let _currentUserId=null;
 
 async function onSignedIn(user){
   _currentUserId=user.id;
-  document.getElementById('userEmail').textContent=user.email;
-  document.getElementById('userPill').style.display='inline-flex';
+  document.getElementById('sheetEmail').textContent=user.email;
   document.getElementById('authOverlay').classList.remove('open');
   // Load personal trips
   const{data}=await sb.from('user_data').select('trips').eq('user_id',user.id).single();
@@ -761,7 +825,8 @@ async function onSignedIn(user){
 
 function onSignedOut(){
   _currentUserId=null;
-  document.getElementById('userPill').style.display='none';
+  document.getElementById('sheetEmail').textContent='—';
+  closeAccountSheet();
   document.getElementById('authOverlay').classList.add('open');
   trips=[];
 }
@@ -911,6 +976,8 @@ window.showTrips=function(){
   trips=loadAll();
   document.getElementById('tripsView').classList.add('active');
   document.getElementById('checklistView').classList.remove('active');
+  document.getElementById('tabTrips')?.classList.add('active');
+  document.getElementById('tabAccount')?.classList.remove('active');
   renderTrips();
 };
 
@@ -1080,6 +1147,8 @@ async function showChecklist(id){
   activeId=id;
   document.getElementById('tripsView').classList.remove('active');
   document.getElementById('checklistView').classList.add('active');
+  document.getElementById('tabTrips')?.classList.remove('active');
+  document.getElementById('tabAccount')?.classList.remove('active');
   // For shared trips, always fetch latest from cloud
   const trip=trips.find(t=>t.id===id);
   if(trip?.sharedTripId){
@@ -1370,6 +1439,22 @@ window.saveLuggage=function(){
   const trip=getTrip();
   trip.travelers=luggageDraft.filter(t=>t.name||t.checkin||t.cabin||t.personal);
   saveAll(trips);closeLuggageModal();renderLuggageBar();
+};
+
+/* ── Account Sheet ── */
+window.openAccountSheet=function(){
+  document.getElementById('accountSheet').classList.add('open');
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('tabAccount').classList.add('active');
+};
+window.closeAccountSheet=function(){
+  document.getElementById('accountSheet').classList.remove('open');
+  document.getElementById('sheetOverlay').classList.remove('open');
+  document.getElementById('tabAccount').classList.remove('active');
+};
+window.handleRefresh=function(){
+  closeAccountSheet();
+  setTimeout(()=>location.reload(),200);
 };
 
 /* ── Share / Join ── */
