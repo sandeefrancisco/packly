@@ -831,8 +831,14 @@ svg.lucide-2xl{width:28px;height:28px}
 </div>
 
 <!-- UPDATE BANNER -->
-<div id="updateBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:#1A1A2E;color:#fff;font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;padding:12px 20px;text-align:center;cursor:pointer;letter-spacing:.01em;animation:bannerSlideDown .3s cubic-bezier(.32,.72,0,1)" onclick="location.reload(true)">
-  ✨ App updated — tap to reload
+<div id="updateBanner" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(26,26,46,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px;font-family:'Figtree',sans-serif">
+  <div style="background:#fff;border-radius:24px;padding:32px 28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(26,26,46,.22);animation:floatIn .25s cubic-bezier(.32,.72,0,1)">
+    <div style="font-size:44px;margin-bottom:12px">✨</div>
+    <h2 style="font-size:20px;font-weight:800;color:#1A1A2E;letter-spacing:-.3px;margin-bottom:8px">App updated</h2>
+    <p style="font-size:15px;color:#5C5975;line-height:1.5;margin-bottom:24px">A new version of Master Packer is ready. Reload to get the latest features and fixes.</p>
+    <button onclick="location.reload(true)" style="width:100%;padding:14px;border-radius:99px;border:none;background:#1A1A2E;color:#fff;font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px">Reload now</button>
+    <button onclick="document.getElementById('updateBanner').style.display='none'" style="width:100%;padding:12px;border-radius:99px;border:1.5px solid #EBEBF0;background:none;color:#5C5975;font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;cursor:pointer">Later</button>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -2462,7 +2468,7 @@ document.addEventListener('visibilitychange',async()=>{
       if(!stored){sessionStorage.setItem(ETAG_KEY,tag);return;}
       if(stored!==tag){
         sessionStorage.setItem(ETAG_KEY,tag);
-        document.getElementById('updateBanner').style.display='block';
+        document.getElementById('updateBanner').style.display='flex';
       }
     }catch(_){}
   }
