@@ -693,15 +693,23 @@ window.handleAuthSubmit=async function(){
     const msg=error.message||'';
     const secondsMatch=msg.match(/after (\d+) second/);
     if(secondsMatch){
-      // Rate limit — show countdown
-      let secs=parseInt(secondsMatch[1]);
-      errEl.textContent=`Please wait ${secs}s before trying again…`;
-      btn.disabled=true;
-      const t=setInterval(()=>{
-        secs--;
-        if(secs<=0){clearInterval(t);errEl.textContent='';btn.disabled=false;}
-        else errEl.textContent=`Please wait ${secs}s before trying again…`;
-      },1000);
+      // Rate limit — likely already signed up, switch to sign in
+      if(isSignUp){
+        // Switch to sign in mode automatically
+        const toggle=document.getElementById('authToggle');
+        if(toggle.dataset.mode==='signup') toggleAuthMode();
+        errEl.className='auth-error auth-success';
+        errEl.textContent='✅ Account created! Now just sign in with your email and password.';
+      } else {
+        let secs=parseInt(secondsMatch[1]);
+        errEl.textContent=`Please wait ${secs}s before trying again…`;
+        btn.disabled=true;
+        const t=setInterval(()=>{
+          secs--;
+          if(secs<=0){clearInterval(t);errEl.textContent='';btn.disabled=false;}
+          else errEl.textContent=`Please wait ${secs}s before trying again…`;
+        },1000);
+      }
     } else if(msg.includes('Invalid login')||msg.includes('invalid_credentials')){
       errEl.textContent='Incorrect email or password.';
     } else if(msg.includes('already registered')){
