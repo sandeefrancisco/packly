@@ -862,8 +862,10 @@ async function onSignedIn(user){
     if(local.length>0)await sb.from('user_data').upsert({user_id:user.id,trips:local,updated_at:new Date().toISOString()});
     personal=local;
   }
-  // Load shared trips
+  // Load shared trips — deduplicate: drop any personal entry that's already in shared
   const shared=await loadSharedTrips();
+  const sharedIds=new Set(shared.map(t=>t.sharedTripId).filter(Boolean));
+  personal=personal.filter(t=>!t.sharedTripId||!sharedIds.has(t.sharedTripId));
   trips=[...personal,...shared];
   saveLocalOnly(trips);
   showTrips();
