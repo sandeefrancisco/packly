@@ -1200,25 +1200,37 @@ async function onSignedIn(user){
   _currentUserId=user.id;
   document.getElementById('sheetEmail').textContent=user.email;
   document.getElementById('authOverlay').classList.remove('open');
-  // Load personal trips (and restore trash from cloud)
+
+  // Fetch cloud state
   const{data}=await sb.from('user_data').select('trips,deleted_trips').eq('user_id',user.id).single();
   if(data?.deleted_trips?.length>0){saveTrash(data.deleted_trips);}
-  let personal=[];
-  if(data?.trips?.length>0){
-    personal=data.trips;
-  } else {
-    const local=loadAll().filter(t=>!t.sharedTripId);
-    if(local.length>0)await sb.from('user_data').upsert({user_id:user.id,trips:local,updated_at:new Date().toISOString()});
-    personal=local;
+
+  // ── Personal trips: local-first merge ──
+  // localStorage.saveLocalOnly is synchronous — it always reflects the latest
+  // user actions (checks, edits, adds) regardless of whether cloud sync finished.
+  // Cloud may be behind if the tab was closed or network failed mid-sync.
+  // Strategy: cloud provides trips this device doesn't know about (multi-device);
+  // for any trip that exists locally, local wins — it is always >= cloud.
+  const localPersonal=loadAll().filter(t=>!t.sharedTripId);
+  const cloudPersonal=data?.trips||[];
+  const personalById=new Map();
+  cloudPersonal.forEach(t=>personalById.set(t.id,t));   // cloud base
+  localPersonal.forEach(t=>personalById.set(t.id,t));   // local overrides — always newer
+  const personal=[...personalById.values()];
+
+  // Push merged personal trips back to cloud so it catches up
+  if(personal.length>0){
+    sb.from('user_data').upsert({user_id:user.id,trips:personal,updated_at:new Date().toISOString()}).then(()=>{}).catch(()=>{});
   }
-  // Load shared trips — merge by trip.id, shared copy always wins over personal copy
+
+  // Load shared trips — cloud always wins for shared (other travellers may have edited)
   const shared=await loadSharedTrips();
   const byId=new Map();
   personal.filter(t=>!t.sharedTripId).forEach(t=>byId.set(t.id,t));
   shared.forEach(t=>byId.set(t.id,t));
   trips=[...byId.values()];
   saveLocalOnly(trips);
-  localStorage.setItem(SYNC_KEY, new Date().toISOString());
+  localStorage.setItem(SYNC_KEY,new Date().toISOString());
   showTrips();
   subscribeToSharedTrips();
   updateTrashBadge();
