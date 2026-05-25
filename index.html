@@ -286,12 +286,14 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .btn-add-section:hover{border-color:var(--accent);color:var(--accent);background:var(--white)}
 
-/* ── MODAL ── */
-.overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:24px}
+/* ── MODAL → Bottom Sheet ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
 .overlay.open{display:flex}
-.modal{background:var(--white);border-radius:24px;padding:36px;width:100%;max-width:460px;box-shadow:var(--shadow-lg);animation:fadeUp .18s ease}
-.modal.wide{max-width:520px}
+.modal{background:var(--white);border-radius:24px 24px 0 0;padding:12px 24px calc(36px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(26,26,46,.14);animation:slideUp .28s cubic-bezier(.32,.72,0,1)}
+.modal::before{content:'';display:block;width:36px;height:4px;border-radius:99px;background:var(--border);margin:0 auto 24px}
+.modal.wide{max-width:none}
 .modal h2{font-size:23px;font-weight:800;letter-spacing:-.4px;margin-bottom:24px}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 .field{margin-bottom:18px}
 .field label{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
@@ -341,7 +343,6 @@ svg.lucide-2xl{width:28px;height:28px}
 .btn-add-traveler:hover{border-color:var(--accent);color:var(--accent);background:var(--white)}
 
 /* ── Confirm modal ── */
-.confirm-modal{max-width:360px}
 .confirm-modal h2{font-size:20px;margin-bottom:8px}
 .confirm-modal p{font-size:15px;color:var(--muted);line-height:1.5;margin-bottom:0}
 .confirm-icon-wrap{
@@ -361,7 +362,6 @@ svg.lucide-2xl{width:28px;height:28px}
 .field input.error{border-color:var(--red);animation:shake .35s ease}
 
 /* ── AUTH ── */
-.auth-modal{max-width:400px}
 .auth-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;margin-bottom:24px;color:var(--ink)}
 .auth-sub{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5}
 .auth-error{font-size:13px;color:var(--red);min-height:18px;margin-bottom:12px}
@@ -486,7 +486,7 @@ svg.lucide-2xl{width:28px;height:28px}
   #checklistView{padding:28px 16px calc(100px + env(safe-area-inset-bottom))}
   .hero-title{font-size:38px;letter-spacing:-1.5px}
   .traveler-fields{grid-template-columns:1fr 1fr}
-  .modal{padding:28px 20px}
+  .modal{padding:12px 20px calc(36px + env(safe-area-inset-bottom))}
   .icon-picker-grid{grid-template-columns:repeat(6,1fr)}
 }
 </style>
@@ -677,7 +677,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 <!-- SHARE PICKER MODAL -->
 <div class="overlay" id="sharePickerOverlay" onclick="handleSharePickerOverlay(event)">
-  <div class="modal" style="max-width:400px">
+  <div class="modal">
     <h2>Share a trip</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Pick which trip to share — your travel partner will enter the code to join.</p>
     <div id="sharePickerList" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -689,7 +689,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 <!-- SHARE MODAL -->
 <div class="overlay" id="shareOverlay" onclick="handleShareOverlay(event)">
-  <div class="modal" style="max-width:380px">
+  <div class="modal">
     <h2>Share this trip</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Give this code to your travel partner. They open Packly and tap <strong>Join a trip</strong>.</p>
     <div class="share-code-box" id="shareCodeBox"></div>
@@ -702,7 +702,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 <!-- JOIN MODAL -->
 <div class="overlay" id="joinOverlay" onclick="handleJoinOverlay(event)">
-  <div class="modal" style="max-width:380px">
+  <div class="modal">
     <h2>Join a trip</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:20px">Enter the 6-character code from your travel partner.</p>
     <div class="field">
