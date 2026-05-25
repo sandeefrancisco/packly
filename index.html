@@ -151,8 +151,9 @@ svg.lucide-2xl{width:28px;height:28px}
 #checklistView{
   max-width:680px;margin:0 auto;
   padding:0 32px calc(116px + env(safe-area-inset-bottom));
-  height:100vh;overflow-y:auto;overflow-x:hidden;
-  /* sticky nav works relative to this scroll container */
+  height:100vh;overflow-y:auto;
+  /* overflow-x:clip does NOT create a scroll container, so position:sticky still works in Safari */
+  overflow-x:clip;
 }
 
 .cl-nav{
@@ -233,7 +234,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .section-label:hover{background:var(--tint)}
 .section-label.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
-.section-label-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden}
+.section-label-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 
 .section-icon-bubble{
   width:36px;height:36px;border-radius:10px;
@@ -347,6 +348,8 @@ svg.lucide-2xl{width:28px;height:28px}
 .item-label{
   flex:1;font-size:17px;outline:none;border:none;background:none;
   font-family:'Figtree',sans-serif;color:var(--ink);cursor:default;
+  /* override parent's user-select:none so contenteditable still works */
+  user-select:text;-webkit-user-select:text;
 }
 .item-label[contenteditable="true"]{cursor:text}
 
@@ -623,7 +626,8 @@ svg.lucide-2xl{width:28px;height:28px}
 
 @media(max-width:600px){
   #tripsView{padding:32px 20px calc(104px + env(safe-area-inset-bottom))}
-  #checklistView{padding:28px 16px calc(116px + env(safe-area-inset-bottom))}
+  /* padding-top:0 so sticky nav sits flush at top — no gap for content to sneak through */
+  #checklistView{padding:0 16px calc(116px + env(safe-area-inset-bottom))}
   .hero-title{font-size:38px;letter-spacing:-1.5px}
   .traveler-fields{grid-template-columns:1fr 1fr}
   .modal{padding:12px 20px calc(36px + env(safe-area-inset-bottom))}
@@ -1072,21 +1076,32 @@ function startDrag(e,type,el){
     _dnd.above=above;
   }
 
-  function onEnd(){
+  function cleanup(){
     document.removeEventListener('pointermove',onMove);
     document.removeEventListener('pointerup',onEnd);
-    document.removeEventListener('pointercancel',onEnd);
+    document.removeEventListener('pointercancel',onCancel);
     ghost.remove();
     el.classList.remove('is-dragging');
-    el.classList.remove('long-press-ready'); // always clean up — was keeping drag handle visible
+    el.classList.remove('long-press-ready');
     if(_placeholder){_placeholder.remove();_placeholder=null;}
-    if(_dnd&&_dnd.current)commitDrop(type,el,_dnd.current,_dnd.above);
     _dnd=null;
+  }
+  function onEnd(){
+    const shouldDrop=_dnd&&_dnd.current;
+    const dropTarget=_dnd?.current;
+    const dropAbove=_dnd?.above;
+    cleanup();
+    // Only commit if gesture completed normally (not cancelled)
+    if(shouldDrop)commitDrop(type,el,dropTarget,dropAbove);
+  }
+  function onCancel(){
+    // Gesture interrupted (notification, call, etc.) — abort silently, no drop
+    cleanup();
   }
 
   document.addEventListener('pointermove',onMove,{passive:false});
   document.addEventListener('pointerup',onEnd);
-  document.addEventListener('pointercancel',onEnd);
+  document.addEventListener('pointercancel',onCancel);
 }
 
 function commitDrop(type,src,target,above){
