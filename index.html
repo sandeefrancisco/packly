@@ -100,7 +100,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .trip-countdown.past{background:var(--tint);color:var(--muted)}
 .trip-prog-bar{height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:8px}
 .trip-prog-fill{height:100%;border-radius:99px;background:var(--green);transition:width .4s}
-.trip-prog-text{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.trip-prog-text{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;width:100%}
 
 .empty-state{grid-column:1/-1;text-align:center;padding:80px 20px}
 .empty-icon-wrap{width:72px;height:72px;border-radius:20px;background:var(--tint);border:1px solid var(--border);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
@@ -1049,7 +1049,6 @@ function renderTrips(){
     const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave trip':'Delete';
     card.innerHTML=`
       <div class="trip-card-top">
-        <span class="trip-count-badge">${done}/${total}</span>
       </div>
       <div class="trip-card-menu">
         <button class="ic-btn" title="Share" id="share-${t.id}">${svgStr('share')}</button>
@@ -1061,7 +1060,7 @@ function renderTrips(){
       <div class="trip-dates">${svgStr('calendar')} ${esc(t.dates||'No dates set')}</div>
       ${cd?`<div class="trip-countdown ${cd.type}">${svgStr('clock')} ${cd.label}</div>`:''}
       <div class="trip-prog-bar"><div class="trip-prog-fill" style="width:${pct}%"></div></div>
-      <div class="trip-prog-text">${svgStr('luggage')} ${pct}% packed</div>`;
+      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed <span style="margin-left:auto;font-weight:700;color:var(--ink)">${pct}%</span></div>`;
     card.onclick=e=>{
       if(e.target.closest('.trip-card-menu'))return;
       showChecklist(t.id);
