@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="packly-version" content="1.2.0">
 <title>Master Packer — Travel Checklist</title>
 <link rel="icon" type="image/png" href="Logo-colored.png">
 <link rel="apple-touch-icon" href="Logo-colored.png">
@@ -59,11 +60,11 @@ svg.lucide-2xl{width:28px;height:28px}
 /* ── TRIPS VIEW ── */
 /* no max-width / margin:auto — view must be full viewport width so translateX(100%) goes fully off-screen */
 #tripsView{
-  padding:52px var(--trips-px) calc(104px + env(safe-area-inset-bottom));
+  padding:32px var(--trips-px) 40px;
   height:100vh;overflow-y:auto;overflow-x:clip;
 }
 
-.top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:56px}
+.top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
 .brand-pill{
   display:inline-flex;align-items:center;gap:10px;
   font-size:15px;font-weight:700;color:var(--ink);
@@ -174,9 +175,15 @@ svg.lucide-2xl{width:28px;height:28px}
 .cl-trip-name{font-size:26px;font-weight:800;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:10px}
 .cl-trip-dates{font-size:14px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
 
-.cl-progress-strip{
+.cl-summary-card{
   background:var(--white);border-radius:16px;border:1px solid var(--border);
-  padding:18px 24px;margin-bottom:24px;
+  padding:0 24px;margin-bottom:24px;
+}
+.cl-summary-divider{
+  height:1px;background:var(--border);
+}
+.cl-progress-strip{
+  padding:18px 0 16px;
   display:flex;align-items:center;gap:16px;
 }
 .cl-prog-text{font-size:15px;color:var(--muted);white-space:nowrap}
@@ -193,6 +200,14 @@ svg.lucide-2xl{width:28px;height:28px}
   transition:background .12s;
 }
 .luggage-bar:active{background:var(--tint)}
+.luggage-bar--inline{
+  background:transparent;border:none;border-radius:0;
+  margin:0;padding:14px 0 14px;
+}
+.luggage-bar--inline:active{
+  background:var(--tint);
+  border-radius:12px;
+}
 .luggage-bar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 .luggage-bar-label{font-size:15px;font-weight:700;color:var(--ink)}
 .luggage-bar-summary{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
@@ -437,14 +452,21 @@ svg.lucide-2xl{width:28px;height:28px}
 .add-item-confirm.visible{display:block}
 .add-item-confirm:hover{opacity:.85}
 
-.add-section-row{display:flex;justify-content:center;margin-top:8px}
-.btn-add-section{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:13px 28px;border-radius:99px;border:1.5px dashed var(--border);background:none;
-  font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;
-  color:var(--muted);cursor:pointer;transition:all .15s;min-height:48px;
+.add-section-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
 }
-.btn-add-section:hover{border-color:var(--accent);color:var(--accent);background:var(--white)}
+.section-list-title{
+  font-size:14px;font-weight:700;letter-spacing:-.01em;color:var(--muted);
+}
+.btn-add-section{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:99px;border:1.5px solid var(--border);background:var(--white);
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:all .15s;min-height:36px;
+}
+.btn-add-section svg{width:16px;height:16px}
+.btn-add-section:hover{border-color:var(--accent);color:var(--accent);background:var(--tint)}
 
 /* ── Skeleton loading ── */
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
@@ -491,7 +513,7 @@ svg.lucide-2xl{width:28px;height:28px}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 .field{margin-bottom:18px}
-.field label{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.field label{display:block;font-size:13px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:8px}
 .field input{
   width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);
   background:var(--tint);font-family:'Figtree',sans-serif;font-size:16px;color:var(--ink);
@@ -513,7 +535,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .date-range-row{display:flex;align-items:center;gap:10px}
 .date-field{flex:1;background:var(--tint);border-radius:12px;border:1.5px solid var(--border);padding:10px 14px;transition:border-color .12s}
 .date-field:focus-within{border-color:var(--accent);background:var(--white)}
-.date-field-label{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.date-field-label{display:block;font-size:13px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:4px}
 .date-field input[type="date"]{width:100%;border:none;background:none;font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--ink);outline:none;padding:0;min-height:unset;border-radius:0;cursor:pointer}
 .date-range-arrow{color:var(--muted);display:flex;align-items:center}
 
@@ -537,12 +559,12 @@ svg.lucide-2xl{width:28px;height:28px}
 /* luggage modal */
 .traveler-block{background:var(--tint);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--border);margin-bottom:10px}
 .traveler-block-head{display:flex;align-items:center;justify-content:space-between}
-.traveler-num{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.traveler-num{font-size:13px;font-weight:600;letter-spacing:0;color:var(--muted)}
 .rm-traveler{border:none;background:none;color:var(--muted);font-size:13px;font-family:'Figtree',sans-serif;cursor:pointer;padding:3px 8px;border-radius:6px;transition:all .12s;display:inline-flex;align-items:center;gap:5px}
 .rm-traveler:hover{color:var(--red);background:#FEE2E2}
 .traveler-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .traveler-fields .full{grid-column:1/-1}
-.tfield label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px}
+.tfield label{font-size:13px;font-weight:600;letter-spacing:0;color:var(--muted);display:block;margin-bottom:5px}
 .tfield input{width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--white);font-family:'Figtree',sans-serif;font-size:14px;color:var(--ink);outline:none;transition:border-color .12s}
 .tfield input:focus{border-color:var(--accent)}
 .btn-add-traveler{width:100%;padding:11px;border-radius:12px;border:1.5px dashed var(--border);background:none;font-family:'Figtree',sans-serif;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .12s;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:7px}
@@ -613,6 +635,33 @@ svg.lucide-2xl{width:28px;height:28px}
   box-shadow:0 4px 24px rgba(26,26,46,.22);pointer-events:none;
 }
 .toast.show{top:16px}
+.app-update-toast{
+  position:fixed;left:50%;
+  bottom:calc(88px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(14px);
+  width:min(460px,calc(100vw - 24px));
+  background:rgba(26,26,46,.96);color:#fff;
+  border-radius:16px;padding:12px 12px 12px 14px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 10px 36px rgba(26,26,46,.32);
+  z-index:420;opacity:0;pointer-events:none;
+  transition:opacity .2s ease,transform .2s ease;
+}
+.app-update-toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.app-update-toast-text{flex:1;min-width:0;font-size:13px;font-weight:600;line-height:1.35}
+.app-update-toast-btn{
+  border:none;border-radius:10px;padding:8px 12px;
+  background:#fff;color:var(--accent);
+  font-family:'Figtree',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
+}
+.app-update-toast-later{
+  border:none;background:transparent;color:#CBC9DB;
+  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;cursor:pointer;padding:6px 4px;
+}
+.sheet-version{
+  font-size:12px;color:var(--muted);
+  padding:10px 4px 12px;border-bottom:1px solid var(--border);margin-bottom:2px;
+}
 .share-trip-row{
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);
@@ -635,47 +684,16 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .btn-secondary:hover{border-color:var(--accent);background:var(--tint)}
 
-/* ── Bottom Nav ── */
-.bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;
-  background:var(--white);border-top:1px solid var(--border);
-  display:flex;align-items:flex-start;z-index:50;
-  padding-top:10px;
-  padding-bottom:calc(12px + env(safe-area-inset-bottom));
+/* ── Burger Menu Button ── */
+.burger-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:42px;height:42px;border-radius:12px;border:none;
+  background:var(--white);cursor:pointer;
+  color:var(--ink);transition:background .12s,color .12s;
+  box-shadow:0 1px 4px rgba(26,26,46,.06);
 }
-/* Back to top — centered pill floats above bottom bar, same weight as primary button */
-#backToTopBtn{
-  position:fixed;
-  left:50%;
-  bottom:calc(76px + env(safe-area-inset-bottom));
-  transform:translateX(-50%) translateY(16px);
-  z-index:110;
-  padding:14px 28px;
-  border-radius:99px;
-  background:var(--accent);color:#fff;
-  border:none;
-  font-family:'Figtree',sans-serif;font-size:15px;font-weight:700;
-  display:inline-flex;align-items:center;gap:8px;
-  white-space:nowrap;
-  box-shadow:0 4px 24px rgba(26,26,46,.30);
-  cursor:pointer;
-  opacity:0;pointer-events:none;
-  transition:opacity .22s,transform .22s;
-}
-#backToTopBtn.visible{
-  opacity:1;pointer-events:auto;
-  transform:translateX(-50%) translateY(0);
-}
-.tab-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:4px;border:none;background:none;color:var(--muted);
-  font-family:'Figtree',sans-serif;font-size:11px;font-weight:600;
-  cursor:pointer;transition:color .12s;
-  padding:0 8px;min-height:44px;
-}
-.tab-btn svg{width:22px;height:22px;stroke-width:2;transition:stroke-width .12s}
-.tab-btn.active{color:var(--accent)}
-.tab-btn.active svg{stroke-width:2.5}
+.burger-btn svg{width:22px;height:22px}
+.burger-btn:hover{background:var(--tint);color:var(--accent)}
 
 /* ── Trash Sheet ── */
 .trash-sheet{
@@ -770,7 +788,7 @@ svg.lucide-2xl{width:28px;height:28px}
 @media(max-width:600px){
   :root{--trips-px:20px;--cl-px:16px}
   /* #tripsView, #checklistView, .cl-nav all auto-adjust via the CSS variables above */
-  #tripsView{padding-top:32px}
+  #tripsView{padding-top:20px}
   .hero-title{font-size:38px;letter-spacing:-1.5px}
   .traveler-fields{grid-template-columns:1fr 1fr}
   .modal{padding:12px 20px calc(36px + env(safe-area-inset-bottom))}
@@ -821,6 +839,9 @@ svg.lucide-2xl{width:28px;height:28px}
       <img src="Logo-colored.png" alt="Master Packer" style="width:44px;height:44px;display:block;mix-blend-mode:multiply;">
       Master Packer
     </div>
+    <button class="burger-btn" onclick="openAccountSheet()" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+    </button>
   </nav>
   <div class="hero">
     <h1 class="hero-title" id="heroTitle">Pack like you're <em>already there.</em></h1>
@@ -851,15 +872,19 @@ svg.lucide-2xl{width:28px;height:28px}
       <div class="cl-trip-dates" id="clTripDates"></div>
     </div>
   </div>
-  <div class="cl-progress-strip" id="clProgressStrip"></div>
-  <div id="luggageBarEl"></div>
-  <div id="sectionsContainer"></div>
+  <div class="cl-summary-card">
+    <div class="cl-progress-strip" id="clProgressStrip"></div>
+    <div class="cl-summary-divider"></div>
+    <div id="luggageBarEl"></div>
+  </div>
   <div class="add-section-row">
+    <span class="section-list-title" id="sectionListTitle">Categories</span>
     <button class="btn-add-section" onclick="addSection()">
       <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add category
+      Add
     </button>
   </div>
+  <div id="sectionsContainer"></div>
 </div>
 </div><!-- /navStack -->
 
@@ -965,36 +990,20 @@ svg.lucide-2xl{width:28px;height:28px}
 <!-- UPDATE BANNER -->
 <div id="updateBanner" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(26,26,46,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;font-family:'Figtree',sans-serif">
   <div style="background:#fff;border-radius:24px;padding:32px 28px 28px;max-width:340px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(26,26,46,.26);animation:floatIn .28s cubic-bezier(.32,.72,0,1)">
-    <div style="font-size:44px;margin-bottom:12px">✨</div>
-    <h2 style="font-size:20px;font-weight:800;color:#1A1A2E;letter-spacing:-.3px;margin-bottom:8px">What's new</h2>
-    <ul style="text-align:left;font-size:14px;color:#5C5975;line-height:1.7;margin-bottom:24px;padding-left:18px">
-      <li>Checklist now opens as a <strong style="color:#1A1A2E">smooth bottom sheet</strong> — swipe down to close</li>
-      <li><strong style="color:#1A1A2E">Personalized greeting</strong> — set your first name in Account</li>
-      <li><strong style="color:#1A1A2E">Back to top</strong> button when scrolling long lists</li>
-      <li>Fixed category drag &amp; drop on mobile</li>
-      <li>Luggage allowance sheet content fix</li>
-    </ul>
-    <button onclick="location.reload(true)" style="width:100%;padding:14px;border-radius:99px;border:none;background:#1A1A2E;color:#fff;font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;cursor:pointer">Get the update →</button>
+    <div style="font-size:40px;margin-bottom:10px">⚠️</div>
+    <h2 style="font-size:20px;font-weight:800;color:#1A1A2E;letter-spacing:-.3px;margin-bottom:8px">Update required</h2>
+    <p id="forcedUpdateText" style="font-size:14px;color:#5C5975;line-height:1.6;margin-bottom:22px">
+      This app version is no longer compatible. Please refresh to continue.
+    </p>
+    <button onclick="applyAppUpdate(true)" style="width:100%;padding:14px;border-radius:99px;border:none;background:#1A1A2E;color:#fff;font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;cursor:pointer">Refresh now</button>
   </div>
 </div>
+<div class="app-update-toast" id="appUpdateToast" aria-live="polite">
+  <div class="app-update-toast-text" id="appUpdateToastText">New version available</div>
+  <button class="app-update-toast-btn" onclick="applyAppUpdate()">Refresh</button>
+  <button class="app-update-toast-later" onclick="dismissAppUpdateToast()">Later</button>
+</div>
 
-<!-- BACK TO TOP -->
-<button id="backToTopBtn" onclick="scrollChecklistToTop()">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-  Back to top
-</button>
-
-<!-- BOTTOM NAV -->
-<nav class="bottom-nav" id="bottomNav">
-  <button class="tab-btn active" id="tabTrips" onclick="showTrips()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-    Trips
-  </button>
-  <button class="tab-btn" id="tabAccount" onclick="openAccountSheet()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    Account
-  </button>
-</nav>
 
 <!-- ACCOUNT SHEET -->
 <div class="sheet-overlay" id="sheetOverlay" onclick="closeAccountSheet()"></div>
@@ -1011,6 +1020,7 @@ svg.lucide-2xl{width:28px;height:28px}
     <input id="sheetDisplayName" type="text" placeholder="Your first name (optional)" maxlength="40" autocomplete="given-name">
     <button class="sheet-name-save" onclick="saveDisplayName()">Save</button>
   </div>
+  <div class="sheet-version" id="sheetVersionLabel">Packly v—</div>
   <button class="sheet-action" onclick="closeAccountSheet();openSharePickerModal()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
     Share a trip — get code
@@ -1027,10 +1037,26 @@ svg.lucide-2xl{width:28px;height:28px}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
     Recently deleted<span class="sheet-action-badge" id="trashBadge" style="display:none"></span>
   </button>
+  <button class="sheet-action" onclick="openAboutModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    About Packly
+  </button>
   <button class="sheet-action danger" onclick="signOut()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     Sign out
   </button>
+</div>
+<div class="overlay" id="aboutOverlay" onclick="handleAboutOverlay(event)">
+  <div class="modal">
+    <h2>About Packly</h2>
+    <p style="font-size:15px;color:var(--muted);margin-bottom:16px">A calm, collaborative travel packing app.</p>
+    <p id="aboutVersionLabel" style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px">Current version: —</p>
+    <p id="aboutLatestLabel" style="font-size:13px;color:var(--muted);margin-bottom:18px">Latest deployed: checking…</p>
+    <div class="modal-footer" style="margin-top:0">
+      <button class="btn-save" onclick="checkForUpdates({manual:true})">Check app updates</button>
+      <button class="btn-cancel" onclick="closeAboutModal()">Done</button>
+    </div>
+  </div>
 </div>
 
 <!-- TRASH SHEET -->
@@ -1124,6 +1150,105 @@ svg.lucide-2xl{width:28px;height:28px}
 const SUPA_URL='https://ldxvvqrxqcewygdnotpz.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkeHZ2cXJ4cWNld3lnZG5vdHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODE1ODgsImV4cCI6MjA5NTI1NzU4OH0.cdTIO75QLSrufmCzTSAcFAKRZdSy2XYbFVgggcj0qag';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+const APP_VERSION=(window.__PACKLY_VERSION__||document.querySelector('meta[name="packly-version"]')?.content||'1.2.0').trim();
+const VERSION_INFO_URL='version.json';
+const UPDATE_CHECK_INTERVAL_MS=10*60*1000;
+const UPDATE_DISMISSED_VERSION_KEY='packly-dismissed-update-version';
+const UPDATE_ATTEMPT_VERSION_KEY='packly-update-attempt-version';
+let _latestDeployedVersion=APP_VERSION;
+let _minimumSupportedVersion=APP_VERSION;
+let _appUpdateAvailable=false;
+let _forcedUpdateRequired=false;
+let _updateCheckInFlight=false;
+let _updateIntervalHandle=null;
+
+function _compareSemver(a,b){
+  const pa=String(a||'0').split('.').map(v=>parseInt(v,10)||0);
+  const pb=String(b||'0').split('.').map(v=>parseInt(v,10)||0);
+  const len=Math.max(pa.length,pb.length);
+  for(let i=0;i<len;i++){
+    const d=(pa[i]||0)-(pb[i]||0);
+    if(d!==0)return d>0?1:-1;
+  }
+  return 0;
+}
+function _v(v){return`Packly v${v||APP_VERSION}`;}
+function setText(id,text){
+  const el=document.getElementById(id);
+  if(el)el.textContent=text;
+}
+function renderVersionLabels(){
+  setText('sheetVersionLabel',_v(APP_VERSION));
+  setText('aboutVersionLabel',`Current version: ${_v(APP_VERSION)}`);
+  setText('aboutLatestLabel',`Latest deployed: ${_v(_latestDeployedVersion)}`);
+}
+function showAppUpdateToast(){
+  const toast=document.getElementById('appUpdateToast');
+  const txt=document.getElementById('appUpdateToastText');
+  if(!toast||!txt)return;
+  txt.textContent=`New version available (${_v(_latestDeployedVersion)}).`;
+  toast.classList.add('show');
+}
+function hideAppUpdateToast(){
+  document.getElementById('appUpdateToast')?.classList.remove('show');
+}
+window.dismissAppUpdateToast=function(){
+  sessionStorage.setItem(UPDATE_DISMISSED_VERSION_KEY,_latestDeployedVersion);
+  hideAppUpdateToast();
+};
+function showForcedUpdateModal(){
+  hideAppUpdateToast();
+  const b=document.getElementById('updateBanner');
+  const msg=document.getElementById('forcedUpdateText');
+  if(msg)msg.textContent=`Your current version (${_v(APP_VERSION)}) is incompatible with latest deploy (${_v(_latestDeployedVersion)}). Refresh to continue safely.`;
+  if(b)b.style.display='flex';
+}
+function hideForcedUpdateModal(){
+  const b=document.getElementById('updateBanner');
+  if(b)b.style.display='none';
+}
+function flushPendingEdits(){
+  const active=document.activeElement;
+  if(active&&typeof active.blur==='function')active.blur();
+}
+window.applyAppUpdate=async function(force=false){
+  if(_forcedUpdateRequired)force=true;
+  flushPendingEdits();
+  localStorage.setItem(SYNC_KEY,new Date().toISOString());
+  sessionStorage.setItem(UPDATE_ATTEMPT_VERSION_KEY,_latestDeployedVersion||APP_VERSION);
+  if('serviceWorker' in navigator){
+    try{
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(reg?.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+      if(reg)await reg.update();
+    }catch(_){}
+  }
+  if(!force)hideAppUpdateToast();
+  setTimeout(()=>location.reload(),120);
+};
+async function _fetchVersionInfo(){
+  const r=await fetch(`${VERSION_INFO_URL}?_=${Date.now()}`,{cache:'no-store'});
+  if(!r.ok)throw new Error('version fetch failed');
+  const info=await r.json();
+  return{
+    version:String(info?.version||'').trim(),
+    minimumSupportedVersion:String(info?.minimumSupportedVersion||'').trim()
+  };
+}
+function startVersionChecks(){
+  if(_updateIntervalHandle)clearInterval(_updateIntervalHandle);
+  _updateIntervalHandle=setInterval(()=>{checkForUpdates({manual:false});},UPDATE_CHECK_INTERVAL_MS);
+}
+window.openAboutModal=function(){
+  renderVersionLabels();
+  document.getElementById('aboutOverlay')?.classList.add('open');
+};
+window.closeAboutModal=function(){
+  document.getElementById('aboutOverlay')?.classList.remove('open');
+};
+window.handleAboutOverlay=function(e){
+  if(e.target===document.getElementById('aboutOverlay'))closeAboutModal();
+};
 
 /* ── Lucide icons (inline SVG strings used in JS-built DOM) ── */
 // Each returns an SVG string at the requested size class
@@ -1424,7 +1549,6 @@ async function onSignedIn(user){
   document.getElementById('authOverlay').classList.remove('open');
   // Show skeleton while cloud loads
   _clClose();
-  document.getElementById('tabTrips')?.classList.add('active');
   showTripsSkeleton();
 
   // Fetch cloud state
@@ -1629,14 +1753,11 @@ let luggageDraft=[];
 function _clOpen(){ document.getElementById('navStack').classList.add('pushed'); }
 function _clClose(){
   document.getElementById('navStack').classList.remove('pushed');
-  document.getElementById('backToTopBtn')?.classList.remove('visible');
 }
 function _doShowTrips(){
   stopSharedTripPolling();
   trips=loadAll();
   _clClose();
-  document.getElementById('tabTrips')?.classList.add('active');
-  document.getElementById('tabAccount')?.classList.remove('active');
   renderTrips();
 }
 window.showTrips=function(){
@@ -1934,8 +2055,6 @@ async function showChecklist(id){
   _clOpen();
   history.pushState({packly:'checklist',tripId:id},'','#checklist');
   startSharedTripPolling(id);
-  document.getElementById('tabTrips')?.classList.remove('active');
-  document.getElementById('tabAccount')?.classList.remove('active');
   // For shared trips, always fetch latest from cloud — show skeleton during the wait
   const trip=trips.find(t=>t.id===id);
   if(trip?.sharedTripId){
@@ -1971,6 +2090,8 @@ function renderChecklist(){
     <span class="cl-pct">${pct}%</span>`;
 
   renderLuggageBar();
+  const sTitle=document.getElementById('sectionListTitle');
+  if(sTitle)sTitle.textContent=`Categories (${trip.sections.length})`;
   const c=document.getElementById('sectionsContainer');c.innerHTML='';
   trip.sections.forEach(sec=>c.appendChild(buildSection(sec,trip)));
 }
@@ -2169,9 +2290,9 @@ function renderLuggageBar(){
   const summary=travelers.length
     ? travelers.map(t=>esc(t.name||'Traveller')).join(' · ')
     : 'Tap to set allowances';
-  el.innerHTML=`<div class="luggage-bar" onclick="openLuggageModal()">
+  el.innerHTML=`<div class="luggage-bar luggage-bar--inline" onclick="openLuggageModal()">
     <div class="luggage-bar-left">
-      ${svgStr('scale','lucide')}
+      ${svgStr('luggage','lucide')}
       <span class="luggage-bar-label">Luggage</span>
       <span class="luggage-bar-summary">${summary}</span>
     </div>
@@ -2284,7 +2405,6 @@ window.openAccountSheet=function(){
   if(inp)inp.value=_currentUserName||'';
   document.getElementById('accountSheet').classList.add('open');
   document.getElementById('sheetOverlay').classList.add('open');
-  document.getElementById('tabAccount').classList.add('active');
 };
 window.saveDisplayName=async function(){
   const inp=document.getElementById('sheetDisplayName');
@@ -2300,37 +2420,58 @@ window.saveDisplayName=async function(){
 window.closeAccountSheet=function(){
   document.getElementById('accountSheet').classList.remove('open');
   document.getElementById('sheetOverlay').classList.remove('open');
-  document.getElementById('tabAccount').classList.remove('active');
 };
-/* ── Update badge ── */
-async function checkForUpdates(){
-  const badge=document.getElementById('updatesBadge');
-  if(!badge)return;
+/* ── App update checks ── */
+async function checkForUpdates({manual=false}={}){
+  if(_updateCheckInFlight)return;
+  _updateCheckInFlight=true;
   try{
-    const{data:{user}}=await sb.auth.getUser();
-    if(!user)return;
-    const lastSync=localStorage.getItem(SYNC_KEY)||'1970-01-01T00:00:00Z';
-    // Check user_data updated_at
-    const{data:ud}=await sb.from('user_data').select('updated_at').eq('user_id',user.id).single();
-    // Check any shared trip updated_at
-    const{data:access}=await sb.from('trip_access').select('trip_id');
-    let sharedNewer=false;
-    if(access?.length){
-      const ids=access.map(r=>r.trip_id);
-      const{data:rows}=await sb.from('shared_trips').select('updated_at').in('id',ids);
-      sharedNewer=(rows||[]).some(r=>r.updated_at>lastSync);
+    const info=await _fetchVersionInfo();
+    if(info.version)_latestDeployedVersion=info.version;
+    _minimumSupportedVersion=info.minimumSupportedVersion||_latestDeployedVersion||APP_VERSION;
+    _forcedUpdateRequired=_compareSemver(_minimumSupportedVersion,APP_VERSION)>0;
+    _appUpdateAvailable=_compareSemver(_latestDeployedVersion,APP_VERSION)>0;
+    const attempted=sessionStorage.getItem(UPDATE_ATTEMPT_VERSION_KEY)||'';
+    if(!_appUpdateAvailable&&attempted){
+      sessionStorage.removeItem(UPDATE_ATTEMPT_VERSION_KEY);
+      sessionStorage.removeItem(UPDATE_DISMISSED_VERSION_KEY);
     }
-    const hasUpdates=(ud?.updated_at&&ud.updated_at>lastSync)||sharedNewer;
-    badge.style.display=hasUpdates?'':'none';
-  }catch(e){/* silent */}
+    renderVersionLabels();
+
+    const badge=document.getElementById('updatesBadge');
+    if(badge)badge.style.display=_appUpdateAvailable?'':'none';
+
+    if(_forcedUpdateRequired){
+      showForcedUpdateModal();
+      return;
+    }
+    hideForcedUpdateModal();
+
+    if(_appUpdateAvailable){
+      const dismissed=sessionStorage.getItem(UPDATE_DISMISSED_VERSION_KEY)||'';
+      // Show non-blocking update toast unless user dismissed this version this session.
+      // If refresh was attempted but version didn't change, don't spam a loop.
+      if(dismissed!==_latestDeployedVersion&&attempted!==_latestDeployedVersion){
+        showAppUpdateToast();
+      }
+      if(manual){
+        showToast(`New version available: ${_v(_latestDeployedVersion)}`);
+      }
+      return;
+    }
+
+    hideAppUpdateToast();
+    if(manual)showToast(`You're up to date (${_v(APP_VERSION)}).`);
+  }catch(_){
+    if(manual)showToast('Could not check updates right now.');
+  }finally{
+    _updateCheckInFlight=false;
+  }
 }
 
 window.handleRefresh=function(){
-  localStorage.setItem(SYNC_KEY, new Date().toISOString());
-  const badge=document.getElementById('updatesBadge');
-  if(badge)badge.style.display='none';
   closeAccountSheet();
-  setTimeout(()=>location.reload(),200);
+  checkForUpdates({manual:true});
 };
 
 /* ── Share / Join ── */
@@ -2500,6 +2641,9 @@ function stopSharedTripPolling(){
 }
 
 /* ── INIT ── */
+renderVersionLabels();
+startVersionChecks();
+setTimeout(()=>{checkForUpdates({manual:false});},1200);
 // Prevent browser from restoring scroll position (we manage it)
 if('scrollRestoration' in history) history.scrollRestoration='manual';
 // Clear any stale #checklist hash left from a previous session reload
@@ -2521,14 +2665,7 @@ sb.auth.onAuthStateChange((event,session)=>{
 document.getElementById('checklistView').addEventListener('scroll',function(){
   const nav=this.querySelector('.cl-nav');
   if(nav)nav.classList.toggle('scrolled',this.scrollTop>8);
-  // Back-to-top visibility
-  const btn=document.getElementById('backToTopBtn');
-  if(btn)btn.classList.toggle('visible',this.scrollTop>320);
 },{passive:true});
-
-function scrollChecklistToTop(){
-  document.getElementById('checklistView').scrollTo({top:0,behavior:'smooth'});
-}
 
 // Allow Enter key on auth form
 document.getElementById('authPassword').addEventListener('keydown',e=>{if(e.key==='Enter')handleAuthSubmit();});
@@ -2571,8 +2708,6 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
     if(p>0.35){
       stack.classList.remove('pushed');
       trips=loadAll(); renderTrips();
-      document.getElementById('tabTrips')?.classList.add('active');
-      document.getElementById('tabAccount')?.classList.remove('active');
       if(history.state&&history.state.packly==='checklist')history.back();
     }
   }
@@ -2643,6 +2778,7 @@ document.querySelectorAll('.overlay').forEach(overlay=>{
 /* ── Shared-trip refresh on tab focus ── */
 document.addEventListener('visibilitychange',async()=>{
   if(document.hidden)return;
+  checkForUpdates({manual:false});
   if(!_currentUserId)return;
   const sharedTrips=trips.filter(t=>t.sharedTripId);
   if(!sharedTrips.length)return;
@@ -2668,30 +2804,7 @@ document.addEventListener('visibilitychange',async()=>{
     }
   }catch(_){}
 });
-
-/* ── Auto-update: detect new deploy via ETag / Last-Modified ── */
-(function(){
-  const ETAG_KEY='mp-page-etag';
-  async function checkForNewDeploy(){
-    try{
-      const r=await fetch(location.pathname+'?_='+Date.now(),{method:'HEAD',cache:'no-store'});
-      const tag=r.headers.get('etag')||r.headers.get('last-modified')||'';
-      if(!tag)return;
-      const stored=sessionStorage.getItem(ETAG_KEY);
-      if(!stored){sessionStorage.setItem(ETAG_KEY,tag);return;}
-      if(stored!==tag){
-        sessionStorage.setItem(ETAG_KEY,tag);
-        document.getElementById('updateBanner').style.display='flex';
-      }
-    }catch(_){}
-  }
-  // Check once on load (after a short delay so the app is interactive first)
-  setTimeout(checkForNewDeploy,4000);
-  // Re-check whenever the tab becomes visible (user switches back)
-  document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden)checkForNewDeploy();
-  });
-})();
+window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
 
 /* ── Pull-to-refresh on Trips view ── */
 (function(){
