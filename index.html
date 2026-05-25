@@ -28,7 +28,39 @@
 }
 
 html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:'Figtree',sans-serif;-webkit-font-smoothing:antialiased;font-size:16px}
-.view{display:none;min-height:100vh}.view.active{display:block}
+/* ── iOS-style push/pop navigation ── */
+#navStack{
+  position:relative;overflow-x:hidden;
+  width:100%;min-height:100vh;
+}
+.view{
+  position:absolute;top:0;left:0;width:100%;min-height:100%;
+  will-change:transform;
+  background:var(--bg);
+}
+/* default: trips on screen, checklist off to the right */
+#tripsView{
+  transform:translateX(0);
+  transition:transform .38s cubic-bezier(.4,0,.2,1);
+  z-index:1;
+}
+#checklistView{
+  transform:translateX(100%);
+  transition:transform .38s cubic-bezier(.4,0,.2,1);
+  z-index:2;
+}
+/* pushed: trips slides left (30% parallax), checklist on screen */
+#navStack.pushed #tripsView   {transform:translateX(-30%);}
+#navStack.pushed #checklistView{transform:translateX(0);}
+/* dim scrim on the trips view while checklist is in front */
+#tripsView::after{
+  content:'';position:absolute;inset:0;
+  background:rgba(0,0,0,.18);
+  opacity:0;pointer-events:none;
+  transition:opacity .38s cubic-bezier(.4,0,.2,1);
+  z-index:10;
+}
+#navStack.pushed #tripsView::after{opacity:1;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* lucide inline SVG sizing */
@@ -597,8 +629,9 @@ svg.lucide-2xl{width:28px;height:28px}
 </head>
 <body>
 
+<div id="navStack">
 <!-- TRIPS VIEW -->
-<div class="view active" id="tripsView">
+<div class="view" id="tripsView">
   <nav class="top-nav">
     <div class="brand-pill">
       <img src="Logo-colored.png" alt="Master Packer" style="width:28px;height:28px;display:block;mix-blend-mode:multiply;">
@@ -644,6 +677,7 @@ svg.lucide-2xl{width:28px;height:28px}
     </button>
   </div>
 </div>
+</div><!-- /navStack -->
 
 <!-- TRIP MODAL -->
 <div class="overlay" id="tripOverlay" onclick="handleTripOverlay(event)">
@@ -1253,8 +1287,7 @@ let luggageDraft=[];
 /* ── TRIPS VIEW ── */
 window.showTrips=function(){
   trips=loadAll();
-  document.getElementById('tripsView').classList.add('active');
-  document.getElementById('checklistView').classList.remove('active');
+  document.getElementById('navStack').classList.remove('pushed');
   document.getElementById('tabTrips')?.classList.add('active');
   document.getElementById('tabAccount')?.classList.remove('active');
   renderTrips();
@@ -1510,8 +1543,7 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
   activeId=id;
-  document.getElementById('tripsView').classList.remove('active');
-  document.getElementById('checklistView').classList.add('active');
+  document.getElementById('navStack').classList.add('pushed');
   document.getElementById('tabTrips')?.classList.remove('active');
   document.getElementById('tabAccount')?.classList.remove('active');
   // For shared trips, always fetch latest from cloud
