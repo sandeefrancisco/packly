@@ -711,11 +711,15 @@ window.handleAuthSubmit=async function(){
         },1000);
       }
     } else if(msg.includes('Invalid login')||msg.includes('invalid_credentials')){
-      errEl.textContent='Incorrect email or password.';
+      errEl.textContent='Incorrect email or password. Please try again.';
     } else if(msg.includes('already registered')){
-      errEl.textContent='An account with this email already exists. Try signing in.';
+      errEl.textContent='This email already has an account — try signing in instead.';
     } else if(msg.includes('Password should')){
       errEl.textContent='Password must be at least 6 characters.';
+    } else if(msg.includes('not confirmed')||msg.includes('confirm')){
+      errEl.textContent='Please check your email inbox and click the confirmation link first.';
+    } else if(msg.includes('invalid')||msg.includes('Unable to validate')){
+      errEl.textContent='Please enter a valid email address.';
     } else {
       errEl.textContent=msg;
     }
