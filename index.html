@@ -231,12 +231,24 @@ svg.lucide-2xl{width:28px;height:28px}
   margin-bottom:16px;
   transition:height .1s;
   box-sizing:border-box;
+  display:flex;align-items:center;justify-content:center;
+}
+.dnd-placeholder-section::after{
+  content:'Drop here';
+  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;
+  color:var(--accent);opacity:.5;letter-spacing:.03em;pointer-events:none;
 }
 /* Item drop placeholder — row-shaped slot with accent stripe */
 .dnd-placeholder-item{
   border-left:3px solid var(--accent);
   background:rgba(26,26,46,.04);
   box-sizing:border-box;
+  display:flex;align-items:center;padding-left:20px;
+}
+.dnd-placeholder-item::after{
+  content:'Drop here';
+  font-family:'Figtree',sans-serif;font-size:12px;font-weight:600;
+  color:var(--accent);opacity:.5;letter-spacing:.03em;pointer-events:none;
 }
 .dnd-ghost{
   position:fixed;pointer-events:none;z-index:9999;
