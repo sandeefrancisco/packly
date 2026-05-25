@@ -630,6 +630,27 @@ svg.lucide-2xl{width:28px;height:28px}
   padding-top:10px;
   padding-bottom:calc(12px + env(safe-area-inset-bottom));
 }
+/* Back to top button — floats above the bottom nav */
+#backToTopBtn{
+  position:fixed;
+  right:20px;
+  bottom:calc(72px + env(safe-area-inset-bottom));
+  z-index:110;
+  width:44px;height:44px;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(26,26,46,.28);
+  cursor:pointer;
+  opacity:0;pointer-events:none;
+  transition:opacity .22s,transform .22s;
+  transform:translateY(10px);
+}
+#backToTopBtn.visible{
+  opacity:1;pointer-events:auto;
+  transform:translateY(0);
+}
+#backToTopBtn svg{flex-shrink:0;}
 .tab-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:4px;border:none;background:none;color:var(--muted);
@@ -693,11 +714,31 @@ svg.lucide-2xl{width:28px;height:28px}
 .sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--border);margin:0 auto 20px}
 .sheet-user{
   display:flex;align-items:center;gap:14px;
-  padding:4px 0 20px;border-bottom:1px solid var(--border);margin-bottom:4px;
+  padding:4px 0 16px;
 }
 .sheet-user-info{min-width:0;flex:1}
 .sheet-user-email{font-size:15px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet-user-label{font-size:12px;color:var(--muted);margin-top:2px}
+/* display name row */
+.sheet-name-row{
+  display:flex;align-items:center;gap:8px;
+  padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:4px;
+}
+.sheet-name-row input{
+  flex:1;border:1.5px solid var(--border);border-radius:12px;
+  padding:10px 14px;font-family:'Figtree',sans-serif;font-size:15px;color:var(--ink);
+  background:var(--tint);outline:none;min-width:0;
+}
+.sheet-name-row input:focus{border-color:var(--accent);}
+.sheet-name-row input::placeholder{color:var(--muted)}
+.sheet-name-save{
+  padding:10px 16px;border:none;border-radius:12px;
+  background:var(--accent);color:#fff;
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+  transition:background .12s;
+}
+.sheet-name-save:hover{background:var(--accent-h)}
 .sheet-action{
   display:flex;align-items:center;gap:14px;width:100%;
   padding:17px 4px;border:none;background:none;
@@ -906,15 +947,25 @@ svg.lucide-2xl{width:28px;height:28px}
 </div>
 
 <!-- UPDATE BANNER -->
-<div id="updateBanner" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(26,26,46,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px;font-family:'Figtree',sans-serif">
-  <div style="background:#fff;border-radius:24px;padding:32px 28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(26,26,46,.22);animation:floatIn .25s cubic-bezier(.32,.72,0,1)">
+<div id="updateBanner" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(26,26,46,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;font-family:'Figtree',sans-serif">
+  <div style="background:#fff;border-radius:24px;padding:32px 28px 28px;max-width:340px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(26,26,46,.26);animation:floatIn .28s cubic-bezier(.32,.72,0,1)">
     <div style="font-size:44px;margin-bottom:12px">✨</div>
-    <h2 style="font-size:20px;font-weight:800;color:#1A1A2E;letter-spacing:-.3px;margin-bottom:8px">App updated</h2>
-    <p style="font-size:15px;color:#5C5975;line-height:1.5;margin-bottom:24px">A new version of Master Packer is ready. Reload to get the latest features and fixes.</p>
-    <button onclick="location.reload(true)" style="width:100%;padding:14px;border-radius:99px;border:none;background:#1A1A2E;color:#fff;font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px">Reload now</button>
-    <button onclick="document.getElementById('updateBanner').style.display='none'" style="width:100%;padding:12px;border-radius:99px;border:1.5px solid #EBEBF0;background:none;color:#5C5975;font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;cursor:pointer">Later</button>
+    <h2 style="font-size:20px;font-weight:800;color:#1A1A2E;letter-spacing:-.3px;margin-bottom:8px">What's new</h2>
+    <ul style="text-align:left;font-size:14px;color:#5C5975;line-height:1.7;margin-bottom:24px;padding-left:18px">
+      <li>Checklist now opens as a <strong style="color:#1A1A2E">smooth bottom sheet</strong> — swipe down to close</li>
+      <li><strong style="color:#1A1A2E">Personalized greeting</strong> — set your first name in Account</li>
+      <li><strong style="color:#1A1A2E">Back to top</strong> button when scrolling long lists</li>
+      <li>Fixed category drag &amp; drop on mobile</li>
+      <li>Luggage allowance sheet content fix</li>
+    </ul>
+    <button onclick="location.reload(true)" style="width:100%;padding:14px;border-radius:99px;border:none;background:#1A1A2E;color:#fff;font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;cursor:pointer">Get the update →</button>
   </div>
 </div>
+
+<!-- BACK TO TOP -->
+<button id="backToTopBtn" aria-label="Back to top" onclick="scrollChecklistToTop()">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottomNav">
@@ -938,6 +989,10 @@ svg.lucide-2xl{width:28px;height:28px}
       <div class="sheet-user-email" id="sheetEmail">—</div>
       <div class="sheet-user-label">Signed in to Master Packer</div>
     </div>
+  </div>
+  <div class="sheet-name-row">
+    <input id="sheetDisplayName" type="text" placeholder="Your first name (optional)" maxlength="40" autocomplete="given-name">
+    <button class="sheet-name-save" onclick="saveDisplayName()">Save</button>
   </div>
   <button class="sheet-action" onclick="closeAccountSheet();openSharePickerModal()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -1321,10 +1376,17 @@ let _currentUserId=null;
 let _currentUserName=null;
 
 function _extractName(user){
-  // Prefer display name, fall back to the part before @ in the email
-  return user.user_metadata?.full_name
-    || user.user_metadata?.name
-    || user.email.split('@')[0].replace(/[._+\-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  // 1. Custom display name the user explicitly saved
+  const custom=user.user_metadata?.display_name;
+  if(custom&&custom.trim())return custom.trim();
+  // 2. Social-login full name — take only the first word (first name)
+  const social=user.user_metadata?.full_name||user.user_metadata?.name;
+  if(social&&social.trim())return social.trim().split(/\s+/)[0];
+  // 3. Email local-part: extract first continuous alphabetic run only
+  //    e.g. "melisande.francisco513" → "Melisande"
+  const local=user.email.split('@')[0];
+  const firstAlpha=local.match(/^[a-z]+/i)?.[0]||local;
+  return firstAlpha.charAt(0).toUpperCase()+firstAlpha.slice(1).toLowerCase();
 }
 
 function updateHeroGreeting(){
@@ -1548,7 +1610,11 @@ let luggageDraft=[];
 /* ── TRIPS VIEW ── */
 // Pure visual — no history manipulation. Call this from popstate too.
 function _clOpen(){ document.getElementById('checklistView').classList.add('open'); document.getElementById('clBackdrop').classList.add('open'); }
-function _clClose(){ document.getElementById('checklistView').classList.remove('open'); document.getElementById('clBackdrop').classList.remove('open'); }
+function _clClose(){
+  document.getElementById('checklistView').classList.remove('open');
+  document.getElementById('clBackdrop').classList.remove('open');
+  document.getElementById('backToTopBtn')?.classList.remove('visible');
+}
 function _doShowTrips(){
   stopSharedTripPolling();
   trips=loadAll();
@@ -2195,9 +2261,23 @@ window.handleSharePickerOverlay=function(e){if(e.target===document.getElementByI
 window.openAccountSheet=function(){
   updateTrashBadge();
   checkForUpdates();
+  // Pre-fill display name field with current name
+  const inp=document.getElementById('sheetDisplayName');
+  if(inp)inp.value=_currentUserName||'';
   document.getElementById('accountSheet').classList.add('open');
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById('tabAccount').classList.add('active');
+};
+window.saveDisplayName=async function(){
+  const inp=document.getElementById('sheetDisplayName');
+  const name=(inp?.value||'').trim();
+  if(!name){showToast('⚠️ Enter a name first');return;}
+  const{error}=await sb.auth.updateUser({data:{display_name:name}});
+  if(error){showToast('⚠️ Could not save — try again');return;}
+  _currentUserName=name;
+  updateHeroGreeting();
+  showToast('✓ Name saved!');
+  inp.blur();
 };
 window.closeAccountSheet=function(){
   document.getElementById('accountSheet').classList.remove('open');
@@ -2423,7 +2503,14 @@ sb.auth.onAuthStateChange((event,session)=>{
 document.getElementById('checklistView').addEventListener('scroll',function(){
   const nav=this.querySelector('.cl-nav');
   if(nav)nav.classList.toggle('scrolled',this.scrollTop>8);
+  // Back-to-top visibility
+  const btn=document.getElementById('backToTopBtn');
+  if(btn)btn.classList.toggle('visible',this.scrollTop>320);
 },{passive:true});
+
+function scrollChecklistToTop(){
+  document.getElementById('checklistView').scrollTo({top:0,behavior:'smooth'});
+}
 
 // Allow Enter key on auth form
 document.getElementById('authPassword').addEventListener('keydown',e=>{if(e.key==='Enter')handleAuthSubmit();});
@@ -2440,8 +2527,11 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
 
   cv.addEventListener('pointerdown',e=>{
     if(!cv.classList.contains('open'))return;
-    if(e.target.closest('input,button,textarea,select,a,[contenteditable],[draggable]'))return;
-    // Allow drag from the handle area OR when sheet is at top of scroll
+    // Never activate sheet-swipe on interactive elements or DnD targets
+    if(e.target.closest(
+      'input,button,textarea,select,a,[contenteditable],[draggable],.section-label,.item-row'
+    ))return;
+    // Only from handle area (top 80px) OR when sheet is at scroll top
     const fromTop=e.clientY-cv.getBoundingClientRect().top;
     if(fromTop>80&&cv.scrollTop>2)return;
     sw={sy:e.clientY,dy:0,id:e.pointerId,started:false,sx:e.clientX};
@@ -2450,6 +2540,8 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
 
   cv.addEventListener('pointermove',e=>{
     if(!sw||e.pointerId!==sw.id)return;
+    // If DnD engine took over, abort sheet swipe
+    if(_dnd){sw=null;cv.style.transition='';cv.style.transform='';return;}
     const dy=e.clientY-sw.sy;
     const dx=e.clientX-sw.sx;
     if(!sw.started){
