@@ -395,6 +395,18 @@ svg.lucide-2xl{width:28px;height:28px}
   font-size:22px!important;text-align:center;font-weight:700;
 }
 .hero-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;top:-64px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#fff;
+  padding:12px 22px;border-radius:99px;
+  font-size:14px;font-weight:600;letter-spacing:-.01em;
+  z-index:400;transition:top .32s cubic-bezier(.32,.72,0,1);
+  white-space:nowrap;max-width:calc(100vw - 48px);overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 4px 24px rgba(26,26,46,.22);pointer-events:none;
+}
+.toast.show{top:16px}
 .share-trip-row{
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);
@@ -814,10 +826,11 @@ async function cloudSync(data){
     // Personal trips → user_data blob
     const personal=data.filter(t=>!t.sharedTripId);
     await sb.from('user_data').upsert({user_id:user.id,trips:personal,updated_at:new Date().toISOString()});
-    // Shared trips → update their row in shared_trips
+    // Shared trips → update their row in shared_trips (tag with who changed it)
     const shared=data.filter(t=>t.sharedTripId);
     for(const trip of shared){
-      await sb.from('shared_trips').update({data:trip,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
+      const tripData={...trip,lastModifiedBy:user.id};
+      await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
     }
   }catch(e){console.warn('Sync error',e);}
 }
@@ -854,6 +867,7 @@ async function onSignedIn(user){
   trips=[...personal,...shared];
   saveLocalOnly(trips);
   showTrips();
+  subscribeToSharedTrips();
 }
 
 function onSignedOut(){
@@ -1600,6 +1614,51 @@ setTimeout(()=>{
   const ji=document.getElementById('joinCodeInput');
   if(ji)ji.addEventListener('keydown',e=>{if(e.key==='Enter')handleJoinSubmit();});
 },0);
+
+/* ── Toast notifications ── */
+let _toastTimer=null;
+function showToast(msg){
+  let t=document.querySelector('.toast');
+  if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;
+  clearTimeout(_toastTimer);
+  requestAnimationFrame(()=>{t.classList.add('show');});
+  _toastTimer=setTimeout(()=>{t.classList.remove('show');},4000);
+}
+
+/* ── Realtime sync for shared trips ── */
+let _realtimeChannel=null;
+function subscribeToSharedTrips(){
+  if(_realtimeChannel){sb.removeChannel(_realtimeChannel);_realtimeChannel=null;}
+  const shared=trips.filter(t=>t.sharedTripId);
+  if(!shared.length)return;
+  _realtimeChannel=sb.channel('packly-collab-'+Date.now());
+  shared.forEach(trip=>{
+    _realtimeChannel.on('postgres_changes',{
+      event:'UPDATE',schema:'public',table:'shared_trips',
+      filter:`id=eq.${trip.sharedTripId}`
+    },(payload)=>{
+      const updated=payload.new?.data;
+      if(!updated)return;
+      // Ignore my own changes
+      if(updated.lastModifiedBy===_currentUserId)return;
+      // Update local copy
+      const idx=trips.findIndex(t=>t.sharedTripId===payload.new.id);
+      if(idx!==-1){
+        trips[idx]={...updated,sharedTripId:payload.new.id,isShared:true};
+        saveLocalOnly(trips);
+      }
+      // If currently viewing this trip, refresh silently
+      if(activeId===trip.id){
+        renderChecklist();
+        showToast('✓ Trip synced — co-traveler made changes');
+      } else {
+        showToast(`✈️ ${trip.name} — your co-traveler made changes`);
+      }
+    });
+  });
+  _realtimeChannel.subscribe();
+}
 
 /* ── INIT ── */
 // Listen for auth changes (login/logout)
