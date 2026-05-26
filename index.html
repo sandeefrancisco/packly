@@ -1198,7 +1198,7 @@ svg.lucide-2xl{width:28px;height:28px}
     <input id="sheetDisplayName" type="text" placeholder="Your name" maxlength="40" autocomplete="given-name">
     <button class="sheet-name-save" onclick="saveDisplayName()">Save</button>
   </div>
-  <div class="sheet-version" id="sheetVersionLabel">Packly v—</div>
+  <div class="sheet-version" id="sheetVersionLabel">Master Packer v—</div>
   <button class="sheet-action" onclick="closeAccountSheet();openSharePickerModal()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
     Share a trip — get code
@@ -1217,7 +1217,7 @@ svg.lucide-2xl{width:28px;height:28px}
   </button>
   <button class="sheet-action" onclick="openAboutModal()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    About Packly
+    About Master Packer
   </button>
   <button class="sheet-action danger" onclick="signOut()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -1227,7 +1227,7 @@ svg.lucide-2xl{width:28px;height:28px}
 <div class="overlay" id="aboutOverlay" onclick="handleAboutOverlay(event)">
   <div class="modal">
     <button class="sheet-close-btn" onclick="closeAboutModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    <h2>About Packly</h2>
+    <h2>About Master Packer</h2>
     <p style="font-size:15px;color:var(--muted);margin-bottom:16px">A calm, collaborative travel packing app.</p>
     <p id="aboutVersionLabel" style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px">Current version: —</p>
     <p id="aboutLatestLabel" style="font-size:13px;color:var(--muted);margin-bottom:18px">Latest deployed: checking…</p>
@@ -1351,7 +1351,7 @@ function _compareSemver(a,b){
   }
   return 0;
 }
-function _v(v){return`Packly v${v||APP_VERSION}`;}
+function _v(v){return`Master Packer v${v||APP_VERSION}`;}
 function setText(id,text){
   const el=document.getElementById(id);
   if(el)el.textContent=text;
