@@ -1999,8 +1999,9 @@ function renderTrips(){
   const grid=document.getElementById('tripsGrid');
   grid.innerHTML='';
 
-  const upcoming=trips.filter(t=>!isPastTrip(t));
-  const past=trips.filter(t=>isPastTrip(t));
+  const byDate=(a,b)=>(a.dateFrom||'').localeCompare(b.dateFrom||'');
+  const upcoming=trips.filter(t=>!isPastTrip(t)).sort(byDate);
+  const past=trips.filter(t=>isPastTrip(t)).sort((a,b)=>byDate(b,a));
   const upBadge=document.getElementById('tabUpcomingBadge');
   const pastBadge=document.getElementById('tabPastBadge');
   if(upBadge)upBadge.textContent=upcoming.length;
