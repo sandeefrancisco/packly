@@ -528,6 +528,29 @@ svg.lucide-2xl{width:28px;height:28px}
 .skel-item-label{height:13px;flex:1}
 .skel-item-qty{width:72px;height:32px;border-radius:99px;flex-shrink:0}
 
+/* ── Full-page app loader (shown until auth resolves) ── */
+#appLoader{
+  position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;flex-direction:column;
+  opacity:1;transition:opacity .2s ease;
+  pointer-events:all;
+  padding:0 24px;
+}
+#appLoader.done{opacity:0;pointer-events:none;}
+.al-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px;margin-bottom:8px}
+.al-brand{display:flex;align-items:center;gap:8px}
+.al-brand-logo{width:44px;height:44px;border-radius:12px;}
+.al-brand-text{height:16px;width:90px;border-radius:6px;}
+.al-menu{width:36px;height:36px;border-radius:10px;}
+.al-hero{margin-bottom:24px}
+.al-hero-line1{height:22px;width:75%;border-radius:8px;margin-bottom:10px;}
+.al-hero-line2{height:14px;width:55%;border-radius:8px;}
+.al-tabs{display:flex;gap:8px;margin-bottom:24px}
+.al-tab{height:38px;border-radius:99px;}
+.al-tab.t1{width:110px;}
+.al-tab.t2{width:80px;}
+.al-cards{display:flex;flex-direction:column;gap:16px;}
+
 /* ── MODAL → Bottom Sheet ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
 .overlay.open{display:flex}
@@ -921,6 +944,30 @@ svg.lucide-2xl{width:28px;height:28px}
 </style>
 </head>
 <body>
+
+<!-- Full-page skeleton shown until auth resolves -->
+<div id="appLoader">
+  <div class="al-nav">
+    <div class="al-brand">
+      <div class="skel al-brand-logo"></div>
+      <div class="skel al-brand-text"></div>
+    </div>
+    <div class="skel al-menu"></div>
+  </div>
+  <div class="al-hero">
+    <div class="skel al-hero-line1" style="margin-bottom:10px"></div>
+    <div class="skel al-hero-line2"></div>
+  </div>
+  <div class="al-tabs">
+    <div class="skel al-tab t1"></div>
+    <div class="skel al-tab t2"></div>
+  </div>
+  <div class="al-cards">
+    <div class="skel-trip-card"><div class="skel-trip-header"><div class="skel skel-trip-icon"></div><div class="skel-trip-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div><div class="skel skel-bar"></div><div class="skel-prog"><div class="skel skel-line w80"></div><div class="skel skel-line w40"></div></div></div>
+    <div class="skel-trip-card"><div class="skel-trip-header"><div class="skel skel-trip-icon"></div><div class="skel-trip-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div><div class="skel skel-bar"></div><div class="skel-prog"><div class="skel skel-line w80"></div><div class="skel skel-line w40"></div></div></div>
+    <div class="skel-trip-card"><div class="skel-trip-header"><div class="skel skel-trip-icon"></div><div class="skel-trip-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div><div class="skel skel-bar"></div><div class="skel-prog"><div class="skel skel-line w80"></div><div class="skel skel-line w40"></div></div></div>
+  </div>
+</div>
 
 <div id="navStack">
 <!-- TRIPS VIEW -->
@@ -1663,6 +1710,13 @@ function updateHeroGreeting(){
   }
 }
 
+function dismissAppLoader(){
+  const el=document.getElementById('appLoader');
+  if(!el||el.classList.contains('done'))return;
+  el.classList.add('done');
+  setTimeout(()=>el.remove(),250);
+}
+
 async function onSignedIn(user){
   _currentUserId=user.id;
   _currentUserName=_extractName(user);
@@ -1704,6 +1758,7 @@ async function onSignedIn(user){
   saveLocalOnly(trips);
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
   showTrips();
+  dismissAppLoader();
   subscribeToSharedTrips();
   updateTrashBadge();
 }
@@ -1716,6 +1771,7 @@ function onSignedOut(){
   closeAccountSheet();
   document.getElementById('authOverlay').classList.add('open');
   trips=[];
+  dismissAppLoader();
 }
 
 window.handleAuthSubmit=async function(){
@@ -2902,8 +2958,11 @@ sb.auth.onAuthStateChange((event,session)=>{
 (async()=>{
   const{data:{session}}=await sb.auth.getSession();
   if(session)await onSignedIn(session.user);
-  // If no session, auth overlay is already open
+  // If no session, auth overlay is already open — still dismiss loader
+  else dismissAppLoader();
 })();
+// Safety: remove loader after 6s regardless (network failure etc.)
+setTimeout(dismissAppLoader, 6000);
 
 // Sticky checklist nav — add shadow when scrolled
 document.getElementById('checklistView').addEventListener('scroll',function(){
