@@ -702,6 +702,15 @@ svg.lucide-2xl{width:28px;height:28px}
   box-shadow:0 0 10px rgba(16,185,129,.4);
 }
 .trip-prog-pct.complete,.cl-pct.complete{color:#059669}
+.trip-pack-again-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.btn-pack-again{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  width:100%;padding:9px 16px;border-radius:99px;
+  border:1.5px solid var(--border);background:none;
+  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:all .15s;
+}
+.btn-pack-again:hover{border-color:var(--accent);color:var(--accent);background:var(--tint)}
 .trip-packed-badge{
   display:inline-flex;align-items:center;gap:4px;
   font-size:13px;font-weight:700;color:#059669;
@@ -1067,7 +1076,7 @@ svg.lucide-2xl{width:28px;height:28px}
         <div class="pack-complete-stat-lbl">Categories</div>
       </div>
     </div>
-    <button class="btn-save" onclick="closePackCompleteModal()">Let's go! ✈️</button>
+    <button class="btn-save" onclick="letsGoHome()">Let's go! ✈️</button>
   </div>
 </div>
 
@@ -1409,6 +1418,7 @@ const IC = {
   list:        SVG('<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>'),
   heart:       SVG('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'),
   paw:         SVG('<circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/>'),
+  copy:        SVG('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
 };
 
 // Helper to build an SVG at a given size
@@ -1972,7 +1982,8 @@ function renderTrips(){
         ${allDone?`<span class="trip-meta-sep">·</span><span class="trip-packed-badge">🎒 All packed</span>`:''}
       </div>
       <div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
-      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} 100%`:`${pct}%`}</span></div>`;
+      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} 100%`:`${pct}%`}</span></div>
+      ${_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:''}`;
     card.onclick=e=>{
       if(e.target.closest('.trip-card-menu'))return;
       showChecklist(t.id);
@@ -1980,6 +1991,8 @@ function renderTrips(){
     card.querySelector(`#share-${t.id}`).onclick=e=>{e.stopPropagation();shareTrip(t.id);};
     card.querySelector(`#edit-${t.id}`).onclick=e=>{e.stopPropagation();openEditModal(t.id);};
     card.querySelector(`#del-${t.id}`).onclick=e=>{e.stopPropagation();deleteTrip(t.id);};
+    const dupBtn=card.querySelector(`#dup-${t.id}`);
+    if(dupBtn)dupBtn.onclick=e=>{e.stopPropagation();duplicateTrip(t.id);};
     grid.appendChild(card);
   });
 }
@@ -2113,7 +2126,7 @@ window.deleteTrip=function(id){
 
 /* ── TRIP MODAL ── */
 window.openNewTripModal=function(){
-  editingId=null;selTripIcon='globe';
+  editingId=null;selTripIcon='globe';_duplicateSections=null;
   document.getElementById('tripModalTitle').textContent='New trip';
   document.getElementById('tripSaveBtn').textContent='Create trip';
   document.getElementById('mDest').value='';
@@ -2178,7 +2191,9 @@ window.saveTrip=function(){
     const t=trips.find(x=>x.id===editingId);
     if(t){t.name=name;t.dates=dates;t.dateFrom=dateFrom;t.dateTo=dateTo;t.iconKey=selTripIcon;}
   } else {
-    trips.push({id:uid(),name,dates,dateFrom,dateTo,iconKey:selTripIcon,sections:DEFAULT_SECTIONS(),travelers:[]});
+    const sections=_duplicateSections||DEFAULT_SECTIONS();
+    _duplicateSections=null;
+    trips.push({id:uid(),name,dates,dateFrom,dateTo,iconKey:selTripIcon,sections,travelers:[]});
   }
   saveAll(trips);closeTripModal();renderTrips();
 };
@@ -2728,7 +2743,29 @@ function spawnConfetti(){
 
 window.closePackCompleteModal=function(){
   document.getElementById('packCompleteOverlay').classList.remove('open');
+};
+window.letsGoHome=function(){
+  document.getElementById('packCompleteOverlay').classList.remove('open');
   _tripsTab='past';
+  showTrips();
+};
+
+let _duplicateSections=null;
+window.duplicateTrip=function(id){
+  const src=trips.find(t=>t.id===id);if(!src)return;
+  _duplicateSections=src.sections.map(s=>({
+    ...s,id:uid(),
+    items:s.items.map(i=>({...i,id:uid(),done:false}))
+  }));
+  editingId=null;selTripIcon=src.iconKey||'globe';
+  document.getElementById('tripModalTitle').textContent='Pack again';
+  document.getElementById('tripSaveBtn').textContent='Create new trip';
+  document.getElementById('mDest').value=src.name;
+  document.getElementById('mDateFrom').value='';
+  document.getElementById('mDateTo').value='';
+  renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,null);
+  document.getElementById('tripOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('mDateFrom').focus(),50);
 };
 
 function openPackCompleteModal(trip){
