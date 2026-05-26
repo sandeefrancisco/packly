@@ -125,17 +125,31 @@ svg.lucide-2xl{width:28px;height:28px}
 .trip-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
 
 /* card layout */
-.trip-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
-.trip-name{font-size:22px;font-weight:800;line-height:1.25;color:var(--ink);flex:1;min-width:0;display:flex;align-items:center;gap:8px}
-.lucide-trip-icon{width:22px;height:22px;flex-shrink:0;opacity:.7}
-.trip-card-actions{display:flex;gap:0;flex-shrink:0;margin:-6px -6px 0 0}
-.card-btn{
-  width:36px;height:36px;border:none;background:none;color:#9896A8;
-  border-radius:9px;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:all .12s;min-width:40px;min-height:40px;
+.trip-name{font-size:20px;font-weight:800;line-height:1.25;color:var(--ink);
+  display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.lucide-trip-icon{width:20px;height:20px;flex-shrink:0;opacity:.65}
+.trip-date-row{font-size:14px;color:var(--muted);display:flex;align-items:center;
+  gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.trip-cd-pill{font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.trip-cd-pill.future{background:#EEF2FF;color:#4F46E5}
+.trip-cd-pill.soon{background:#FEF3C7;color:#D97706}
+.trip-cd-pill.today{background:#D1FAE5;color:#059669}
+.trip-cd-pill.past{background:var(--border);color:var(--muted)}
+.trip-tags-row{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap}
+.trip-card-footer{
+  display:flex;border-top:1px solid var(--border);
+  margin:14px -24px -24px;padding:0;
 }
-.card-btn svg{width:17px;height:17px;stroke-width:2}
+.card-btn{
+  flex:1;height:44px;border:none;background:none;color:#9896A8;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  cursor:pointer;transition:all .12s;font-family:'Figtree',sans-serif;
+  font-size:12px;font-weight:600;
+}
+.card-btn+.card-btn{border-left:1px solid var(--border)}
+.card-btn svg{width:15px;height:15px;stroke-width:2;flex-shrink:0}
 .card-btn:hover{background:var(--tint);color:var(--ink)}
+.card-btn.del{color:#9896A8}
 .card-btn.del:hover{background:#FEE2E2;color:var(--red)}
 
 /* keep ic-btn for checklist view */
@@ -148,20 +162,14 @@ svg.lucide-2xl{width:28px;height:28px}
 .ic-btn:hover{background:var(--tint);color:var(--ink)}
 .ic-btn.del:hover{background:#FEE2E2;color:var(--red);border-color:#FCA5A5}
 
-.trip-meta{font-size:15px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;line-height:1.4}
-.trip-meta-sep{opacity:.4}
-.trip-cd{font-weight:700}
-.trip-cd.future{color:#4F46E5}
-.trip-cd.soon{color:#D97706}
-.trip-cd.today{color:#16A34A}
-.trip-cd.past{color:var(--muted)}
-.trip-shared-tag{font-size:13px;font-weight:700;color:#7C3AED;display:inline-flex;align-items:center;gap:4px}
-.trip-shared-tag svg{width:14px;height:14px}
+.trip-shared-tag{font-size:12px;font-weight:700;color:#7C3AED;background:#F3EEFF;
+  border-radius:99px;padding:2px 9px;display:inline-flex;align-items:center;gap:4px}
+.trip-shared-tag svg{width:12px;height:12px}
 
-.trip-prog-bar{height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:12px}
+.trip-prog-bar{height:5px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:10px}
 .trip-prog-fill{height:100%;border-radius:99px;background:var(--green);transition:width .4s}
-.trip-prog-text{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:6px;width:100%}
-.trip-prog-pct{margin-left:auto;font-size:14px;font-weight:700;color:var(--ink)}
+.trip-prog-text{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;width:100%}
+.trip-prog-pct{margin-left:auto;font-size:13px;font-weight:700;color:var(--ink)}
 
 .empty-state{grid-column:1/-1;text-align:center;padding:32px 20px}
 .empty-icon-wrap{width:72px;height:72px;border-radius:20px;background:#E8E6F0;border:1.5px solid #D0CEDF;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;color:#4A4870}
@@ -735,7 +743,7 @@ svg.lucide-2xl{width:28px;height:28px}
   box-shadow:0 0 10px rgba(16,185,129,.4);
 }
 .trip-prog-pct.complete,.cl-pct.complete{color:#059669}
-.trip-pack-again-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.trip-pack-again-row{margin-top:12px}
 .btn-pack-again{
   display:flex;align-items:center;justify-content:center;gap:7px;
   width:100%;padding:9px 16px;border-radius:99px;
@@ -2045,26 +2053,28 @@ function renderTrips(){
     card.style.animationDelay=i*40+'ms';
     const cd=tripCountdown(t.dateFrom);
     const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave':'Delete';
+    const tagsHtml=(t.isShared||allDone)?`<div class="trip-tags-row">
+        ${t.isShared?`<span class="trip-shared-tag">${svgStr('users')} Shared</span>`:''}
+        ${allDone?`<span class="trip-packed-badge">🎒 All packed</span>`:''}
+      </div>`:'';
+    const packAgainHtml=_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:'';
     card.innerHTML=`
-      <div class="trip-card-header">
-        <div class="trip-name">${svgStr(t.iconKey||'globe','lucide lucide-trip-icon')} ${esc(t.name)}</div>
-        <div class="trip-card-actions">
-          <button class="card-btn" title="Share" id="share-${t.id}">${svgStr('share')}</button>
-          <button class="card-btn" title="Edit" id="edit-${t.id}">${svgStr('pen')}</button>
-          <button class="card-btn del" title="${delTitle}" id="del-${t.id}">${svgStr('trash')}</button>
-        </div>
-      </div>
-      <div class="trip-meta">
-        ${svgStr('calendar')} ${esc(t.dates||'No dates set')}
-        ${cd?`<span class="trip-meta-sep">·</span><span class="trip-cd ${cd.type}">${cd.label}</span>`:''}
-        ${t.isShared?`<span class="trip-meta-sep">·</span><span class="trip-shared-tag">${svgStr('users')} Shared</span>`:''}
-        ${allDone?`<span class="trip-meta-sep">·</span><span class="trip-packed-badge">🎒 All packed</span>`:''}
+      <div class="trip-name">${svgStr(t.iconKey||'globe','lucide lucide-trip-icon')} ${esc(t.name)}</div>
+      <div class="trip-date-row">
+        ${esc(t.dates||'No dates set')}
+        ${cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:''}
       </div>
       <div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
-      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} 100%`:`${pct}%`}</span></div>
-      ${_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:''}`;
+      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} 100%`:`${pct}%`}</span></div>
+      ${tagsHtml}
+      ${packAgainHtml}
+      <div class="trip-card-footer">
+        <button class="card-btn" id="share-${t.id}">${svgStr('share')} Share</button>
+        <button class="card-btn" id="edit-${t.id}">${svgStr('pen')} Edit</button>
+        <button class="card-btn del" id="del-${t.id}">${svgStr('trash')} ${delTitle}</button>
+      </div>`;
     card.onclick=e=>{
-      if(e.target.closest('.trip-card-menu'))return;
+      if(e.target.closest('.trip-card-footer'))return;
       showChecklist(t.id);
     };
     card.querySelector(`#share-${t.id}`).onclick=e=>{e.stopPropagation();shareTrip(t.id);};
