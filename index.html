@@ -2074,6 +2074,23 @@ function renderTrips(){
     if(dupBtn)dupBtn.onclick=e=>{e.stopPropagation();duplicateTrip(t.id);};
     grid.appendChild(card);
   });
+
+  // When hero buttons are hidden (past trips exist), keep them accessible at the bottom of Upcoming tab
+  if(hasPast&&_tripsTab==='upcoming'){
+    const row=document.createElement('div');
+    row.className='hero-actions';
+    row.style.cssText='justify-content:center;margin-top:8px';
+    row.innerHTML=`
+      <button class="btn-primary" onclick="openNewTripModal()">
+        <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New trip
+      </button>
+      <button class="btn-secondary" onclick="openJoinModal()">
+        <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Join a trip
+      </button>`;
+    grid.appendChild(row);
+  }
 }
 
 /* ── Trash / Recently Deleted ── */
