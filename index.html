@@ -1952,10 +1952,14 @@ function renderTrips(){
   const tabActionRow=document.getElementById('tabActionRow');
   const hasPast=past.length>0;
   if(heroActions)heroActions.style.display=hasPast?'none':'';
-  if(tabActionRow){
-    if(hasPast&&_tripsTab==='upcoming'){
-      tabActionRow.style.cssText='display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px';
-      tabActionRow.innerHTML=`
+  if(tabActionRow){tabActionRow.style.display='none';tabActionRow.innerHTML='';}
+
+  const display=_tripsTab==='past'?past:upcoming;
+
+  if(!display.length){
+    const isPastTab=_tripsTab==='past';
+    const emptyBtns=(!isPastTab&&hasPast)?`
+      <div class="hero-actions" style="justify-content:center;margin-top:20px">
         <button class="btn-primary" onclick="openNewTripModal()">
           <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           New trip
@@ -1963,21 +1967,13 @@ function renderTrips(){
         <button class="btn-secondary" onclick="openJoinModal()">
           <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Join a trip
-        </button>`;
-    }else{
-      tabActionRow.style.display='none';
-      tabActionRow.innerHTML='';
-    }
-  }
-
-  const display=_tripsTab==='past'?past:upcoming;
-
-  if(!display.length){
-    const isPastTab=_tripsTab==='past';
+        </button>
+      </div>`:'';
     grid.innerHTML=`<div class="empty-state">
       <div class="empty-icon-wrap">${svgStr('luggage','lucide lucide-2xl')}</div>
       <h3>${isPastTab?'No past trips yet':'No upcoming trips'}</h3>
       <p>${isPastTab?'Completed trips will appear here once everything is packed.':'Create your first packing list to get started.'}</p>
+      ${emptyBtns}
     </div>`;
     return;
   }
