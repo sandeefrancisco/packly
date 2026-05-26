@@ -640,6 +640,56 @@ svg.lucide-2xl{width:28px;height:28px}
   box-shadow:0 4px 24px rgba(26,26,46,.22);pointer-events:none;
 }
 .toast.show{top:16px}
+
+/* ── Pack Complete Celebration ── */
+@keyframes confettiFall{
+  0%{transform:translateY(0) rotate(0deg);opacity:1}
+  80%{opacity:.7}
+  100%{transform:translateY(110vh) rotate(720deg);opacity:0}
+}
+.confetti-piece{
+  position:fixed;pointer-events:none;z-index:9998;
+  animation:confettiFall linear forwards;
+}
+.pack-complete-icon{
+  width:76px;height:76px;border-radius:24px;
+  background:linear-gradient(135deg,#10B981,#059669);
+  display:flex;align-items:center;justify-content:center;
+  font-size:38px;margin:0 auto 22px;
+  box-shadow:0 8px 28px rgba(16,185,129,.35);
+}
+.pack-complete-title{
+  font-size:26px;font-weight:800;letter-spacing:-.5px;
+  margin-bottom:10px;color:var(--ink);
+}
+.pack-complete-sub{
+  font-size:16px;color:var(--muted);line-height:1.55;margin-bottom:24px;
+}
+.pack-complete-stats{
+  display:flex;justify-content:center;gap:0;
+  background:var(--tint);border-radius:16px;border:1px solid var(--border);
+  padding:18px 24px;margin-bottom:28px;
+}
+.pack-complete-stat{
+  flex:1;text-align:center;padding:0 12px;
+}
+.pack-complete-stat+.pack-complete-stat{
+  border-left:1px solid var(--border);
+}
+.pack-complete-stat-val{font-size:28px;font-weight:800;color:var(--ink);letter-spacing:-.5px}
+.pack-complete-stat-lbl{font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;letter-spacing:.02em;text-transform:uppercase}
+.cl-prog-bar-fill.complete,
+.trip-prog-fill.complete{
+  background:linear-gradient(90deg,#10B981,#34D399);
+  box-shadow:0 0 10px rgba(16,185,129,.4);
+}
+.trip-prog-pct.complete,.cl-pct.complete{color:#059669}
+.trip-packed-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:13px;font-weight:700;color:#059669;
+  background:#D1FAE5;border-radius:99px;
+  padding:3px 10px;
+}
 .app-update-toast{
   position:fixed;left:50%;
   bottom:calc(88px + env(safe-area-inset-bottom));
@@ -975,6 +1025,27 @@ svg.lucide-2xl{width:28px;height:28px}
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- PACK COMPLETE CELEBRATION -->
+<div class="overlay" id="packCompleteOverlay" onclick="closePackCompleteModal()">
+  <div class="modal" style="text-align:center" onclick="event.stopPropagation()">
+    <button class="sheet-close-btn" onclick="closePackCompleteModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="pack-complete-icon">🎉</div>
+    <div class="pack-complete-title">All packed!</div>
+    <div class="pack-complete-sub" id="packCompleteMsg">You've packed everything — ready to go!</div>
+    <div class="pack-complete-stats">
+      <div class="pack-complete-stat">
+        <div class="pack-complete-stat-val" id="packCompleteDone">0</div>
+        <div class="pack-complete-stat-lbl">Items packed</div>
+      </div>
+      <div class="pack-complete-stat">
+        <div class="pack-complete-stat-val" id="packCompleteSections">0</div>
+        <div class="pack-complete-stat-lbl">Categories</div>
+      </div>
+    </div>
+    <button class="btn-save" onclick="closePackCompleteModal()">Let's go! ✈️</button>
   </div>
 </div>
 
@@ -1829,6 +1900,7 @@ function renderTrips(){
   trips.forEach((t,i)=>{
     const {total,done}=stats(t);
     const pct=total?Math.round(done/total*100):0;
+    const allDone=total>0&&pct===100;
     const card=document.createElement('div');
     card.className='trip-card';
     card.style.animationDelay=i*40+'ms';
@@ -1847,9 +1919,10 @@ function renderTrips(){
         ${svgStr('calendar')} ${esc(t.dates||'No dates set')}
         ${cd?`<span class="trip-meta-sep">·</span><span class="trip-cd ${cd.type}">${cd.label}</span>`:''}
         ${t.isShared?`<span class="trip-meta-sep">·</span><span class="trip-shared-tag">${svgStr('users')} Shared</span>`:''}
+        ${allDone?`<span class="trip-meta-sep">·</span><span class="trip-packed-badge">🎒 All packed</span>`:''}
       </div>
-      <div class="trip-prog-bar"><div class="trip-prog-fill" style="width:${pct}%"></div></div>
-      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed<span class="trip-prog-pct">${pct}%</span></div>`;
+      <div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
+      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?'✓ 100%':`${pct}%`}</span></div>`;
     card.onclick=e=>{
       if(e.target.closest('.trip-card-menu'))return;
       showChecklist(t.id);
@@ -2099,10 +2172,11 @@ function renderChecklist(){
 
   const{total,done}=stats(trip);
   const pct=total?Math.round(done/total*100):0;
+  const allDone=total>0&&done===total;
   document.getElementById('clProgressStrip').innerHTML=`
     <span class="cl-prog-text"><strong>${done}</strong> of <strong>${total}</strong> packed</span>
-    <div class="cl-prog-bar-wrap"><div class="cl-prog-bar-fill" style="width:${pct}%"></div></div>
-    <span class="cl-pct">${pct}%</span>`;
+    <div class="cl-prog-bar-wrap"><div class="cl-prog-bar-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
+    <span class="cl-pct${allDone?' complete':''}">${allDone?'✓ 100%':`${pct}%`}</span>`;
 
   renderLuggageBar();
   const sTitle=document.getElementById('sectionListTitle');
@@ -2238,7 +2312,13 @@ function buildItemRow(item,sec){
   cb.onclick=()=>{
     item.done=!item.done;
     sec.items.sort((a,b)=>(a.done===b.done)?0:a.done?1:-1);
-    saveAll(trips);renderChecklist();
+    saveAll(trips);
+    if(item.done){
+      const trip=getTrip();
+      const{total,done}=stats(trip);
+      if(total>0&&done===total)triggerPackingComplete(trip);
+    }
+    renderChecklist();
   };
 
   const lbl=document.createElement('div');lbl.className='item-label';lbl.textContent=item.label;
@@ -2577,6 +2657,42 @@ setTimeout(()=>{
   const ji=document.getElementById('joinCodeInput');
   if(ji)ji.addEventListener('keydown',e=>{if(e.key==='Enter')handleJoinSubmit();});
 },0);
+
+/* ── Pack Complete Gamification ── */
+function spawnConfetti(){
+  const colors=['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#C77DFF','#FF9E00','#FF6FCE'];
+  for(let i=0;i<80;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    const size=6+Math.random()*10;
+    p.style.cssText=`left:${Math.random()*100}vw;top:-${10+Math.random()*30}px;`+
+      `width:${size}px;height:${size}px;`+
+      `background:${colors[Math.floor(Math.random()*colors.length)]};`+
+      `border-radius:${Math.random()>.5?'50%':'3px'};`+
+      `animation-duration:${1.8+Math.random()*2}s;`+
+      `animation-delay:${Math.random()*.7}s;`;
+    document.body.appendChild(p);
+    p.addEventListener('animationend',()=>p.remove());
+  }
+}
+
+window.closePackCompleteModal=function(){
+  document.getElementById('packCompleteOverlay').classList.remove('open');
+};
+
+function openPackCompleteModal(trip){
+  const{total,done}=stats(trip);
+  document.getElementById('packCompleteMsg').textContent=
+    `Every item is packed for ${trip.name}. You're ready for adventure!`;
+  document.getElementById('packCompleteDone').textContent=done;
+  document.getElementById('packCompleteSections').textContent=trip.sections.length;
+  document.getElementById('packCompleteOverlay').classList.add('open');
+}
+
+function triggerPackingComplete(trip){
+  spawnConfetti();
+  setTimeout(()=>openPackCompleteModal(trip),350);
+}
 
 /* ── Toast notifications ── */
 let _toastTimer=null;
