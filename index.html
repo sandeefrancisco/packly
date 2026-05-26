@@ -873,7 +873,8 @@ svg.lucide-2xl{width:28px;height:28px}
   padding:4px 0 16px;
 }
 .sheet-user-info{min-width:0;flex:1}
-.sheet-user-email{font-size:15px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-user-name{font-size:15px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-user-email{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet-user-label{font-size:12px;color:var(--muted);margin-top:2px}
 /* display name row */
 .sheet-name-row{
@@ -1183,8 +1184,8 @@ svg.lucide-2xl{width:28px;height:28px}
   <div class="sheet-user">
     <img src="Logo-colored.png" alt="Master Packer" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;mix-blend-mode:multiply;">
     <div class="sheet-user-info">
+      <div class="sheet-user-name" id="sheetName">—</div>
       <div class="sheet-user-email" id="sheetEmail">—</div>
-      <div class="sheet-user-label">Signed in to Master Packer</div>
     </div>
   </div>
   <div class="sheet-name-row">
@@ -1728,6 +1729,7 @@ async function onSignedIn(user){
   _currentUserName=_extractName(user);
   updateHeroGreeting();
   document.getElementById('sheetEmail').textContent=user.email;
+  document.getElementById('sheetName').textContent=_currentUserName||user.email;
   document.getElementById('authOverlay').classList.remove('open');
   // Show skeleton while cloud loads
   _clClose();
@@ -1774,6 +1776,7 @@ function onSignedOut(){
   _currentUserName=null;
   updateHeroGreeting();
   document.getElementById('sheetEmail').textContent='—';
+  document.getElementById('sheetName').textContent='—';
   closeAccountSheet();
   document.getElementById('authOverlay').classList.add('open');
   trips=[];
@@ -2642,6 +2645,7 @@ window.saveDisplayName=async function(){
   const{error}=await sb.auth.updateUser({data:{display_name:name}});
   if(error){showToast('⚠️ Could not save — try again');return;}
   _currentUserName=name;
+  document.getElementById('sheetName').textContent=name;
   updateHeroGreeting();
   closeAccountSheet();
   showToast('✓ Name saved!');
