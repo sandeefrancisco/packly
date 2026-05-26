@@ -90,20 +90,27 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .btn-primary:hover{background:var(--accent-h);transform:translateY(-1px)}
 
-.trips-tabs-bar{display:flex;gap:6px;margin-bottom:24px}
-.trips-tab-btn{
-  display:inline-flex;align-items:center;gap:7px;
-  padding:9px 18px;border-radius:99px;
-  border:1.5px solid var(--border);background:var(--white);
-  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
-  color:var(--muted);cursor:pointer;transition:all .15s;min-height:40px;
+.trips-tabs-bar{
+  display:inline-flex;background:#E8E8EE;border-radius:12px;padding:4px;
+  margin-bottom:24px;gap:0;
 }
-.trips-tab-btn.sel{border-color:var(--ink);color:var(--ink)}
+.trips-tab-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 18px;border-radius:9px;
+  border:none;background:transparent;
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:background .18s,color .18s,box-shadow .18s;
+  white-space:nowrap;
+}
+.trips-tab-btn.sel{
+  background:var(--white);color:var(--ink);
+  box-shadow:0 1px 4px rgba(26,26,46,.13);
+}
 .trips-tab-badge{
   font-size:12px;font-weight:700;
-  padding:2px 7px;border-radius:99px;
-  background:var(--border);color:var(--muted);
-  min-width:20px;text-align:center;line-height:1.4;
+  padding:1px 6px;border-radius:99px;
+  background:rgba(0,0,0,.08);color:var(--muted);
+  min-width:18px;text-align:center;line-height:1.5;
 }
 .trips-tab-btn.sel .trips-tab-badge{background:#E4E4EE;color:var(--ink)}
 
