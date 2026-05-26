@@ -95,14 +95,14 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
   color:var(--muted);cursor:pointer;transition:all .15s;min-height:40px;
 }
-.trips-tab-btn.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+.trips-tab-btn.sel{border-color:var(--ink);color:var(--ink)}
 .trips-tab-badge{
   font-size:12px;font-weight:700;
   padding:2px 7px;border-radius:99px;
   background:var(--border);color:var(--muted);
   min-width:20px;text-align:center;line-height:1.4;
 }
-.trips-tab-btn.sel .trips-tab-badge{background:rgba(255,255,255,.22);color:#fff}
+.trips-tab-btn.sel .trips-tab-badge{background:#E4E4EE;color:var(--ink)}
 
 .trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 
@@ -934,7 +934,7 @@ svg.lucide-2xl{width:28px;height:28px}
   <div class="hero">
     <h1 class="hero-title" id="heroTitle">Pack like you're <em>already there.</em></h1>
     <p class="hero-sub">Create your packing list, sync across devices, and share with your travel partner – ready for any trip.</p>
-    <div class="hero-actions">
+    <div class="hero-actions" id="heroActions">
       <button class="btn-primary" onclick="openNewTripModal()">
         <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         New trip
@@ -949,6 +949,7 @@ svg.lucide-2xl{width:28px;height:28px}
     <button class="trips-tab-btn sel" id="tabUpcoming" onclick="switchTab('upcoming')">Upcoming <span class="trips-tab-badge" id="tabUpcomingBadge">0</span></button>
     <button class="trips-tab-btn" id="tabPast" onclick="switchTab('past')">Past <span class="trips-tab-badge" id="tabPastBadge">0</span></button>
   </div>
+  <div id="tabActionRow" style="display:none"></div>
   <div class="trips-grid" id="tripsGrid"></div>
 </div>
 
@@ -1945,6 +1946,29 @@ function renderTrips(){
   const pastBadge=document.getElementById('tabPastBadge');
   if(upBadge)upBadge.textContent=upcoming.length;
   if(pastBadge)pastBadge.textContent=past.length;
+
+  // Move action buttons into Upcoming tab once there are past trips
+  const heroActions=document.getElementById('heroActions');
+  const tabActionRow=document.getElementById('tabActionRow');
+  const hasPast=past.length>0;
+  if(heroActions)heroActions.style.display=hasPast?'none':'';
+  if(tabActionRow){
+    if(hasPast&&_tripsTab==='upcoming'){
+      tabActionRow.style.cssText='display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px';
+      tabActionRow.innerHTML=`
+        <button class="btn-primary" onclick="openNewTripModal()">
+          <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New trip
+        </button>
+        <button class="btn-secondary" onclick="openJoinModal()">
+          <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Join a trip
+        </button>`;
+    }else{
+      tabActionRow.style.display='none';
+      tabActionRow.innerHTML='';
+    }
+  }
 
   const display=_tripsTab==='past'?past:upcoming;
 
