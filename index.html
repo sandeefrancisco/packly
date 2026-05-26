@@ -55,6 +55,7 @@ body{min-height:100%;height:100%;background:var(--bg);color:var(--ink);font-fami
 
 /* lucide inline SVG sizing */
 svg.lucide{width:16px;height:16px;stroke-width:2;vertical-align:middle;flex-shrink:0}
+svg.lucide-sm{width:13px;height:13px;stroke-width:2.5}
 svg.lucide-lg{width:20px;height:20px}
 svg.lucide-xl{width:24px;height:24px}
 svg.lucide-2xl{width:28px;height:28px}
@@ -1922,7 +1923,7 @@ function renderTrips(){
         ${allDone?`<span class="trip-meta-sep">·</span><span class="trip-packed-badge">🎒 All packed</span>`:''}
       </div>
       <div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
-      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?'✓ 100%':`${pct}%`}</span></div>`;
+      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} 100%`:`${pct}%`}</span></div>`;
     card.onclick=e=>{
       if(e.target.closest('.trip-card-menu'))return;
       showChecklist(t.id);
@@ -2176,7 +2177,7 @@ function renderChecklist(){
   document.getElementById('clProgressStrip').innerHTML=`
     <span class="cl-prog-text"><strong>${done}</strong> of <strong>${total}</strong> packed</span>
     <div class="cl-prog-bar-wrap"><div class="cl-prog-bar-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
-    <span class="cl-pct${allDone?' complete':''}">${allDone?'✓ 100%':`${pct}%`}</span>`;
+    <span class="cl-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall')} 100%`:`${pct}%`}</span>`;
 
   renderLuggageBar();
   const sTitle=document.getElementById('sectionListTitle');
