@@ -87,6 +87,23 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .btn-primary:hover{background:var(--accent-h);transform:translateY(-1px)}
 
+.trips-tabs-bar{display:flex;gap:6px;margin-bottom:24px}
+.trips-tab-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;border-radius:99px;
+  border:1.5px solid var(--border);background:var(--white);
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:all .15s;min-height:40px;
+}
+.trips-tab-btn.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+.trips-tab-badge{
+  font-size:12px;font-weight:700;
+  padding:2px 7px;border-radius:99px;
+  background:var(--border);color:var(--muted);
+  min-width:20px;text-align:center;line-height:1.4;
+}
+.trips-tab-btn.sel .trips-tab-badge{background:rgba(255,255,255,.22);color:#fff}
+
 .trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 
 .trip-card{
@@ -918,6 +935,10 @@ svg.lucide-2xl{width:28px;height:28px}
         Join a trip
       </button>
     </div>
+  </div>
+  <div class="trips-tabs-bar">
+    <button class="trips-tab-btn sel" id="tabUpcoming" onclick="switchTab('upcoming')">Upcoming <span class="trips-tab-badge" id="tabUpcomingBadge">0</span></button>
+    <button class="trips-tab-btn" id="tabPast" onclick="switchTab('past')">Past <span class="trips-tab-badge" id="tabPastBadge">0</span></button>
   </div>
   <div class="trips-grid" id="tripsGrid"></div>
 </div>
@@ -1887,18 +1908,46 @@ function showChecklistSkeleton(){
     </div>`).join('');
 }
 
+/* ── Upcoming / Past tabs ── */
+let _tripsTab='upcoming';
+
+function isPastTrip(t){
+  const{total,done}=stats(t);
+  if(total>0&&done===total)return true;
+  if(tripCountdown(t.dateFrom)?.type==='past')return true;
+  return false;
+}
+
+window.switchTab=function(tab){
+  _tripsTab=tab;
+  document.getElementById('tabUpcoming').classList.toggle('sel',tab==='upcoming');
+  document.getElementById('tabPast').classList.toggle('sel',tab==='past');
+  renderTrips();
+};
+
 function renderTrips(){
   const grid=document.getElementById('tripsGrid');
   grid.innerHTML='';
-  if(!trips.length){
+
+  const upcoming=trips.filter(t=>!isPastTrip(t));
+  const past=trips.filter(t=>isPastTrip(t));
+  const upBadge=document.getElementById('tabUpcomingBadge');
+  const pastBadge=document.getElementById('tabPastBadge');
+  if(upBadge)upBadge.textContent=upcoming.length;
+  if(pastBadge)pastBadge.textContent=past.length;
+
+  const display=_tripsTab==='past'?past:upcoming;
+
+  if(!display.length){
+    const isPastTab=_tripsTab==='past';
     grid.innerHTML=`<div class="empty-state">
       <div class="empty-icon-wrap">${svgStr('luggage','lucide lucide-2xl')}</div>
-      <h3>No trips yet</h3>
-      <p>Create your first packing list to get started.</p>
+      <h3>${isPastTab?'No past trips yet':'No upcoming trips'}</h3>
+      <p>${isPastTab?'Completed trips will appear here once everything is packed.':'Create your first packing list to get started.'}</p>
     </div>`;
     return;
   }
-  trips.forEach((t,i)=>{
+  display.forEach((t,i)=>{
     const {total,done}=stats(t);
     const pct=total?Math.round(done/total*100):0;
     const allDone=total>0&&pct===100;
@@ -2679,6 +2728,7 @@ function spawnConfetti(){
 
 window.closePackCompleteModal=function(){
   document.getElementById('packCompleteOverlay').classList.remove('open');
+  _tripsTab='past';
 };
 
 function openPackCompleteModal(trip){
