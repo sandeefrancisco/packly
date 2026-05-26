@@ -2013,9 +2013,6 @@ function renderTrips(){
   if(upBadge)upBadge.textContent=upcoming.length;
   if(pastBadge)pastBadge.textContent=past.length;
 
-  document.getElementById('tabUpcoming')?.classList.toggle('sel',_tripsTab==='upcoming');
-  document.getElementById('tabPast')?.classList.toggle('sel',_tripsTab==='past');
-
   const display=_tripsTab==='past'?past:upcoming;
 
   if(!display.length){
@@ -2817,6 +2814,8 @@ window.closePackCompleteModal=function(){
 window.letsGoHome=function(){
   document.getElementById('packCompleteOverlay').classList.remove('open');
   _tripsTab='past';
+  document.getElementById('tabUpcoming').classList.remove('sel');
+  document.getElementById('tabPast').classList.add('sel');
   showTrips();
 };
 
