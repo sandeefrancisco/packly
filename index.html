@@ -216,9 +216,12 @@ svg.lucide-2xl{width:28px;height:28px}
   background:var(--white);border-radius:16px;border:1px solid var(--border);
   padding:0 24px;margin-bottom:24px;
 }
-.cl-summary-divider{
-  height:1px;background:var(--border);
-}
+.cl-summary-divider{height:1px;background:var(--border)}
+.cl-stats-row{display:flex;align-items:stretch;padding:20px 0}
+.cl-stat{flex:1;text-align:center}
+.cl-stat-val{font-size:32px;font-weight:800;color:var(--ink);letter-spacing:-.5px;line-height:1}
+.cl-stat-lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:6px}
+.cl-stat-sep{width:1px;background:var(--border);margin:4px 0}
 .cl-progress-strip{
   padding:18px 0 16px;
   display:flex;align-items:center;gap:16px;
@@ -1037,6 +1040,18 @@ svg.lucide-2xl{width:28px;height:28px}
     <div class="cl-progress-strip" id="clProgressStrip"></div>
     <div class="cl-summary-divider"></div>
     <div id="luggageBarEl"></div>
+    <div class="cl-summary-divider" id="clStatsDivider"></div>
+    <div class="cl-stats-row" id="clStatsRow">
+      <div class="cl-stat">
+        <div class="cl-stat-val" id="clStatItems">—</div>
+        <div class="cl-stat-lbl" id="clStatItemsLbl">ITEMS TO PACK</div>
+      </div>
+      <div class="cl-stat-sep"></div>
+      <div class="cl-stat">
+        <div class="cl-stat-val" id="clStatCats">—</div>
+        <div class="cl-stat-lbl">CATEGORIES</div>
+      </div>
+    </div>
   </div>
   <div class="add-section-row">
     <span class="section-list-title" id="sectionListTitle">Categories</span>
@@ -2328,6 +2343,15 @@ function renderChecklist(){
     <span class="cl-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall')} 100%`:`${pct}%`}</span>`;
 
   renderLuggageBar();
+
+  const remaining=total-done;
+  const statItems=document.getElementById('clStatItems');
+  const statLbl=document.getElementById('clStatItemsLbl');
+  const statCats=document.getElementById('clStatCats');
+  if(statItems) statItems.textContent=allDone?done:remaining;
+  if(statLbl)   statLbl.textContent=allDone?'ITEMS PACKED':'ITEMS TO PACK';
+  if(statCats)  statCats.textContent=trip.sections.length;
+
   const sTitle=document.getElementById('sectionListTitle');
   if(sTitle)sTitle.textContent=`Categories (${trip.sections.length})`;
   const c=document.getElementById('sectionsContainer');c.innerHTML='';
