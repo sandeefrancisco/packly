@@ -1007,21 +1007,35 @@ svg.lucide-2xl{width:28px;height:28px}
 @keyframes floatIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
 
 /* ── Pull-to-refresh ── */
-@keyframes ptrSpin{to{transform:rotate(360deg)}}
+@keyframes iosStep{to{transform:rotate(360deg)}}
 .ptr-spacer{
   height:0;overflow:hidden;
   display:flex;align-items:center;justify-content:center;
   flex-shrink:0;
 }
-.ptr-spin{
-  width:22px;height:22px;border-radius:50%;flex-shrink:0;
-  border:2.5px solid var(--border);
-  border-top-color:#9896A8;
-  animation:ptrSpin .7s linear infinite;
-  opacity:0;transform:scale(.5);
-  transition:opacity .15s,transform .2s cubic-bezier(.34,1.56,.64,1);
+/* Wrapper that scales+fades in as you pull */
+.ptr-ind{
+  position:relative;width:28px;height:28px;
+  opacity:0;transform:scale(0.25) rotate(-180deg);
+  will-change:opacity,transform;
 }
-.ptr-spacer.show .ptr-spin{opacity:1;transform:scale(1);}
+/* Arc (pull phase) */
+.ptr-arc{position:absolute;inset:0;width:28px;height:28px;}
+.ptr-arc-bg{fill:none;stroke:var(--border);stroke-width:2.4;}
+.ptr-arc-fg{
+  fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;
+  stroke-dasharray:62.83;stroke-dashoffset:62.83; /* 2π×10 */
+}
+/* Activity indicator (loading phase) */
+.ptr-act{
+  position:absolute;inset:0;width:28px;height:28px;
+  color:var(--ink);opacity:0;pointer-events:none;
+}
+.ptr-act-g{transform-origin:14px 14px;}
+/* State: loading */
+.ptr-spacer.loading .ptr-arc{opacity:0;}
+.ptr-spacer.loading .ptr-act{opacity:1;}
+.ptr-spacer.loading .ptr-act-g{animation:iosStep 1s steps(12,end) infinite;}
 </style>
 </head>
 <body>
@@ -1053,7 +1067,7 @@ svg.lucide-2xl{width:28px;height:28px}
 <div id="navStack">
 <!-- TRIPS VIEW -->
 <div class="view" id="tripsView">
-  <div class="ptr-spacer" id="ptrSpacerTrips"><div class="ptr-spin"></div></div>
+  <div class="ptr-spacer" id="ptrSpacerTrips"><div class="ptr-ind"><svg class="ptr-arc" viewBox="0 0 28 28"><circle class="ptr-arc-bg" cx="14" cy="14" r="10"/><circle class="ptr-arc-fg" cx="14" cy="14" r="10" transform="rotate(-90 14 14)"/></svg><svg class="ptr-act" viewBox="0 0 28 28"><g class="ptr-act-g"><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="1"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.9" transform="rotate(30 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.77" transform="rotate(60 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.64" transform="rotate(90 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.51" transform="rotate(120 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.39" transform="rotate(150 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.29" transform="rotate(180 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.21" transform="rotate(210 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.15" transform="rotate(240 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.11" transform="rotate(270 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.08" transform="rotate(300 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.06" transform="rotate(330 14 14)"/></g></svg></div></div>
   <nav class="top-nav">
     <div class="brand-pill">
       <img src="Logo-colored.png" alt="Master Packer" style="width:44px;height:44px;display:block;mix-blend-mode:multiply;">
@@ -1086,7 +1100,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 <!-- CHECKLIST VIEW -->
 <div class="view" id="checklistView">
-  <div class="ptr-spacer" id="ptrSpacerChecklist"><div class="ptr-spin"></div></div>
+  <div class="ptr-spacer" id="ptrSpacerChecklist"><div class="ptr-ind"><svg class="ptr-arc" viewBox="0 0 28 28"><circle class="ptr-arc-bg" cx="14" cy="14" r="10"/><circle class="ptr-arc-fg" cx="14" cy="14" r="10" transform="rotate(-90 14 14)"/></svg><svg class="ptr-act" viewBox="0 0 28 28"><g class="ptr-act-g"><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="1"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.9" transform="rotate(30 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.77" transform="rotate(60 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.64" transform="rotate(90 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.51" transform="rotate(120 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.39" transform="rotate(150 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.29" transform="rotate(180 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.21" transform="rotate(210 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.15" transform="rotate(240 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.11" transform="rotate(270 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.08" transform="rotate(300 14 14)"/><rect x="12.75" y="2.5" width="2.5" height="7" rx="1.25" fill="currentColor" opacity="0.06" transform="rotate(330 14 14)"/></g></svg></div></div>
   <div class="cl-nav">
     <button class="btn-back" onclick="showTrips()">
       <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -3389,35 +3403,54 @@ document.addEventListener('visibilitychange',async()=>{
 window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
 
 /* ════════════════════════════════════════
-   PULL-TO-REFRESH
+   PULL-TO-REFRESH — iOS native pattern
    ════════════════════════════════════════ */
 (function(){
-  const THRESHOLD = 72;   // raw px to trigger
-  const SHOW_AT   = 18;   // raw px before spinner fades in
+  const THRESHOLD = 72;          // raw px to trigger
+  const CIRC      = 62.83;       // 2π×10 (arc r=10)
   let   busy      = false;
 
-  function dampen(raw){
-    // Fast follow at first, heavy resistance after — matches native iOS feel
-    return 80*(1-Math.exp(-raw/80));
-  }
+  /* iOS rubber-band: responsive at first, decelerates asymptotically */
+  function dampen(raw){ return 76*(1-Math.exp(-raw/68)); }
 
   function initPTR(scrollEl, spacerId, isActive, onRefresh){
     const spacer = document.getElementById(spacerId);
-    const spin   = spacer.querySelector('.ptr-spin');
+    const ind    = spacer.querySelector('.ptr-ind');
+    const arcFg  = spacer.querySelector('.ptr-arc-fg');
     let   st     = null;
 
-    function springBack(then){
-      spacer.style.transition='height .35s cubic-bezier(.25,.46,.45,.94)';
+    /* Update arc fill + indicator scale/rotation to match pull distance */
+    function update(raw){
+      const pct  = Math.min(raw/THRESHOLD, 1);
+      // Arc fills clockwise from 0→100% at threshold
+      arcFg.style.strokeDashoffset = CIRC*(1-pct);
+      // Indicator materialises: scales 0.25→1, rotates -180°→0°, fades 0→1
+      const scale = 0.25 + pct*0.75;
+      const deg   = -180 + pct*180;
+      const alpha = Math.min(pct*1.4, 1);
+      ind.style.transform = `scale(${scale}) rotate(${deg}deg)`;
+      ind.style.opacity   = alpha;
+    }
+
+    function springBack(cb){
+      const ease='cubic-bezier(.25,.46,.45,.94)';
+      spacer.style.transition=`height .38s ${ease}`;
       spacer.style.height='0';
-      spacer.classList.remove('show');
-      setTimeout(()=>{ spacer.style.transition=''; if(then)then(); },350);
+      setTimeout(()=>{
+        spacer.style.transition='';
+        spacer.classList.remove('loading');
+        arcFg.style.strokeDashoffset=CIRC;
+        ind.style.transform='';
+        ind.style.opacity='';
+        if(cb)cb();
+      },380);
     }
 
     scrollEl.addEventListener('touchstart',e=>{
       if(busy||!isActive())return;
       if(scrollEl.scrollTop>0)return;
       if(document.querySelector('.overlay.open,.account-sheet.open,.trash-sheet.open,.modal.open'))return;
-      st={sy:e.touches[0].clientY,raw:0};
+      st={sy:e.touches[0].clientY,raw:0,raf:0};
     },{passive:true});
 
     scrollEl.addEventListener('touchmove',e=>{
@@ -3427,25 +3460,40 @@ window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
       if(dy<=0){st=null;return;}
       e.preventDefault();
       st.raw=dy;
-      spacer.style.transition='none';
-      spacer.style.height=dampen(dy)+'px';
-      if(dy>SHOW_AT) spacer.classList.add('show');
+      // Batch visual updates in rAF — keeps touchmove handler lean
+      if(!st.raf) st.raf=requestAnimationFrame(()=>{
+        st.raf=0;
+        spacer.style.height=dampen(st.raw)+'px';
+        update(st.raw);
+      });
     },{passive:false});
 
     async function finish(){
       if(!st)return;
-      const raw=st.raw; st=null;
+      const raw=st.raw;
+      if(st.raf){cancelAnimationFrame(st.raf);}
+      st=null;
+
       if(raw>=THRESHOLD&&!busy){
         busy=true;
-        // Settle spinner at a comfortable height while loading
-        spacer.classList.add('show');
-        spacer.style.transition='height .2s cubic-bezier(.34,1.56,.64,1)';
-        spacer.style.height='56px';
+        // Snap to settled loading position
+        spacer.style.transition='height .22s cubic-bezier(.34,1.56,.64,1)';
+        spacer.style.height='54px';
+        ind.style.transition='transform .22s cubic-bezier(.34,1.56,.64,1),opacity .15s';
+        ind.style.transform='scale(1) rotate(0deg)';
+        ind.style.opacity='1';
+        spacer.classList.add('loading');   // swap arc → activity spinner
+        setTimeout(()=>{
+          spacer.style.transition='';
+          ind.style.transition='';
+        },220);
         try{await onRefresh();}catch(_){}
         springBack(()=>{ busy=false; });
       }else{
-        spacer.classList.remove('show');
-        springBack();
+        // Not triggered — spring back, fade out indicator
+        ind.style.transition='opacity .2s';
+        ind.style.opacity='0';
+        springBack(()=>{ ind.style.transition=''; });
       }
     }
 
