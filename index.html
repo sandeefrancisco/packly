@@ -184,7 +184,6 @@ svg.lucide-2xl{width:28px;height:28px}
   overflow-x:clip;
   overscroll-behavior-y:contain;
 }
-#pullRefreshIndicator{display:none}
 
 .cl-nav{
   display:flex;align-items:center;gap:16px;
@@ -1009,45 +1008,23 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* ── Pull-to-refresh ── */
 @keyframes ptrSpin{to{transform:rotate(360deg)}}
-@keyframes ptrFadeIn{from{opacity:0;transform:translateX(-50%) scale(.6)}to{opacity:1;transform:translateX(-50%) scale(1)}}
-#ptrOverlay{
-  position:fixed;top:18px;left:50%;
-  transform:translateX(-50%) scale(0);
-  width:36px;height:36px;
-  background:var(--white);
-  border-radius:50%;
-  box-shadow:0 2px 12px rgba(26,26,46,.14);
+.ptr-spacer{
+  height:0;overflow:hidden;
   display:flex;align-items:center;justify-content:center;
-  pointer-events:none;z-index:9000;
-  opacity:0;
-  transition:opacity .15s,transform .15s cubic-bezier(.34,1.56,.64,1);
+  flex-shrink:0;
 }
-#ptrOverlay.visible{
-  opacity:1;
-  transform:translateX(-50%) scale(1);
-}
-#ptrSvg{
-  width:20px;height:20px;
-}
-#ptrSvg circle{
-  fill:none;stroke:#E8E8EE;stroke-width:2.5;
-}
-#ptrSvg .ptr-arc{
-  fill:none;stroke:var(--accent);stroke-width:2.5;
-  stroke-linecap:round;
-  stroke-dasharray:57;stroke-dashoffset:57;
+.ptr-spacer svg{width:24px;height:24px;}
+.ptr-track{fill:none;stroke:var(--border);stroke-width:2.5;}
+.ptr-fill{
+  fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;
+  stroke-dasharray:56.5;stroke-dashoffset:56.5;
   transform-origin:center;
 }
-#ptrOverlay.spinning #ptrSvg{
-  animation:ptrSpin .75s linear infinite;
-}
-#ptrOverlay.spinning .ptr-arc{
-  stroke-dashoffset:14;
-}
+.ptr-spacer.spinning svg{animation:ptrSpin .75s linear infinite;}
+.ptr-spacer.spinning .ptr-fill{stroke-dashoffset:10;}
 </style>
 </head>
 <body>
-<div id="ptrOverlay"><svg id="ptrSvg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><circle class="ptr-arc" cx="10" cy="10" r="8" transform="rotate(-90 10 10)"/></svg></div>
 
 <!-- Full-page skeleton shown until auth resolves -->
 <div id="appLoader">
@@ -1076,6 +1053,7 @@ svg.lucide-2xl{width:28px;height:28px}
 <div id="navStack">
 <!-- TRIPS VIEW -->
 <div class="view" id="tripsView">
+  <div class="ptr-spacer" id="ptrSpacerTrips"><svg viewBox="0 0 24 24"><circle class="ptr-track" cx="12" cy="12" r="9"/><circle class="ptr-fill" cx="12" cy="12" r="9" transform="rotate(-90 12 12)"/></svg></div>
   <nav class="top-nav">
     <div class="brand-pill">
       <img src="Logo-colored.png" alt="Master Packer" style="width:44px;height:44px;display:block;mix-blend-mode:multiply;">
@@ -1108,6 +1086,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 <!-- CHECKLIST VIEW -->
 <div class="view" id="checklistView">
+  <div class="ptr-spacer" id="ptrSpacerChecklist"><svg viewBox="0 0 24 24"><circle class="ptr-track" cx="12" cy="12" r="9"/><circle class="ptr-fill" cx="12" cy="12" r="9" transform="rotate(-90 12 12)"/></svg></div>
   <div class="cl-nav">
     <button class="btn-back" onclick="showTrips()">
       <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -3392,129 +3371,99 @@ document.addEventListener('visibilitychange',async()=>{
 window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
 
 /* ════════════════════════════════════════
-   UNIFIED iOS-STYLE PULL-TO-REFRESH
+   PULL-TO-REFRESH  (spacer-in-flow, no view translate)
    ════════════════════════════════════════ */
 (function(){
-  const THRESHOLD = 72;    // px raw drag to trigger
-  const MAX_RAW   = 130;   // rubber-band ceiling
-  const DAMPING   = 0.40;  // content follows finger at 40%
-  const CIRCUM    = 2*Math.PI*8; // r=8 SVG circle → ~50.3
-  const overlay   = document.getElementById('ptrOverlay');
-  const arc       = overlay.querySelector('.ptr-arc');
-  // seed initial dashoffset = full circumference (hidden)
-  arc.style.strokeDasharray  = CIRCUM;
-  arc.style.strokeDashoffset = CIRCUM;
+  const THRESHOLD = 75;            // raw px drag to trigger
+  const CIRCUM    = 2*Math.PI*9;  // r=9 → 56.5
+  let   busy      = false;
 
-  let busy = false; // prevents double-trigger while refreshing
-
-  function rubber(raw){ return Math.min(raw, MAX_RAW) * DAMPING; }
-
-  /* Update the circular progress arc (0→full as raw 0→THRESHOLD) */
-  function setArc(raw){
-    const pct = Math.min(raw / THRESHOLD, 1);
-    arc.style.strokeDashoffset = CIRCUM * (1 - pct);
-    // Pre-spin the whole SVG to hint directionality
-    overlay.querySelector('#ptrSvg').style.transform = `rotate(${pct*240}deg)`;
+  /* Exponential rubber-band: responsive at first, heavy resistance after */
+  function dampen(raw){
+    return 88*(1-Math.exp(-raw*1.1/88));
   }
 
-  /* Show overlay at a scaled size proportional to how far user has pulled */
-  function showAt(raw){
-    const pct   = Math.min(raw / THRESHOLD, 1);
-    const scale = 0.5 + pct * 0.5; // 0.5→1.0
-    overlay.style.transition = 'none';
-    overlay.style.opacity    = Math.min(pct * 2, 1);
-    overlay.style.transform  = `translateX(-50%) scale(${scale})`;
-    setArc(raw);
-  }
+  function initPTR(scrollEl, spacerId, isActive, onRefresh){
+    const spacer = document.getElementById(spacerId);
+    const fill   = spacer.querySelector('.ptr-fill');
+    const svg    = spacer.querySelector('svg');
+    let   st     = null;
 
-  /* Snap to loading state */
-  function snapSpin(){
-    overlay.style.transition = 'transform .22s cubic-bezier(.34,1.56,.64,1), opacity .15s';
-    overlay.style.opacity    = '1';
-    overlay.style.transform  = 'translateX(-50%) scale(1)';
-    arc.style.strokeDashoffset = CIRCUM * 0.22;
-    overlay.querySelector('#ptrSvg').style.transform = '';
-    overlay.classList.add('spinning');
-  }
+    function setProgress(raw){
+      const pct = Math.min(raw/THRESHOLD, 1);
+      fill.style.strokeDashoffset = CIRCUM*(1-pct*0.82);
+      svg.style.transform = `rotate(${pct*260}deg)`;
+    }
 
-  /* Dismiss and reset */
-  function hide(){
-    overlay.style.transition = 'transform .25s cubic-bezier(.25,.46,.45,.94), opacity .2s';
-    overlay.style.opacity    = '0';
-    overlay.style.transform  = 'translateX(-50%) scale(0.5)';
-    setTimeout(()=>{
-      overlay.classList.remove('spinning');
-      arc.style.strokeDashoffset = CIRCUM;
-      overlay.querySelector('#ptrSvg').style.transform = '';
-      overlay.style.transition = '';
-    }, 260);
-  }
+    function springBack(){
+      spacer.style.transition = 'height .32s cubic-bezier(.25,.46,.45,.94)';
+      spacer.style.height = '0';
+      setTimeout(()=>{
+        fill.style.strokeDashoffset = CIRCUM;
+        svg.style.transform = '';
+        spacer.style.transition = '';
+      }, 320);
+    }
 
-  /* Wire up one scroll container */
-  function initPTR(scrollEl, isActive, onRefresh){
-    let st = null;
+    scrollEl.addEventListener('touchstart', e=>{
+      if(busy||!isActive())return;
+      if(scrollEl.scrollTop>0)return;
+      if(document.querySelector('.overlay.open,.account-sheet.open,.trash-sheet.open,.modal.open'))return;
+      st={sy:e.touches[0].clientY, raw:0};
+    },{passive:true});
 
-    scrollEl.addEventListener('touchstart', e => {
-      if(busy || !isActive()) return;
-      if(scrollEl.scrollTop > 0) return;
-      if(document.querySelector('.overlay.open,.account-sheet.open,.trash-sheet.open,.modal.open')) return;
-      // Require at least a slight downward intent before arming
-      st = { sy: e.touches[0].clientY, raw: 0 };
-    }, { passive: true });
-
-    scrollEl.addEventListener('touchmove', e => {
-      if(!st) return;
-      if(scrollEl.scrollTop > 0){ st = null; return; }
-      const raw = Math.max(0, e.touches[0].clientY - st.sy);
-      if(raw === 0 && st.raw === 0) return;
-      st.raw = raw;
-      // Elastic translate of the scroll content (feels physical)
-      // translateX(0) is the active state for both views; safely compose
-      scrollEl.style.transform = `translateX(0) translateY(${rubber(raw)}px)`;
-      showAt(raw);
-    }, { passive: true });
+    scrollEl.addEventListener('touchmove', e=>{
+      if(!st)return;
+      if(scrollEl.scrollTop>0){st=null;return;}
+      const dy=e.touches[0].clientY-st.sy;
+      if(dy<=0){st=null;return;}
+      e.preventDefault();          // block native scroll during pull
+      st.raw=dy;
+      spacer.style.transition='none';
+      spacer.style.height=dampen(dy)+'px';
+      setProgress(dy);
+    },{passive:false});
 
     async function finish(){
-      if(!st) return;
-      const raw = st.raw;
-      st = null;
-      // Spring content back
-      scrollEl.style.transition = 'transform .4s cubic-bezier(.25,.46,.45,.94)';
-      scrollEl.style.transform  = 'translateX(0) translateY(0)';
-      setTimeout(() => { scrollEl.style.transform = ''; scrollEl.style.transition = ''; }, 400);
-
-      if(raw >= THRESHOLD && !busy){
-        busy = true;
-        snapSpin();
-        try { await onRefresh(); } catch(_){}
-        hide();
-        busy = false;
-      } else {
-        hide();
+      if(!st)return;
+      const raw=st.raw; st=null;
+      if(raw>=THRESHOLD&&!busy){
+        busy=true;
+        spacer.style.transition='height .18s cubic-bezier(.34,1.56,.64,1)';
+        spacer.style.height='58px';
+        fill.style.strokeDashoffset=CIRCUM*0.18;
+        svg.style.transform='';
+        spacer.classList.add('spinning');
+        try{await onRefresh();}catch(_){}
+        spacer.classList.remove('spinning');
+        springBack();
+        busy=false;
+      }else{
+        springBack();
       }
     }
 
-    scrollEl.addEventListener('touchend',    finish, { passive: true });
-    scrollEl.addEventListener('touchcancel', finish, { passive: true });
+    scrollEl.addEventListener('touchend',    finish,{passive:true});
+    scrollEl.addEventListener('touchcancel', finish,{passive:true});
   }
 
-  /* ── Trips view ── */
   initPTR(
     document.getElementById('tripsView'),
-    () => !document.getElementById('navStack').classList.contains('pushed'),
-    async () => {
-      const { data: { session } } = await sb.auth.getSession();
+    'ptrSpacerTrips',
+    ()=>!document.getElementById('navStack').classList.contains('pushed'),
+    async()=>{
+      const{data:{session}}=await sb.auth.getSession();
       if(session?.user) await _syncFromCloud(session.user.id);
-      else trips = loadAll();
+      else trips=loadAll();
       renderTrips();
     }
   );
 
-  /* ── Checklist view ── */
   initPTR(
     document.getElementById('checklistView'),
-    () => document.getElementById('navStack').classList.contains('pushed'),
-    () => _doRefreshChecklist()
+    'ptrSpacerChecklist',
+    ()=>document.getElementById('navStack').classList.contains('pushed'),
+    ()=>_doRefreshChecklist()
   );
 })();
 </script>
