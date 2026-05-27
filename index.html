@@ -2140,7 +2140,7 @@ let _tripsTab='upcoming';
 function isPastTrip(t){
   const{total,done}=stats(t);
   if(total>0&&done===total)return true;
-  if(tripCountdown(t.dateFrom)?.type==='past')return true;
+  if(tripCountdown(t.dateFrom,t.dateTo)?.type==='past')return true;
   return false;
 }
 
@@ -2181,7 +2181,7 @@ function renderTrips(){
     const card=document.createElement('div');
     card.className='trip-card';
     card.style.animationDelay=i*40+'ms';
-    const cd=tripCountdown(t.dateFrom);
+    const cd=tripCountdown(t.dateFrom,t.dateTo);
     const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave':'Delete';
     const packAgainHtml=_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:'';
     card.innerHTML=`
@@ -2292,12 +2292,17 @@ window.permanentDelete=function(id){
   });
 };
 
-function tripCountdown(dateFrom){
+function tripCountdown(dateFrom, dateTo){
   if(!dateFrom) return null;
   const today=new Date();today.setHours(0,0,0,0);
-  const trip=new Date(dateFrom);trip.setHours(0,0,0,0);
-  const diff=Math.round((trip-today)/(1000*60*60*24));
-  if(diff<0)  return{label:'Trip passed',type:'past'};
+  // Use end date if available — trip is only "passed" once it fully ends
+  const endDate=dateTo?new Date(dateTo):new Date(dateFrom);
+  endDate.setHours(0,0,0,0);
+  if(endDate<today) return{label:'Trip passed',type:'past'};
+  // Countdown badge is based on start date
+  const start=new Date(dateFrom);start.setHours(0,0,0,0);
+  const diff=Math.round((start-today)/(1000*60*60*24));
+  if(diff<0)  return{label:'Ongoing',type:'today'};
   if(diff===0)return{label:'Today!',type:'today'};
   if(diff===1)return{label:'Tomorrow',type:'soon'};
   if(diff<=7) return{label:`${diff} days left`,type:'soon'};
