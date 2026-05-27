@@ -2061,7 +2061,7 @@ function renderTrips(){
         ${t.isShared?`<span class="trip-shared-tag">${svgStr('users')} Shared</span>`:''}
       </div>
       <div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
-      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items packed<span class="trip-prog-pct">${allDone?`<span class="trip-packed-badge">🎒 All packed</span>`:`${pct}%`}</span></div>
+      <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} All packed`:`${pct}%`}</span></div>
       ${packAgainHtml}
       <div class="trip-card-footer">
         <button class="card-btn" id="share-${t.id}">${svgStr('share')} Share</button>
