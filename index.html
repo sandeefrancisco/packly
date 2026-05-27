@@ -2559,19 +2559,49 @@ function renderChecklist(){
     const iconEl=document.getElementById('docsReminderIcon');
     if(iconEl&&!iconEl.innerHTML)iconEl.innerHTML=svgStr('lightbulb');
     if(allDone){
-      // Scan all items for anything important to double-check before travelling
-      const IMPORTANT=/passport|visa|id card|national id|identity card|driver.?s? licen|boarding pass|e-?ticket|flight ticket|travel insurance|health insurance|hotel booking|accommodation|reservation|voucher|itinerary|vaccination|vaccine|health cert|covid|pcr test|emergency contact|travel card|sim card|forex|currency|cash|credit card|debit card|bank card|wallet|money belt|medication|prescription|inhaler|epipen|insulin|first.?aid|charger|power bank|adapter|plug adapter|laptop|camera|keys|house key|car key|padlock|lock/i;
-      const importantItems=[];
-      (trip.sections||[]).forEach(sec=>{
-        (sec.items||[]).forEach(item=>{
-          if(IMPORTANT.test(item.label)) importantItems.push(item.label);
+      // Priority tiers — items matched earlier tiers appear first
+      const TIERS=[
+        // Tier 1: Can't travel without these
+        /passport|travel document/i,
+        /visa\b/i,
+        /boarding pass|e-?ticket|flight ticket|plane ticket/i,
+        /id card|national id|identity card|driver.?s? licen/i,
+        // Tier 2: Important docs & bookings
+        /travel insurance|health insurance/i,
+        /hotel booking|accommodation|reservation|voucher/i,
+        /itinerary/i,
+        /vaccination|vaccine|health cert|covid|pcr test/i,
+        /emergency contact/i,
+        // Tier 3: Money
+        /cash|forex|currency|money belt/i,
+        /credit card|debit card|bank card|travel card/i,
+        /wallet/i,
+        // Tier 4: Health
+        /medication|prescription|inhaler|epipen|insulin/i,
+        /first.?aid/i,
+        // Tier 5: Electronics & other essentials
+        /charger|power bank/i,
+        /adapter|plug adapter/i,
+        /sim card/i,
+        /laptop|camera/i,
+        /keys|house key|car key/i,
+        /padlock|lock\b/i,
+      ];
+      // Collect all matching items, bucketed by tier
+      const allItems=[];
+      (trip.sections||[]).forEach(sec=>{(sec.items||[]).forEach(i=>allItems.push(i.label));});
+      const seen=new Set();
+      const sorted=[];
+      TIERS.forEach(re=>{
+        allItems.forEach(label=>{
+          if(!seen.has(label)&&re.test(label)){seen.add(label);sorted.push(label);}
         });
       });
       const itemsEl=document.getElementById('docsReminderItems');
       if(itemsEl){
-        itemsEl.textContent=importantItems.length
-          ?importantItems.join(' · ')
-          :'Passport · Boarding pass · Travel insurance · Hotel booking · Cash · Charger';
+        itemsEl.textContent=sorted.length
+          ?sorted.join(' · ')
+          :'Passport · Boarding pass · Visa · Travel insurance · Hotel booking · Cash · Charger';
       }
       banner.style.display='';
     }else{
