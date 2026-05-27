@@ -180,9 +180,23 @@ svg.lucide-2xl{width:28px;height:28px}
 #checklistView{
   padding:0 var(--cl-px) calc(116px + env(safe-area-inset-bottom));
   height:100vh;overflow-y:auto;
-  /* overflow-x:clip does NOT create a scroll container, so position:sticky still works in Safari */
   overflow-x:clip;
 }
+#pullRefreshIndicator{
+  display:flex;align-items:center;justify-content:center;
+  height:0;overflow:hidden;transition:height .2s ease;
+  color:var(--muted);font-size:13px;font-weight:600;gap:8px;
+}
+#pullRefreshIndicator.visible{height:52px}
+#pullRefreshSpinner{
+  width:18px;height:18px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:none;flex-shrink:0;
+}
+#pullRefreshIndicator.spinning #pullRefreshSpinner{
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 .cl-nav{
   display:flex;align-items:center;gap:16px;
@@ -495,13 +509,14 @@ svg.lucide-2xl{width:28px;height:28px}
 .add-item-confirm:hover{opacity:.85}
 
 .docs-reminder{
-  display:flex;align-items:center;gap:10px;
-  background:var(--tint);border:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:10px;
+  background:#EFF6FF;border:1px solid #BFDBFE;
   border-radius:12px;padding:12px 16px;
 }
-.docs-reminder-icon{font-size:18px;flex-shrink:0}
-.docs-reminder-title{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:2px}
-.docs-reminder-items{font-size:12px;color:var(--muted);opacity:.8;line-height:1.5}
+.docs-reminder-icon{flex-shrink:0;margin-top:1px;color:#3B82F6}
+.docs-reminder-icon .lucide{width:18px;height:18px}
+.docs-reminder-title{font-size:13px;font-weight:600;color:#1D4ED8;margin-bottom:2px}
+.docs-reminder-items{font-size:12px;color:#3B82F6;opacity:.85;line-height:1.5}
 
 .add-section-row{
   display:flex;align-items:center;justify-content:space-between;
@@ -1066,6 +1081,10 @@ svg.lucide-2xl{width:28px;height:28px}
 
 <!-- CHECKLIST VIEW -->
 <div class="view" id="checklistView">
+  <div id="pullRefreshIndicator">
+    <div id="pullRefreshSpinner"></div>
+    <span id="pullRefreshText">Pull to refresh</span>
+  </div>
   <div class="cl-nav">
     <button class="btn-back" onclick="showTrips()">
       <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -1102,7 +1121,7 @@ svg.lucide-2xl{width:28px;height:28px}
   </div>
   <div id="docsReminderBanner" style="display:none;margin-bottom:20px">
     <div class="docs-reminder">
-      <div class="docs-reminder-icon">🛂</div>
+      <div class="docs-reminder-icon" id="docsReminderIcon"></div>
       <div class="docs-reminder-body">
         <div class="docs-reminder-title">Don't forget your travel docs</div>
         <div class="docs-reminder-items">Passport · ID card · Boarding pass · Travel insurance · Hotel booking</div>
@@ -1588,6 +1607,7 @@ const IC = {
   heart:       SVG('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'),
   paw:         SVG('<circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/>'),
   copy:        SVG('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  lightbulb:   SVG('<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>'),
 };
 
 // Helper to build an SVG at a given size
@@ -2519,7 +2539,11 @@ function renderChecklist(){
   if(statCats)  statCats.textContent=trip.sections.length;
 
   const banner=document.getElementById('docsReminderBanner');
-  if(banner)banner.style.display=allDone?'':'none';
+  if(banner){
+    banner.style.display=allDone?'':'none';
+    const iconEl=document.getElementById('docsReminderIcon');
+    if(iconEl&&!iconEl.innerHTML)iconEl.innerHTML=svgStr('lightbulb');
+  }
 
   const sTitle=document.getElementById('sectionListTitle');
   if(sTitle)sTitle.textContent=`Categories (${trip.sections.length})`;
@@ -3233,6 +3257,84 @@ window.addEventListener('popstate',()=>{
     _doShowTrips();
   }
 });
+
+/* ── Pull-to-refresh on checklist inner page ── */
+(function(){
+  const cv=document.getElementById('checklistView');
+  const ind=document.getElementById('pullRefreshIndicator');
+  const txt=document.getElementById('pullRefreshText');
+  const THRESHOLD=72;
+  let ptr=null;
+
+  cv.addEventListener('pointerdown',e=>{
+    if(!document.getElementById('navStack').classList.contains('pushed'))return;
+    if(cv.scrollTop>0)return;
+    if(e.target.closest('button,input,textarea,select,a,[contenteditable]'))return;
+    ptr={sy:e.clientY,dy:0,id:e.pointerId,triggered:false};
+  },{passive:true});
+
+  cv.addEventListener('pointermove',e=>{
+    if(!ptr||e.pointerId!==ptr.id)return;
+    if(cv.scrollTop>0){ptr=null;return;}
+    const dy=e.clientY-ptr.sy;
+    if(dy<=0){ptr=null;return;}
+    ptr.dy=dy;
+    const pull=Math.min(dy,THRESHOLD*1.5);
+    const pct=Math.min(pull/THRESHOLD,1);
+    ind.style.height=Math.min(pull*0.6,52)+'px';
+    ind.classList.add('visible');
+    ind.classList.remove('spinning');
+    txt.textContent=pct>=1?'Release to refresh':'Pull to refresh';
+    cv.style.overflowY='hidden';
+  },{passive:true});
+
+  function finish(e){
+    if(!ptr||e.pointerId!==ptr.id)return;
+    const dy=ptr.dy;
+    ptr=null;
+    cv.style.overflowY='';
+    if(dy>=THRESHOLD){
+      ind.style.height='52px';
+      ind.classList.add('visible','spinning');
+      txt.textContent='Refreshing…';
+      _doRefreshChecklist().finally(()=>{
+        ind.classList.remove('visible','spinning');
+        ind.style.height='';
+        txt.textContent='Pull to refresh';
+      });
+    } else {
+      ind.classList.remove('visible','spinning');
+      ind.style.height='';
+    }
+  }
+  cv.addEventListener('pointerup',finish,{passive:true});
+  cv.addEventListener('pointercancel',finish,{passive:true});
+})();
+
+async function _doRefreshChecklist(){
+  if(!activeId)return;
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    if(session?.user){
+      const uid=session.user.id;
+      const[{data:cloudData},sharedTrips]=await Promise.all([
+        sb.from('user_data').select('trips').eq('user_id',uid).single(),
+        loadSharedTrips()
+      ]);
+      const localPersonal=loadAll().filter(t=>!t.sharedTripId);
+      const cloudPersonal=cloudData?.trips||[];
+      const byId=new Map();
+      cloudPersonal.forEach(t=>byId.set(t.id,t));
+      localPersonal.forEach(t=>byId.set(t.id,t));
+      sharedTrips.forEach(t=>byId.set(t.id,t));
+      trips=[...byId.values()];
+      saveLocalOnly(trips);
+    }else{
+      trips=loadAll();
+    }
+  }catch(_){trips=loadAll();}
+  renderChecklist();
+}
 
 /* ── 2. Swipe-down to dismiss sheets & modals ── */
 function addSwipeDismiss(el, closeFn, {onlyMobile=false, threshold=150}={}){
