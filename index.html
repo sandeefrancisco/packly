@@ -68,6 +68,7 @@ svg.lucide-2xl{width:28px;height:28px}
 #tripsView{
   padding:32px var(--trips-px) 40px;
   height:100vh;overflow-y:auto;overflow-x:clip;
+  overscroll-behavior-y:contain;
 }
 
 .top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
@@ -181,22 +182,9 @@ svg.lucide-2xl{width:28px;height:28px}
   padding:0 var(--cl-px) calc(116px + env(safe-area-inset-bottom));
   height:100vh;overflow-y:auto;
   overflow-x:clip;
+  overscroll-behavior-y:contain;
 }
-#pullRefreshIndicator{
-  display:flex;align-items:center;justify-content:center;
-  height:0;overflow:hidden;transition:height .2s ease;
-  color:var(--muted);font-size:13px;font-weight:600;gap:8px;
-}
-#pullRefreshIndicator.visible{height:52px}
-#pullRefreshSpinner{
-  width:18px;height:18px;border:2px solid var(--border);
-  border-top-color:var(--accent);border-radius:50%;
-  animation:none;flex-shrink:0;
-}
-#pullRefreshIndicator.spinning #pullRefreshSpinner{
-  animation:spin .7s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
+#pullRefreshIndicator{display:none}
 
 .cl-nav{
   display:flex;align-items:center;gap:16px;
@@ -1018,9 +1006,48 @@ svg.lucide-2xl{width:28px;height:28px}
   }
 }
 @keyframes floatIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* ── Pull-to-refresh ── */
+@keyframes ptrSpin{to{transform:rotate(360deg)}}
+@keyframes ptrFadeIn{from{opacity:0;transform:translateX(-50%) scale(.6)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+#ptrOverlay{
+  position:fixed;top:18px;left:50%;
+  transform:translateX(-50%) scale(0);
+  width:36px;height:36px;
+  background:var(--white);
+  border-radius:50%;
+  box-shadow:0 2px 12px rgba(26,26,46,.14);
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;z-index:9000;
+  opacity:0;
+  transition:opacity .15s,transform .15s cubic-bezier(.34,1.56,.64,1);
+}
+#ptrOverlay.visible{
+  opacity:1;
+  transform:translateX(-50%) scale(1);
+}
+#ptrSvg{
+  width:20px;height:20px;
+}
+#ptrSvg circle{
+  fill:none;stroke:#E8E8EE;stroke-width:2.5;
+}
+#ptrSvg .ptr-arc{
+  fill:none;stroke:var(--accent);stroke-width:2.5;
+  stroke-linecap:round;
+  stroke-dasharray:57;stroke-dashoffset:57;
+  transform-origin:center;
+}
+#ptrOverlay.spinning #ptrSvg{
+  animation:ptrSpin .75s linear infinite;
+}
+#ptrOverlay.spinning .ptr-arc{
+  stroke-dashoffset:14;
+}
 </style>
 </head>
 <body>
+<div id="ptrOverlay"><svg id="ptrSvg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><circle class="ptr-arc" cx="10" cy="10" r="8" transform="rotate(-90 10 10)"/></svg></div>
 
 <!-- Full-page skeleton shown until auth resolves -->
 <div id="appLoader">
@@ -1081,10 +1108,6 @@ svg.lucide-2xl{width:28px;height:28px}
 
 <!-- CHECKLIST VIEW -->
 <div class="view" id="checklistView">
-  <div id="pullRefreshIndicator">
-    <div id="pullRefreshSpinner"></div>
-    <span id="pullRefreshText">Pull to refresh</span>
-  </div>
   <div class="cl-nav">
     <button class="btn-back" onclick="showTrips()">
       <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -3258,80 +3281,28 @@ window.addEventListener('popstate',()=>{
   }
 });
 
-/* ── Pull-to-refresh on checklist inner page ── */
-(function(){
-  const cv=document.getElementById('checklistView');
-  const ind=document.getElementById('pullRefreshIndicator');
-  const txt=document.getElementById('pullRefreshText');
-  const THRESHOLD=72;
-  let ptr=null;
 
-  cv.addEventListener('pointerdown',e=>{
-    if(!document.getElementById('navStack').classList.contains('pushed'))return;
-    if(cv.scrollTop>0)return;
-    if(e.target.closest('button,input,textarea,select,a,[contenteditable]'))return;
-    ptr={sy:e.clientY,dy:0,id:e.pointerId,triggered:false};
-  },{passive:true});
-
-  cv.addEventListener('pointermove',e=>{
-    if(!ptr||e.pointerId!==ptr.id)return;
-    if(cv.scrollTop>0){ptr=null;return;}
-    const dy=e.clientY-ptr.sy;
-    if(dy<=0){ptr=null;return;}
-    ptr.dy=dy;
-    const pull=Math.min(dy,THRESHOLD*1.5);
-    const pct=Math.min(pull/THRESHOLD,1);
-    ind.style.height=Math.min(pull*0.6,52)+'px';
-    ind.classList.add('visible');
-    ind.classList.remove('spinning');
-    txt.textContent=pct>=1?'Release to refresh':'Pull to refresh';
-    cv.style.overflowY='hidden';
-  },{passive:true});
-
-  function finish(e){
-    if(!ptr||e.pointerId!==ptr.id)return;
-    const dy=ptr.dy;
-    ptr=null;
-    cv.style.overflowY='';
-    if(dy>=THRESHOLD){
-      ind.style.height='52px';
-      ind.classList.add('visible','spinning');
-      txt.textContent='Refreshing…';
-      _doRefreshChecklist().finally(()=>{
-        ind.classList.remove('visible','spinning');
-        ind.style.height='';
-        txt.textContent='Pull to refresh';
-      });
-    } else {
-      ind.classList.remove('visible','spinning');
-      ind.style.height='';
-    }
-  }
-  cv.addEventListener('pointerup',finish,{passive:true});
-  cv.addEventListener('pointercancel',finish,{passive:true});
-})();
+async function _syncFromCloud(uid){
+  const[{data:cloudData},sharedTrips]=await Promise.all([
+    sb.from('user_data').select('trips').eq('user_id',uid).single(),
+    loadSharedTrips()
+  ]);
+  const localPersonal=loadAll().filter(t=>!t.sharedTripId);
+  const cloudPersonal=cloudData?.trips||[];
+  const byId=new Map();
+  cloudPersonal.forEach(t=>byId.set(t.id,t));
+  localPersonal.forEach(t=>byId.set(t.id,t));
+  sharedTrips.forEach(t=>byId.set(t.id,t));
+  trips=[...byId.values()];
+  saveLocalOnly(trips);
+}
 
 async function _doRefreshChecklist(){
   if(!activeId)return;
   try{
     const{data:{session}}=await sb.auth.getSession();
-    if(session?.user){
-      const uid=session.user.id;
-      const[{data:cloudData},sharedTrips]=await Promise.all([
-        sb.from('user_data').select('trips').eq('user_id',uid).single(),
-        loadSharedTrips()
-      ]);
-      const localPersonal=loadAll().filter(t=>!t.sharedTripId);
-      const cloudPersonal=cloudData?.trips||[];
-      const byId=new Map();
-      cloudPersonal.forEach(t=>byId.set(t.id,t));
-      localPersonal.forEach(t=>byId.set(t.id,t));
-      sharedTrips.forEach(t=>byId.set(t.id,t));
-      trips=[...byId.values()];
-      saveLocalOnly(trips);
-    }else{
-      trips=loadAll();
-    }
+    if(session?.user) await _syncFromCloud(session.user.id);
+    else trips=loadAll();
   }catch(_){trips=loadAll();}
   renderChecklist();
 }
@@ -3420,55 +3391,131 @@ document.addEventListener('visibilitychange',async()=>{
 });
 window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
 
-/* ── Pull-to-refresh on Trips view ── */
+/* ════════════════════════════════════════
+   UNIFIED iOS-STYLE PULL-TO-REFRESH
+   ════════════════════════════════════════ */
 (function(){
-  const PTR_THRESHOLD=72; // px pulled down to trigger
-  let sy=0,dy=0,active=false,indicator=null;
+  const THRESHOLD = 72;    // px raw drag to trigger
+  const MAX_RAW   = 130;   // rubber-band ceiling
+  const DAMPING   = 0.40;  // content follows finger at 40%
+  const CIRCUM    = 2*Math.PI*8; // r=8 SVG circle → ~50.3
+  const overlay   = document.getElementById('ptrOverlay');
+  const arc       = overlay.querySelector('.ptr-arc');
+  // seed initial dashoffset = full circumference (hidden)
+  arc.style.strokeDasharray  = CIRCUM;
+  arc.style.strokeDashoffset = CIRCUM;
 
-  function makeIndicator(){
-    const d=document.createElement('div');
-    d.id='ptr-indicator';
-    d.style.cssText=`position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-100%);
-      background:#1A1A2E;color:#fff;border-radius:0 0 20px 20px;
-      padding:10px 20px;font-family:'Figtree',sans-serif;font-size:13px;font-weight:700;
-      z-index:998;transition:transform .2s ease;white-space:nowrap;pointer-events:none;letter-spacing:.02em`;
-    d.textContent='↓  Pull to refresh';
-    document.body.appendChild(d);
-    return d;
+  let busy = false; // prevents double-trigger while refreshing
+
+  function rubber(raw){ return Math.min(raw, MAX_RAW) * DAMPING; }
+
+  /* Update the circular progress arc (0→full as raw 0→THRESHOLD) */
+  function setArc(raw){
+    const pct = Math.min(raw / THRESHOLD, 1);
+    arc.style.strokeDashoffset = CIRCUM * (1 - pct);
+    // Pre-spin the whole SVG to hint directionality
+    overlay.querySelector('#ptrSvg').style.transform = `rotate(${pct*240}deg)`;
   }
 
-  window.addEventListener('touchstart',e=>{
-    // Only when trips view is showing and page is at top
-    if(document.getElementById('navStack').classList.contains('pushed'))return;
-    if(window.scrollY>2)return;
-    // Ignore if any overlay is open
-    if(document.querySelector('.overlay.open,.account-sheet.open,.trash-sheet.open'))return;
-    sy=e.touches[0].clientY;dy=0;active=true;
-    if(!indicator)indicator=makeIndicator();
-  },{passive:true});
+  /* Show overlay at a scaled size proportional to how far user has pulled */
+  function showAt(raw){
+    const pct   = Math.min(raw / THRESHOLD, 1);
+    const scale = 0.5 + pct * 0.5; // 0.5→1.0
+    overlay.style.transition = 'none';
+    overlay.style.opacity    = Math.min(pct * 2, 1);
+    overlay.style.transform  = `translateX(-50%) scale(${scale})`;
+    setArc(raw);
+  }
 
-  window.addEventListener('touchmove',e=>{
-    if(!active)return;
-    dy=Math.max(0,e.touches[0].clientY-sy);
-    const pct=Math.min(dy/PTR_THRESHOLD,1);
-    const show=Math.min(dy*0.5,PTR_THRESHOLD*0.7); // rubber band
-    indicator.style.transform=`translateX(-50%) translateY(${show-100}%)`;
-    indicator.textContent=pct>=1?'↑  Release to refresh':'↓  Pull to refresh';
-  },{passive:true});
+  /* Snap to loading state */
+  function snapSpin(){
+    overlay.style.transition = 'transform .22s cubic-bezier(.34,1.56,.64,1), opacity .15s';
+    overlay.style.opacity    = '1';
+    overlay.style.transform  = 'translateX(-50%) scale(1)';
+    arc.style.strokeDashoffset = CIRCUM * 0.22;
+    overlay.querySelector('#ptrSvg').style.transform = '';
+    overlay.classList.add('spinning');
+  }
 
-  window.addEventListener('touchend',async()=>{
-    if(!active)return;
-    active=false;
-    if(dy>=PTR_THRESHOLD){
-      indicator.textContent='⟳  Refreshing…';
-      indicator.style.transform='translateX(-50%) translateY(0)';
-      await new Promise(r=>setTimeout(r,600)); // let the user see feedback
-      location.reload(true);
-    } else {
-      indicator.style.transform='translateX(-50%) translateY(-100%)';
+  /* Dismiss and reset */
+  function hide(){
+    overlay.style.transition = 'transform .25s cubic-bezier(.25,.46,.45,.94), opacity .2s';
+    overlay.style.opacity    = '0';
+    overlay.style.transform  = 'translateX(-50%) scale(0.5)';
+    setTimeout(()=>{
+      overlay.classList.remove('spinning');
+      arc.style.strokeDashoffset = CIRCUM;
+      overlay.querySelector('#ptrSvg').style.transform = '';
+      overlay.style.transition = '';
+    }, 260);
+  }
+
+  /* Wire up one scroll container */
+  function initPTR(scrollEl, isActive, onRefresh){
+    let st = null;
+
+    scrollEl.addEventListener('touchstart', e => {
+      if(busy || !isActive()) return;
+      if(scrollEl.scrollTop > 0) return;
+      if(document.querySelector('.overlay.open,.account-sheet.open,.trash-sheet.open,.modal.open')) return;
+      // Require at least a slight downward intent before arming
+      st = { sy: e.touches[0].clientY, raw: 0 };
+    }, { passive: true });
+
+    scrollEl.addEventListener('touchmove', e => {
+      if(!st) return;
+      if(scrollEl.scrollTop > 0){ st = null; return; }
+      const raw = Math.max(0, e.touches[0].clientY - st.sy);
+      if(raw === 0 && st.raw === 0) return;
+      st.raw = raw;
+      // Elastic translate of the scroll content (feels physical)
+      // translateX(0) is the active state for both views; safely compose
+      scrollEl.style.transform = `translateX(0) translateY(${rubber(raw)}px)`;
+      showAt(raw);
+    }, { passive: true });
+
+    async function finish(){
+      if(!st) return;
+      const raw = st.raw;
+      st = null;
+      // Spring content back
+      scrollEl.style.transition = 'transform .4s cubic-bezier(.25,.46,.45,.94)';
+      scrollEl.style.transform  = 'translateX(0) translateY(0)';
+      setTimeout(() => { scrollEl.style.transform = ''; scrollEl.style.transition = ''; }, 400);
+
+      if(raw >= THRESHOLD && !busy){
+        busy = true;
+        snapSpin();
+        try { await onRefresh(); } catch(_){}
+        hide();
+        busy = false;
+      } else {
+        hide();
+      }
     }
-    dy=0;
-  });
+
+    scrollEl.addEventListener('touchend',    finish, { passive: true });
+    scrollEl.addEventListener('touchcancel', finish, { passive: true });
+  }
+
+  /* ── Trips view ── */
+  initPTR(
+    document.getElementById('tripsView'),
+    () => !document.getElementById('navStack').classList.contains('pushed'),
+    async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if(session?.user) await _syncFromCloud(session.user.id);
+      else trips = loadAll();
+      renderTrips();
+    }
+  );
+
+  /* ── Checklist view ── */
+  initPTR(
+    document.getElementById('checklistView'),
+    () => document.getElementById('navStack').classList.contains('pushed'),
+    () => _doRefreshChecklist()
+  );
 })();
 </script>
 </body>
