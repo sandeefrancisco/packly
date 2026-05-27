@@ -66,21 +66,21 @@ svg.lucide-2xl{width:28px;height:28px}
 /* ── TRIPS VIEW ── */
 /* no max-width / margin:auto — view must be full viewport width so translateX(100%) goes fully off-screen */
 #tripsView{
-  padding:32px var(--trips-px) 40px;
+  padding:48px var(--trips-px) 56px;
   height:100vh;overflow-y:auto;overflow-x:clip;
   overscroll-behavior-y:contain;
 }
 
-.top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px}
 .brand-pill{
   display:inline-flex;align-items:center;gap:10px;
   font-size:16px;font-weight:700;color:var(--ink);
 }
 
-.hero{margin-bottom:52px}
-.hero-title{font-size:clamp(40px,6vw,70px);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:16px}
+.hero{margin-bottom:68px}
+.hero-title{font-size:clamp(40px,6vw,70px);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:20px}
 .hero-title em{color:var(--ink);font-style:normal}
-.hero-sub{font-size:17px;color:var(--muted);line-height:1.6;max-width:460px;margin-bottom:28px}
+.hero-sub{font-size:17px;color:var(--muted);line-height:1.6;max-width:460px;margin-bottom:36px}
 
 .btn-primary{
   display:inline-flex;align-items:center;gap:10px;
@@ -93,7 +93,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 .trips-tabs-bar{
   display:inline-flex;background:#E8E8EE;border-radius:12px;padding:4px;
-  margin-bottom:24px;gap:0;
+  margin-bottom:32px;gap:0;
 }
 .trips-tab-btn{
   display:inline-flex;align-items:center;gap:6px;
@@ -115,11 +115,11 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .trips-tab-btn.sel .trips-tab-badge{background:#E4E4EE;color:var(--ink)}
 
-.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
 
 .trip-card{
   background:var(--white);border-radius:var(--r-card);
-  border:1px solid var(--border);padding:24px;
+  border:1px solid var(--border);padding:28px;
   cursor:pointer;transition:box-shadow .18s,transform .18s;
   animation:fadeUp .22s ease both;position:relative;
 }
@@ -127,10 +127,10 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* card layout */
 .trip-name{font-size:20px;font-weight:800;line-height:1.25;color:var(--ink);
-  display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .lucide-trip-icon{width:20px;height:20px;flex-shrink:0;opacity:.65}
 .trip-date-row{font-size:16px;color:var(--muted);display:flex;align-items:center;
-  gap:6px;margin-bottom:14px;flex-wrap:wrap;row-gap:6px}
+  gap:6px;margin-bottom:18px;flex-wrap:wrap;row-gap:6px}
 .trip-cd-pill{font-size:16px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
 .trip-cd-pill.future{background:#EEF2FF;color:#4F46E5}
 .trip-cd-pill.soon{background:#FEF3C7;color:#D97706}
@@ -138,16 +138,16 @@ svg.lucide-2xl{width:28px;height:28px}
 .trip-cd-pill.past{background:var(--border);color:var(--muted)}
 .trip-card-footer{
   display:flex;border-top:1px solid var(--border);
-  margin:14px -24px -24px;padding:0;
+  margin:18px -28px -28px;padding:0;
 }
 .card-btn{
-  flex:1;height:44px;border:none;background:none;color:#9896A8;
-  display:flex;align-items:center;justify-content:center;gap:5px;
+  flex:1;height:48px;border:none;background:none;color:#9896A8;
+  display:flex;align-items:center;justify-content:center;gap:4px;
   cursor:pointer;transition:all .12s;font-family:'Figtree',sans-serif;
-  font-size:16px;font-weight:600;
+  font-size:13px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;
 }
 .card-btn+.card-btn{border-left:1px solid var(--border)}
-.card-btn svg{width:15px;height:15px;stroke-width:2;flex-shrink:0}
+.card-btn svg{width:14px;height:14px;stroke-width:2;flex-shrink:0}
 .card-btn:hover{background:var(--tint);color:var(--ink)}
 .card-btn.del{color:#9896A8}
 .card-btn.del:hover{background:#FEE2E2;color:var(--red)}
@@ -166,7 +166,7 @@ svg.lucide-2xl{width:28px;height:28px}
   border-radius:99px;padding:2px 9px;display:inline-flex;align-items:center;gap:4px}
 .trip-shared-tag svg{width:12px;height:12px}
 
-.trip-prog-bar{height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:10px}
+.trip-prog-bar{height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:14px}
 .trip-prog-fill{height:100%;border-radius:99px;background:var(--green);transition:width .4s}
 .trip-prog-text{font-size:16px;color:var(--muted);display:flex;align-items:center;gap:6px;width:100%}
 .trip-prog-pct{margin-left:auto;font-size:16px;font-weight:700;color:var(--ink);display:flex;align-items:center}
@@ -191,8 +191,8 @@ svg.lucide-2xl{width:28px;height:28px}
   background:var(--bg);
   /* bleed into the container's horizontal padding so no content peeks through the sides */
   margin:0 calc(var(--cl-px) * -1);
-  padding:14px var(--cl-px);
-  margin-bottom:24px;
+  padding:20px var(--cl-px);
+  margin-bottom:32px;
   border-bottom:1px solid transparent;
   transition:border-color .15s, box-shadow .15s;
 }
@@ -215,16 +215,16 @@ svg.lucide-2xl{width:28px;height:28px}
 
 .cl-summary-card{
   background:var(--white);border-radius:16px;border:1px solid var(--border);
-  padding:0 24px;margin-bottom:24px;
+  padding:0 28px;margin-bottom:32px;
 }
 .cl-summary-divider{height:1px;background:var(--border)}
-.cl-stats-row{display:flex;align-items:stretch;padding:20px 0}
+.cl-stats-row{display:flex;align-items:stretch;padding:28px 0}
 .cl-stat{flex:1;text-align:center}
 .cl-stat-val{font-size:32px;font-weight:800;color:var(--ink);letter-spacing:-.5px;line-height:1}
 .cl-stat-lbl{font-size:16px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:6px}
 .cl-stat-sep{width:1px;background:var(--border);margin:4px 0}
 .cl-progress-strip{
-  padding:18px 0 16px;
+  padding:22px 0 20px;
   display:flex;align-items:center;gap:16px;
 }
 .cl-prog-text{font-size:16px;color:var(--muted);white-space:nowrap}
@@ -237,7 +237,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .luggage-bar{
   display:flex;align-items:center;gap:12px;
   background:var(--white);border-radius:var(--r-card);border:1px solid var(--border);
-  padding:13px 16px;margin-bottom:20px;cursor:pointer;
+  padding:18px 20px;margin-bottom:28px;cursor:pointer;
   transition:background .12s;
 }
 .luggage-bar:active{background:var(--tint)}
@@ -335,10 +335,10 @@ svg.lucide-2xl{width:28px;height:28px}
 .luggage-empty{font-size:16px;color:var(--muted);display:flex;align-items:center;gap:8px}
 
 /* section */
-.section{margin-bottom:16px;transition:margin .2s}
+.section{margin-bottom:20px;transition:margin .2s}
 .section-label{
   display:flex;align-items:center;justify-content:space-between;
-  padding:14px 16px;background:var(--white);
+  padding:16px 20px;background:var(--white);
   border-radius:var(--r-card);border:1px solid var(--border);
   cursor:pointer;user-select:none;-webkit-user-select:none;
   -webkit-touch-callout:none;touch-action:pan-y;
@@ -403,7 +403,7 @@ svg.lucide-2xl{width:28px;height:28px}
   border-radius:var(--r-card);
   border:2px dashed var(--accent);
   background:rgba(26,26,46,.04);
-  margin-bottom:16px;
+  margin-bottom:20px;
   transition:height .1s;
   box-sizing:border-box;
   display:flex;align-items:center;justify-content:center;
@@ -435,8 +435,8 @@ svg.lucide-2xl{width:28px;height:28px}
 
 .items-card{background:var(--white);border-radius:0 0 var(--r-card) var(--r-card);border:1px solid var(--border);border-top:none;overflow:hidden;margin-bottom:36px}
 .item-row{
-  display:flex;align-items:center;padding:15px 20px;gap:14px;
-  border-bottom:1px solid var(--border);transition:background .1s;min-height:62px;
+  display:flex;align-items:center;padding:17px 22px;gap:14px;
+  border-bottom:1px solid var(--border);transition:background .1s;min-height:64px;
   animation:fadeUp .16s ease both;
   -webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none;
@@ -483,7 +483,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .item-del-btn:hover{color:var(--red);background:#FEE2E2}
 
-.add-item-row{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--white)}
+.add-item-row{display:flex;align-items:center;gap:10px;padding:16px 22px;border-bottom:1px solid var(--border);background:var(--white)}
 .add-plus-icon{color:var(--muted);display:flex;align-items:center}
 .add-item-input{flex:1;border:none;background:none;outline:none;font-family:'Figtree',sans-serif;font-size:16px;color:var(--ink)}
 .add-item-input::placeholder{color:var(--muted)}
@@ -496,18 +496,18 @@ svg.lucide-2xl{width:28px;height:28px}
 .add-item-confirm:hover{opacity:.85}
 
 .docs-reminder{
-  display:flex;align-items:flex-start;gap:10px;
+  display:flex;align-items:flex-start;gap:12px;
   background:#EFF6FF;border:1px solid #BFDBFE;
-  border-radius:12px;padding:12px 16px;
+  border-radius:16px;padding:18px 20px;
 }
 .docs-reminder-icon{flex-shrink:0;margin-top:2px;color:#3B82F6}
 .docs-reminder-icon .lucide{width:20px;height:20px}
-.docs-reminder-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:4px}
-.docs-reminder-items{font-size:16px;color:var(--muted);line-height:1.7}
+.docs-reminder-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.docs-reminder-items{font-size:16px;color:var(--muted);line-height:1.8}
 
 .add-section-row{
   display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:16px;
+  margin-bottom:24px;
 }
 .section-list-title{
   font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--muted);
@@ -582,14 +582,14 @@ svg.lucide-2xl{width:28px;height:28px}
 /* ── MODAL → Bottom Sheet ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
 .overlay.open{display:flex}
-.modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px 24px calc(36px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 -8px 40px rgba(26,26,46,.14);animation:slideUp .28s cubic-bezier(.32,.72,0,1)}
+.modal{background:var(--white);border-radius:24px 24px 0 0;padding:28px 28px calc(44px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 -8px 40px rgba(26,26,46,.14);animation:slideUp .28s cubic-bezier(.32,.72,0,1)}
 .modal{position:relative}
 .modal .sheet-close-btn{position:absolute;top:20px;right:20px;z-index:1}
 .modal.wide{max-width:none}
-.modal h2{font-size:23px;font-weight:800;letter-spacing:-.4px;margin-bottom:24px;line-height:44px;padding-right:52px}
+.modal h2{font-size:23px;font-weight:800;letter-spacing:-.4px;margin-bottom:28px;line-height:44px;padding-right:52px}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
-.field{margin-bottom:18px}
+.field{margin-bottom:24px}
 .field label{display:block;font-size:16px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:8px}
 .field input{
   width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);
@@ -648,7 +648,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .cal-footer-row .btn-save{flex:2}
 
 /* ── Modal footer — always stacked, full-width, primary on top ── */
-.modal-footer{display:flex;flex-direction:column;gap:10px;margin-top:28px}
+.modal-footer{display:flex;flex-direction:column;gap:12px;margin-top:36px}
 .btn-save{
   width:100%;padding:15px 26px;border-radius:99px;border:none;
   background:var(--accent);color:#fff;
@@ -866,7 +866,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .trash-sheet{
   position:fixed;bottom:0;left:0;right:0;
   background:var(--white);border-radius:24px 24px 0 0;
-  padding:20px 24px calc(36px + env(safe-area-inset-bottom));
+  padding:24px 28px calc(44px + env(safe-area-inset-bottom));
   z-index:210;box-shadow:0 -8px 40px rgba(26,26,46,.14);
   max-height:85vh;overflow-y:auto;
   transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);
@@ -906,7 +906,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .account-sheet{
   position:fixed;bottom:0;left:0;right:0;
   background:var(--white);border-radius:24px 24px 0 0;
-  padding:20px 24px calc(28px + env(safe-area-inset-bottom));
+  padding:24px 28px calc(36px + env(safe-area-inset-bottom));
   z-index:200;box-shadow:0 -8px 40px rgba(26,26,46,.14);
   transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);
 }
@@ -921,8 +921,8 @@ svg.lucide-2xl{width:28px;height:28px}
 .sheet-close-btn svg{width:22px;height:22px}
 .sheet-close-btn:hover{background:var(--border);color:var(--ink)}
 .sheet-user{
-  display:flex;align-items:center;gap:14px;
-  padding:4px 0 16px;
+  display:flex;align-items:center;gap:16px;
+  padding:8px 0 24px;
 }
 .sheet-user-info{min-width:0;flex:1}
 .sheet-user-name-row{display:flex;align-items:center;gap:6px}
@@ -954,7 +954,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .sheet-name-save:hover{background:var(--accent-h)}
 .sheet-action{
   display:flex;align-items:center;gap:14px;width:100%;
-  padding:17px 4px;border:none;background:none;
+  padding:20px 4px;border:none;background:none;
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;color:var(--ink);
   cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s;
   text-align:left;border-radius:0;
@@ -968,11 +968,13 @@ svg.lucide-2xl{width:28px;height:28px}
 @media(max-width:600px){
   :root{--trips-px:20px;--cl-px:16px}
   /* #tripsView, #checklistView, .cl-nav all auto-adjust via the CSS variables above */
-  #tripsView{padding-top:20px}
+  #tripsView{padding-top:28px;padding-bottom:40px}
   .hero-title{font-size:38px;letter-spacing:-1.5px}
+  .hero{margin-bottom:52px}
   .traveler-fields{grid-template-columns:1fr 1fr}
-  .modal{padding:24px 20px calc(36px + env(safe-area-inset-bottom))}
+  .modal{padding:24px 20px calc(40px + env(safe-area-inset-bottom))}
   .icon-picker-grid{grid-template-columns:repeat(6,1fr)}
+  .cl-nav{padding:16px var(--cl-px)}
 }
 
 /* ── Desktop: floating sheets ── */
@@ -981,7 +983,7 @@ svg.lucide-2xl{width:28px;height:28px}
   .overlay{align-items:center;justify-content:center;padding:24px}
   .modal{
     border-radius:24px;max-width:480px;
-    padding:36px;max-height:85vh;
+    padding:40px;max-height:85vh;
     animation:floatIn .22s cubic-bezier(.32,.72,0,1);
   }
   .modal.wide{max-width:560px}
