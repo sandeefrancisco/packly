@@ -597,13 +597,44 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .ip-btn:hover,.ip-btn.sel{border-color:var(--accent);background:var(--white);color:var(--ink);box-shadow:0 0 0 3px rgba(26,26,46,.08)}
 
-/* date range */
-.date-range-row{display:flex;align-items:center;gap:10px}
-.date-field{flex:1;background:var(--tint);border-radius:12px;border:1.5px solid var(--border);padding:10px 14px;transition:border-color .12s}
-.date-field:focus-within{border-color:var(--accent);background:var(--white)}
-.date-field-label{display:block;font-size:13px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:4px}
-.date-field input[type="date"]{width:100%;border:none;background:none;font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;color:var(--ink);outline:none;padding:0;min-height:unset;border-radius:0;cursor:pointer}
-.date-range-arrow{color:var(--muted);display:flex;align-items:center}
+/* date range — booking-style trigger */
+.cal-trigger{display:flex;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .15s;background:var(--tint)}
+.cal-trigger:hover{border-color:var(--accent)}
+.cal-trigger-half{flex:1;padding:10px 14px}
+.cal-trigger-half+.cal-trigger-half{border-left:1.5px solid var(--border)}
+.cal-trigger-lbl{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px}
+.cal-trigger-val{font-size:15px;font-weight:600;color:var(--ink)}
+.cal-trigger-val.empty{color:var(--muted);font-weight:400}
+/* calendar modal */
+.cal-phase-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.cal-phase-item{flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;transition:border-color .12s}
+.cal-phase-item.active{border-color:var(--accent);background:var(--tint)}
+.cal-phase-lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px}
+.cal-phase-val{font-size:14px;font-weight:600;color:var(--ink)}
+.cal-phase-val.empty{color:var(--muted);font-weight:400}
+.cal-phase-arrow{color:var(--muted);flex-shrink:0}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-nav-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:9px;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .12s}
+.cal-nav-btn:hover{background:var(--tint)}
+.cal-nav-btn svg{width:16px;height:16px;stroke-width:2.5}
+.cal-month-label{font-size:16px;font-weight:700;color:var(--ink)}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.cal-weekdays span{text-align:center;font-size:12px;font-weight:600;color:var(--muted);padding:4px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px 0;margin-bottom:20px}
+.cal-day{border:none;background:none;padding:3px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Figtree',sans-serif}
+.cal-day-inner{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:14px;font-weight:500;color:var(--ink);position:relative}
+.cal-day.other-month .cal-day-inner{color:var(--border)}
+.cal-day.past .cal-day-inner{color:#CBD5E1}
+.cal-day.past{cursor:default}
+.cal-day.today .cal-day-inner::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.cal-day.in-range{background:#DCFCE7}
+.cal-day.sel-start:not(.sel-end){background:linear-gradient(to right,transparent 50%,#DCFCE7 50%)}
+.cal-day.sel-end:not(.sel-start){background:linear-gradient(to left,transparent 50%,#DCFCE7 50%)}
+.cal-day.sel-start .cal-day-inner,.cal-day.sel-end .cal-day-inner{background:var(--accent);color:#fff;font-weight:700}
+.cal-day.sel-start.today .cal-day-inner::after,.cal-day.sel-end.today .cal-day-inner::after{background:#fff}
+.cal-footer-row{display:flex;gap:10px}
+.cal-footer-row .btn-secondary{flex:1}
+.cal-footer-row .btn-save{flex:2}
 
 /* ── Modal footer — always stacked, full-width, primary on top ── */
 .modal-footer{display:flex;flex-direction:column;gap:10px;margin-top:28px}
@@ -1075,19 +1106,18 @@ svg.lucide-2xl{width:28px;height:28px}
     </div>
     <div class="field">
       <label>Dates (optional)</label>
-      <div class="date-range-row">
-        <div class="date-field">
-          <span class="date-field-label">From</span>
-          <input type="date" id="mDateFrom">
+      <div class="cal-trigger" onclick="openCalendar()">
+        <div class="cal-trigger-half">
+          <span class="cal-trigger-lbl">Check-in</span>
+          <span class="cal-trigger-val empty" id="calStartDisplay">Add date</span>
         </div>
-        <div class="date-range-arrow">
-          <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </div>
-        <div class="date-field">
-          <span class="date-field-label">To</span>
-          <input type="date" id="mDateTo">
+        <div class="cal-trigger-half">
+          <span class="cal-trigger-lbl">Check-out</span>
+          <span class="cal-trigger-val empty" id="calEndDisplay">Add date</span>
         </div>
       </div>
+      <input type="date" id="mDateFrom" style="display:none">
+      <input type="date" id="mDateTo" style="display:none">
     </div>
     <div class="field">
       <label>Icon</label>
@@ -1095,6 +1125,38 @@ svg.lucide-2xl{width:28px;height:28px}
     </div>
     <div class="modal-footer">
       <button class="btn-save" id="tripSaveBtn" onclick="saveTrip()">Create trip</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALENDAR DATE PICKER -->
+<div class="overlay" id="calOverlay" onclick="handleCalOverlay(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="sheet-close-btn" onclick="closeCalendar()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <h2 style="margin-bottom:20px">Select dates</h2>
+    <div class="cal-phase-bar">
+      <div class="cal-phase-item active" id="calPhaseStart" onclick="setCalPhase('start')">
+        <div class="cal-phase-lbl">Check-in</div>
+        <div class="cal-phase-val empty" id="calPhaseStartVal">Select date</div>
+      </div>
+      <svg class="cal-phase-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      <div class="cal-phase-item" id="calPhaseEnd" onclick="setCalPhase('end')">
+        <div class="cal-phase-lbl">Check-out</div>
+        <div class="cal-phase-val empty" id="calPhaseEndVal">Select date</div>
+      </div>
+    </div>
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calPrevMonth()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="cal-month-label" id="calMonthLabel"></span>
+      <button class="cal-nav-btn" onclick="calNextMonth()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+    <div class="cal-weekdays">
+      <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-footer-row">
+      <button class="btn-secondary" onclick="clearCalDates()">Clear</button>
+      <button class="btn-save" onclick="confirmCalDates()">Confirm dates</button>
     </div>
   </div>
 </div>
@@ -2231,6 +2293,7 @@ window.openNewTripModal=function(){
   document.getElementById('mDest').value='';
   document.getElementById('mDateFrom').value='';
   document.getElementById('mDateTo').value='';
+  _calStart=null;_calEnd=null;_updateCalTrigger();
   renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,()=>renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,null));
   document.getElementById('tripOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('mDest').focus(),50);
@@ -2244,11 +2307,96 @@ window.openEditModal=function(id){
   document.getElementById('mDest').value=t.name;
   document.getElementById('mDateFrom').value=t.dateFrom||'';
   document.getElementById('mDateTo').value=t.dateTo||'';
+  _calStart=t.dateFrom||null;_calEnd=t.dateTo||null;_updateCalTrigger();
   renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>{selTripIcon=v;},()=>renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,null));
   document.getElementById('tripOverlay').classList.add('open');
 };
 
 window.closeTripModal=function(){document.getElementById('tripOverlay').classList.remove('open');};
+
+/* ── Calendar date range picker ── */
+const _CAL_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let _calStart=null,_calEnd=null,_calPhase='start',_calYear=0,_calMonth=0;
+
+function _calStr(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function _calFmt(s){if(!s)return null;const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+
+function _calUpdatePhaseBar(){
+  const sv=document.getElementById('calPhaseStartVal'),ev=document.getElementById('calPhaseEndVal');
+  const si=document.getElementById('calPhaseStart'),ei=document.getElementById('calPhaseEnd');
+  if(sv){sv.textContent=_calStart?_calFmt(_calStart):'Select date';sv.className='cal-phase-val'+(_calStart?'':' empty');}
+  if(ev){ev.textContent=_calEnd?_calFmt(_calEnd):'Select date';ev.className='cal-phase-val'+(_calEnd?'':' empty');}
+  si?.classList.toggle('active',_calPhase==='start');
+  ei?.classList.toggle('active',_calPhase==='end'||_calPhase==='done');
+}
+
+function _calRenderGrid(){
+  const label=document.getElementById('calMonthLabel');
+  if(label)label.textContent=`${_CAL_MONTHS[_calMonth]} ${_calYear}`;
+  const grid=document.getElementById('calGrid');if(!grid)return;
+  grid.innerHTML='';
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=_calStr(today.getFullYear(),today.getMonth(),today.getDate());
+  const firstDow=new Date(_calYear,_calMonth,1).getDay();
+  const daysInMonth=new Date(_calYear,_calMonth+1,0).getDate();
+  for(let i=0;i<firstDow;i++){const e=document.createElement('div');e.className='cal-day';grid.appendChild(e);}
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=_calStr(_calYear,_calMonth,d);
+    const isPast=ds<todayStr;
+    const isToday=ds===todayStr;
+    const isStart=ds===_calStart;
+    const isEnd=ds===_calEnd;
+    const inRange=_calStart&&_calEnd&&ds>_calStart&&ds<_calEnd;
+    const btn=document.createElement('button');
+    btn.className='cal-day'+(isPast?' past':'')+(isToday?' today':'')+(isStart?' sel-start':'')+(isEnd?' sel-end':'')+(inRange?' in-range':'');
+    const inner=document.createElement('span');inner.className='cal-day-inner';inner.textContent=d;
+    btn.appendChild(inner);
+    btn.onclick=()=>{
+      if(_calPhase==='start'){
+        _calStart=ds;_calEnd=null;_calPhase='end';
+      } else {
+        if(ds<=(_calStart||ds)){_calStart=ds;_calEnd=null;_calPhase='end';}
+        else{_calEnd=ds;_calPhase='done';}
+      }
+      _calUpdatePhaseBar();_calRenderGrid();
+    };
+    grid.appendChild(btn);
+  }
+}
+
+window.openCalendar=function(){
+  const today=new Date();
+  const fromVal=document.getElementById('mDateFrom').value;
+  const toVal=document.getElementById('mDateTo').value;
+  _calStart=fromVal||null;_calEnd=toVal||null;
+  _calPhase=_calStart?(_calEnd?'done':'end'):'start';
+  if(fromVal){const[y,m]=fromVal.split('-').map(Number);_calYear=y;_calMonth=m-1;}
+  else{_calYear=today.getFullYear();_calMonth=today.getMonth();}
+  _calUpdatePhaseBar();_calRenderGrid();
+  document.getElementById('calOverlay').classList.add('open');
+};
+window.closeCalendar=function(){document.getElementById('calOverlay').classList.remove('open');};
+window.handleCalOverlay=function(e){if(e.target===document.getElementById('calOverlay'))closeCalendar();};
+window.setCalPhase=function(p){_calPhase=p;_calUpdatePhaseBar();_calRenderGrid();};
+window.calPrevMonth=function(){_calMonth--;if(_calMonth<0){_calMonth=11;_calYear--;}  _calRenderGrid();};
+window.calNextMonth=function(){_calMonth++;if(_calMonth>11){_calMonth=0;_calYear++;}_calRenderGrid();};
+window.clearCalDates=function(){
+  _calStart=null;_calEnd=null;_calPhase='start';
+  document.getElementById('mDateFrom').value='';
+  document.getElementById('mDateTo').value='';
+  _calUpdatePhaseBar();_calRenderGrid();_updateCalTrigger();
+};
+window.confirmCalDates=function(){
+  if(!_calStart){closeCalendar();return;}
+  document.getElementById('mDateFrom').value=_calStart;
+  document.getElementById('mDateTo').value=_calEnd||_calStart;
+  _updateCalTrigger();closeCalendar();
+};
+function _updateCalTrigger(){
+  const sd=document.getElementById('calStartDisplay'),ed=document.getElementById('calEndDisplay');
+  if(sd){sd.textContent=_calStart?_calFmt(_calStart):'Add date';sd.className='cal-trigger-val'+(_calStart?'':' empty');}
+  if(ed){const v=_calEnd&&_calEnd!==_calStart?_calFmt(_calEnd):'Add date';ed.textContent=v;ed.className='cal-trigger-val'+((_calEnd&&_calEnd!==_calStart)?'':' empty');}
+}
 window.handleTripOverlay=function(e){if(e.target===document.getElementById('tripOverlay'))closeTripModal();};
 
 function renderIconPicker(gridId, iconList, getVal, setVal, onPick){
@@ -2297,7 +2445,7 @@ window.saveTrip=function(){
   saveAll(trips);closeTripModal();renderTrips();
 };
 
-document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('mDateFrom').focus();});
+document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Enter')openCalendar();});
 
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
@@ -2880,9 +3028,10 @@ window.duplicateTrip=function(id){
   document.getElementById('mDest').value=src.name;
   document.getElementById('mDateFrom').value='';
   document.getElementById('mDateTo').value='';
+  _calStart=null;_calEnd=null;_updateCalTrigger();
   renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,null);
   document.getElementById('tripOverlay').classList.add('open');
-  setTimeout(()=>document.getElementById('mDateFrom').focus(),50);
+  setTimeout(()=>document.getElementById('calTrigger')?.click(),50);
 };
 
 function openPackCompleteModal(trip){
