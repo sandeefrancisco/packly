@@ -1126,7 +1126,7 @@ svg.lucide-2xl{width:28px;height:28px}
       <div class="docs-reminder-icon" id="docsReminderIcon"></div>
       <div class="docs-reminder-body">
         <div class="docs-reminder-title">Don't forget your travel docs</div>
-        <div class="docs-reminder-items">Passport · ID card · Boarding pass · Travel insurance · Hotel booking</div>
+        <div class="docs-reminder-items" id="docsReminderItems"></div>
       </div>
     </div>
   </div>
@@ -2542,9 +2542,27 @@ function renderChecklist(){
 
   const banner=document.getElementById('docsReminderBanner');
   if(banner){
-    banner.style.display=allDone?'':'none';
     const iconEl=document.getElementById('docsReminderIcon');
     if(iconEl&&!iconEl.innerHTML)iconEl.innerHTML=svgStr('lightbulb');
+    if(allDone){
+      // Find travel-doc keywords across all sections
+      const DOC_KEYWORDS=/passport|visa|id card|national id|driver.?s? licen|boarding pass|e-?ticket|flight ticket|travel insurance|hotel booking|reservation|voucher|itinerary|vaccination|vaccine|health cert|covid|pcr test|emergency contact/i;
+      const docItems=[];
+      (trip.sections||[]).forEach(sec=>{
+        (sec.items||[]).forEach(item=>{
+          if(DOC_KEYWORDS.test(item.label)) docItems.push(item.label);
+        });
+      });
+      const itemsEl=document.getElementById('docsReminderItems');
+      if(itemsEl){
+        itemsEl.textContent=docItems.length
+          ?docItems.join(' · ')
+          :'Passport · Boarding pass · Travel insurance · Hotel booking';
+      }
+      banner.style.display='';
+    }else{
+      banner.style.display='none';
+    }
   }
 
   const sTitle=document.getElementById('sectionListTitle');
