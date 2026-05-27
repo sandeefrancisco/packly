@@ -494,6 +494,16 @@ svg.lucide-2xl{width:28px;height:28px}
 .add-item-confirm.visible{display:block}
 .add-item-confirm:hover{opacity:.85}
 
+.docs-reminder{
+  display:flex;align-items:flex-start;gap:12px;
+  background:#FFFBEB;border:1px solid #FDE68A;
+  border-left:3px solid #F59E0B;
+  border-radius:12px;padding:14px 16px;
+}
+.docs-reminder-icon{font-size:22px;line-height:1;flex-shrink:0;margin-top:1px}
+.docs-reminder-title{font-size:14px;font-weight:700;color:#92400E;margin-bottom:4px}
+.docs-reminder-items{font-size:13px;color:#A16207;line-height:1.5}
+
 .add-section-row{
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:16px;
@@ -1090,6 +1100,15 @@ svg.lucide-2xl{width:28px;height:28px}
       <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add
     </button>
+  </div>
+  <div id="docsReminderBanner" style="display:none;margin-bottom:20px">
+    <div class="docs-reminder">
+      <div class="docs-reminder-icon">🛂</div>
+      <div class="docs-reminder-body">
+        <div class="docs-reminder-title">Don't forget your travel docs</div>
+        <div class="docs-reminder-items">Passport · ID card · Boarding pass · Travel insurance · Hotel booking</div>
+      </div>
+    </div>
   </div>
   <div id="sectionsContainer"></div>
 </div>
@@ -2499,6 +2518,9 @@ function renderChecklist(){
   if(statItems) statItems.textContent=allDone?done:remaining;
   if(statLbl)   statLbl.textContent=allDone?'ITEMS PACKED':'ITEMS TO PACK';
   if(statCats)  statCats.textContent=trip.sections.length;
+
+  const banner=document.getElementById('docsReminderBanner');
+  if(banner)banner.style.display=allDone?'':'none';
 
   const sTitle=document.getElementById('sectionListTitle');
   if(sTitle)sTitle.textContent=`Categories (${trip.sections.length})`;
