@@ -1876,8 +1876,16 @@ async function onSignedIn(user){
   trips=[...byId.values()];
   saveLocalOnly(trips);
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
-  showTrips();
-  dismissAppLoader();
+  const savedTripId=sessionStorage.getItem('packly-nav');
+  const savedTrip=savedTripId&&trips.find(t=>t.id===savedTripId);
+  if(savedTrip){
+    showTrips();
+    dismissAppLoader();
+    showChecklist(savedTripId);
+  } else {
+    showTrips();
+    dismissAppLoader();
+  }
   subscribeToSharedTrips();
   updateTrashBadge();
 }
@@ -2051,6 +2059,7 @@ let luggageDraft=[];
 function _clOpen(){ document.getElementById('navStack').classList.add('pushed'); }
 function _clClose(){
   document.getElementById('navStack').classList.remove('pushed');
+  sessionStorage.removeItem('packly-nav');
 }
 function _doShowTrips(){
   stopSharedTripPolling();
@@ -2490,6 +2499,7 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
   activeId=id;
+  sessionStorage.setItem('packly-nav',id);
   // Always start at the top — never resume stale scroll position
   document.getElementById('checklistView').scrollTop=0;
   _clOpen();
@@ -3211,7 +3221,7 @@ startVersionChecks();
 setTimeout(()=>{checkForUpdates({manual:false});},1200);
 // Prevent browser from restoring scroll position (we manage it)
 if('scrollRestoration' in history) history.scrollRestoration='manual';
-// Clear any stale #checklist hash left from a previous session reload
+// Clean up stale #checklist hash — state is restored via sessionStorage instead
 if(location.hash==='#checklist') history.replaceState(null,'',location.pathname);
 
 // Listen for auth changes (login/logout)
