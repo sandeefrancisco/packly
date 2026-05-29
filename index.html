@@ -136,21 +136,15 @@ svg.lucide-2xl{width:28px;height:28px}
 .trip-cd-pill.soon{background:#FEF3C7;color:#D97706}
 .trip-cd-pill.today{background:#D1FAE5;color:#059669}
 .trip-cd-pill.past{background:var(--border);color:var(--muted)}
-.trip-card-footer{
-  display:flex;border-top:1px solid var(--border);
-  margin:18px -28px -28px;padding:0;
+.card-dots-btn{
+  position:absolute;top:16px;right:16px;
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:none;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .12s,color .12s;
 }
-.card-btn{
-  flex:1;height:48px;border:none;background:none;color:#9896A8;
-  display:flex;align-items:center;justify-content:center;gap:4px;
-  cursor:pointer;transition:all .12s;font-family:'Figtree',sans-serif;
-  font-size:13px;font-weight:600;
-}
-.card-btn+.card-btn{border-left:1px solid var(--border)}
-.card-btn svg{width:14px;height:14px;stroke-width:2;flex-shrink:0}
-.card-btn:hover{background:var(--tint);color:var(--ink)}
-.card-btn.del{color:#9896A8}
-.card-btn.del:hover{background:#FEE2E2;color:var(--red)}
+.card-dots-btn:hover{background:var(--tint);color:var(--ink)}
+.card-dots-btn svg{width:18px;height:18px;stroke-width:2;pointer-events:none}
 
 /* keep ic-btn for checklist view */
 .ic-btn{
@@ -988,8 +982,8 @@ svg.lucide-2xl{width:28px;height:28px}
   }
   .modal.wide{max-width:560px}
 
-  /* Account + Trash sheets — floating centered card */
-  .account-sheet,.trash-sheet{
+  /* Account + Trash + Trip action sheets — floating centered card */
+  .account-sheet,.trash-sheet,#tripActionsSheet{
     top:50%;left:50%;
     bottom:auto;right:auto;
     width:420px;max-width:calc(100vw - 48px);
@@ -1000,7 +994,7 @@ svg.lucide-2xl{width:28px;height:28px}
     pointer-events:none;
     transition:transform .26s cubic-bezier(.32,.72,0,1),opacity .2s ease;
   }
-  .account-sheet.open,.trash-sheet.open{
+  .account-sheet.open,.trash-sheet.open,#tripActionsSheet.open{
     transform:translate(-50%,-50%) scale(1);
     opacity:1;
     pointer-events:auto;
@@ -1387,6 +1381,24 @@ svg.lucide-2xl{width:28px;height:28px}
   </button>
   <div class="trash-sheet-head">Recently deleted</div>
   <div id="trashList"></div>
+</div>
+
+<!-- TRIP ACTIONS SHEET -->
+<div class="sheet-overlay" id="tripActionsOverlay" onclick="closeTripActions()"></div>
+<div class="account-sheet" id="tripActionsSheet">
+  <button class="sheet-close-btn" onclick="closeTripActions()" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div id="tripActionsName" style="font-size:18px;font-weight:800;color:var(--ink);padding:8px 0 20px;border-bottom:1px solid var(--border);margin-bottom:4px;padding-right:52px;line-height:1.3"></div>
+  <button class="sheet-action" id="tripActionShare">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+    Share
+  </button>
+  <button class="sheet-action" id="tripActionEdit">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Edit
+  </button>
+  <button class="sheet-action danger" id="tripActionDelete"></button>
 </div>
 
 <!-- AUTH OVERLAY -->
@@ -2187,7 +2199,10 @@ function renderTrips(){
     const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave':'Delete';
     const packAgainHtml=_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:'';
     card.innerHTML=`
-      <div class="trip-name">${svgStr(t.iconKey||'globe','lucide lucide-trip-icon')} ${esc(t.name)}</div>
+      <button class="card-dots-btn" id="dots-${t.id}" aria-label="More options">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
+      </button>
+      <div class="trip-name" style="padding-right:36px">${svgStr(t.iconKey||'globe','lucide lucide-trip-icon')} ${esc(t.name)}</div>
       <div class="trip-date-row">
         ${esc(t.dates||'No dates set')}
         ${cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:''}
@@ -2195,19 +2210,12 @@ function renderTrips(){
       </div>
       <div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
       <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} All packed`:`${pct}%`}</span></div>
-      ${packAgainHtml}
-      <div class="trip-card-footer">
-        <button class="card-btn" id="share-${t.id}">${svgStr('share')} Share</button>
-        <button class="card-btn" id="edit-${t.id}">${svgStr('pen')} Edit</button>
-        <button class="card-btn del" id="del-${t.id}">${svgStr('trash')} ${delTitle}</button>
-      </div>`;
+      ${packAgainHtml}`;
     card.onclick=e=>{
-      if(e.target.closest('.trip-card-footer'))return;
+      if(e.target.closest('.card-dots-btn'))return;
       showChecklist(t.id);
     };
-    card.querySelector(`#share-${t.id}`).onclick=e=>{e.stopPropagation();shareTrip(t.id);};
-    card.querySelector(`#edit-${t.id}`).onclick=e=>{e.stopPropagation();openEditModal(t.id);};
-    card.querySelector(`#del-${t.id}`).onclick=e=>{e.stopPropagation();deleteTrip(t.id);};
+    card.querySelector(`#dots-${t.id}`).onclick=e=>{e.stopPropagation();openTripActions(t.id);};
     const dupBtn=card.querySelector(`#dup-${t.id}`);
     if(dupBtn)dupBtn.onclick=e=>{e.stopPropagation();duplicateTrip(t.id);};
     grid.appendChild(card);
@@ -2316,6 +2324,27 @@ function stats(trip){
   trip.sections.forEach(s=>{total+=s.items.length;done+=s.items.filter(i=>i.done).length;});
   return{total,done};
 }
+
+/* ── Trip Actions Sheet ── */
+window.openTripActions=function(id){
+  const t=trips.find(x=>x.id===id);if(!t)return;
+  const isOwner=!t.isShared||(t.ownerId&&t.ownerId===_currentUserId);
+  const delLabel=t.isShared&&!isOwner?'Leave trip':'Delete';
+  document.getElementById('tripActionsName').textContent=t.name;
+  const shareBtn=document.getElementById('tripActionShare');
+  const editBtn=document.getElementById('tripActionEdit');
+  const delBtn=document.getElementById('tripActionDelete');
+  delBtn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>${delLabel}`;
+  shareBtn.onclick=()=>{closeTripActions();shareTrip(id);};
+  editBtn.onclick=()=>{closeTripActions();openEditModal(id);};
+  delBtn.onclick=()=>{closeTripActions();deleteTrip(id);};
+  document.getElementById('tripActionsOverlay').classList.add('open');
+  document.getElementById('tripActionsSheet').classList.add('open');
+};
+window.closeTripActions=function(){
+  document.getElementById('tripActionsOverlay').classList.remove('open');
+  document.getElementById('tripActionsSheet').classList.remove('open');
+};
 
 window.deleteTrip=function(id){
   const t=trips.find(x=>x.id===id);if(!t)return;
@@ -3400,6 +3429,7 @@ function addSwipeDismiss(el, closeFn, {onlyMobile=false, threshold=150}={}){
 // Wire up sheets
 addSwipeDismiss(document.getElementById('accountSheet'), window.closeAccountSheet);
 addSwipeDismiss(document.getElementById('trashSheet'), window.closeTrashSheet);
+addSwipeDismiss(document.getElementById('tripActionsSheet'), window.closeTripActions);
 
 // Wire up all modal overlays (swipe down on the modal card itself)
 document.querySelectorAll('.overlay').forEach(overlay=>{
