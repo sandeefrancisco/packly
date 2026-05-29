@@ -37,7 +37,9 @@ input,textarea,select{font-size:16px!important;touch-action:manipulation}
 }
 
 html{height:100%;overflow:hidden}
-body{min-height:100%;height:100%;background:var(--bg);color:var(--ink);font-family:'Figtree',sans-serif;-webkit-font-smoothing:antialiased;font-size:16px;overflow:auto;-webkit-text-size-adjust:100%}
+body{min-height:100%;height:100%;background:var(--bg);color:var(--ink);font-family:'Figtree',sans-serif;-webkit-font-smoothing:antialiased;font-size:16px;overflow:auto;-webkit-text-size-adjust:100%;-webkit-user-select:none;user-select:none;}
+/* Allow selection only where it makes sense */
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;}
 /* ── iOS-style push/pop navigation ── */
 #navStack{
   position:relative;overflow-x:hidden;
@@ -334,8 +336,7 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 20px;background:var(--white);
   border-radius:var(--r-card);border:1px solid var(--border);
-  cursor:pointer;user-select:none;-webkit-user-select:none;
-  -webkit-touch-callout:none;touch-action:pan-y;
+  cursor:pointer;-webkit-touch-callout:none;touch-action:pan-y;
   transition:background .12s;gap:8px;
 }
 .section-label:hover{background:var(--tint)}
@@ -378,7 +379,7 @@ svg.lucide-2xl{width:28px;height:28px}
   width:0;overflow:hidden;padding:0;opacity:0;flex-shrink:0;
   color:var(--muted);cursor:grab;border-radius:6px;
   display:flex;align-items:center;justify-content:center;
-  touch-action:none;-webkit-user-select:none;user-select:none;
+  touch-action:none;
   transition:width .18s ease,padding .18s ease,opacity .15s ease;
 }
 .drag-handle svg{width:16px;height:16px;pointer-events:none;flex-shrink:0}
@@ -432,7 +433,6 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;padding:17px 22px;gap:14px;
   border-bottom:1px solid var(--border);transition:background .1s;min-height:64px;
   animation:fadeUp .16s ease both;
-  -webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none;
   touch-action:pan-y;
 }
@@ -454,8 +454,6 @@ svg.lucide-2xl{width:28px;height:28px}
 .item-label{
   flex:1;font-size:17px;outline:none;border:none;background:none;
   font-family:'Figtree',sans-serif;color:var(--ink);cursor:default;
-  /* override parent's user-select:none so contenteditable still works */
-  user-select:text;-webkit-user-select:text;
 }
 .item-label[contenteditable="true"]{cursor:text}
 
