@@ -91,7 +91,6 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:600;
   cursor:pointer;transition:background .15s,transform .1s;min-height:50px;
 }
-.btn-primary:hover{background:var(--accent-h);transform:translateY(-1px)}
 
 .trips-tabs-bar{
   display:inline-flex;background:#E8E8EE;border-radius:12px;padding:4px;
@@ -121,11 +120,14 @@ svg.lucide-2xl{width:28px;height:28px}
 
 .trip-card{
   background:var(--white);border-radius:var(--r-card);
-  border:1px solid var(--border);padding:28px;
+  border:none;padding:28px;
+  box-shadow:0 2px 16px rgba(26,26,46,.07),0 1px 4px rgba(26,26,46,.04);
   cursor:pointer;transition:box-shadow .18s,transform .18s;
   animation:fadeUp .22s ease both;position:relative;
 }
-.trip-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
+@media(pointer:fine){
+  .trip-card:hover{box-shadow:0 8px 36px rgba(26,26,46,.13),0 2px 8px rgba(26,26,46,.06);transform:translateY(-3px)}
+}
 
 /* card layout */
 .trip-name{font-size:20px;font-weight:800;line-height:1.25;color:var(--ink);
@@ -145,7 +147,6 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;transition:background .12s,color .12s;
 }
-.card-dots-btn:hover{background:var(--tint);color:var(--ink)}
 .card-dots-btn svg{width:18px;height:18px;stroke-width:2;pointer-events:none}
 
 /* keep ic-btn for checklist view */
@@ -155,8 +156,6 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;transition:all .12s;min-width:44px;min-height:44px;
 }
-.ic-btn:hover{background:var(--tint);color:var(--ink)}
-.ic-btn.del:hover{background:#FEE2E2;color:var(--red);border-color:#FCA5A5}
 
 .trip-shared-tag{font-size:13px;font-weight:700;color:#7C3AED;background:#F3EEFF;
   border-radius:99px;padding:2px 9px;display:inline-flex;align-items:center;gap:4px}
@@ -203,7 +202,6 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;
   color:var(--muted);cursor:pointer;transition:all .12s;min-height:44px;
 }
-.btn-back:hover{background:var(--tint);color:var(--ink);border-color:var(--ink)}
 
 .cl-trip-meta{flex:1;min-width:0}
 .cl-trip-name{font-size:26px;font-weight:800;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:10px}
@@ -323,7 +321,6 @@ svg.lucide-2xl{width:28px;height:28px}
   color:var(--muted);cursor:pointer;transition:all .12s;min-height:36px;
   display:inline-flex;align-items:center;gap:6px;
 }
-.btn-ghost-sm:hover{border-color:var(--accent);color:var(--accent);background:var(--tint)}
 .luggage-travelers{display:flex;flex-direction:column;gap:14px}
 .traveler-row{display:flex;align-items:center;gap:10px;min-width:0}
 .traveler-name{font-size:16px;font-weight:600;width:100px;flex-shrink:0}
@@ -339,7 +336,6 @@ svg.lucide-2xl{width:28px;height:28px}
   cursor:pointer;-webkit-touch-callout:none;touch-action:pan-y;
   transition:background .12s;gap:8px;
 }
-.section-label:hover{background:var(--tint)}
 .section-label.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
 .section-label-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 
@@ -373,7 +369,6 @@ svg.lucide-2xl{width:28px;height:28px}
   cursor:pointer;transition:color .12s,background .12s;border-radius:8px;
   min-width:36px;min-height:36px;padding:4px;
 }
-.item-opts-btn:hover,.sec-opts-btn:hover{color:var(--ink);background:var(--tint)}
 .item-opts-btn svg,.sec-opts-btn svg{width:18px;height:18px;stroke-width:2;pointer-events:none}
 
 .items-card{background:var(--white);border-radius:0 0 var(--r-card) var(--r-card);border:1px solid var(--border);border-top:none;overflow:hidden;margin-bottom:36px}
@@ -385,7 +380,6 @@ svg.lucide-2xl{width:28px;height:28px}
   touch-action:pan-y;
 }
 .item-row:last-child{border-bottom:none}
-.item-row:hover{background:var(--tint)}
 .item-row.done{opacity:.42}
 .item-row.done .item-label{text-decoration:line-through;color:var(--muted)}
 
@@ -394,7 +388,6 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;transition:all .12s;padding:9px;margin:-9px;
 }
-.round-cb:hover{border-color:var(--green)}
 .round-cb svg{display:none}
 .item-row.done .round-cb{background:var(--green);border-color:var(--green)}
 .item-row.done .round-cb svg{display:block}
@@ -412,7 +405,6 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;justify-content:center;
   min-width:44px;min-height:44px;
 }
-.qty-btn:hover{background:var(--border);color:var(--ink)}
 .qty-val{min-width:26px;text-align:center;font-size:16px;font-weight:600;padding:0 2px}
 
 
@@ -426,7 +418,6 @@ svg.lucide-2xl{width:28px;height:28px}
   font-size:16px;font-weight:600;cursor:pointer;transition:opacity .12s;display:none;min-height:36px;
 }
 .add-item-confirm.visible{display:block}
-.add-item-confirm:hover{opacity:.85}
 
 .docs-reminder{
   display:flex;align-items:flex-start;gap:12px;
@@ -458,7 +449,6 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:600;
   cursor:pointer;transition:opacity .12s;
 }
-.btn-done-reorder:hover{opacity:.85}
 .section-reorder-ghost{
   position:fixed;pointer-events:none;z-index:9999;
   border-radius:var(--r-card);
@@ -482,7 +472,6 @@ svg.lucide-2xl{width:28px;height:28px}
   color:var(--muted);cursor:pointer;transition:all .15s;min-height:36px;
 }
 .btn-add-section svg{width:16px;height:16px}
-.btn-add-section:hover{border-color:var(--accent);color:var(--accent);background:var(--tint)}
 
 /* ── Skeleton loading ── */
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
@@ -573,7 +562,6 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* date range — booking-style trigger */
 .cal-trigger{display:flex;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .15s;background:var(--tint)}
-.cal-trigger:hover{border-color:var(--accent)}
 .cal-trigger-half{flex:1;padding:10px 14px}
 .cal-trigger-half+.cal-trigger-half{border-left:1.5px solid var(--border)}
 .cal-trigger-lbl{display:block;font-size:16px;font-weight:700;color:var(--muted);margin-bottom:3px}
@@ -589,7 +577,6 @@ svg.lucide-2xl{width:28px;height:28px}
 .cal-phase-arrow{color:var(--muted);flex-shrink:0}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .cal-nav-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:9px;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .12s}
-.cal-nav-btn:hover{background:var(--tint)}
 .cal-nav-btn svg{width:16px;height:16px;stroke-width:2.5}
 .cal-month-label{font-size:16px;font-weight:700;color:var(--ink)}
 .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
@@ -618,28 +605,24 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;
   cursor:pointer;transition:opacity .12s;min-height:52px;text-align:center;
 }
-.btn-save:hover{opacity:.88}
 .btn-cancel{
   width:100%;padding:14px 22px;border-radius:99px;
   border:1.5px solid var(--border);background:none;
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;color:var(--muted);
   cursor:pointer;transition:all .12s;min-height:52px;text-align:center;
 }
-.btn-cancel:hover{background:var(--tint);color:var(--ink)}
 
 /* luggage modal */
 .traveler-block{background:var(--tint);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--border);margin-bottom:10px}
 .traveler-block-head{display:flex;align-items:center;justify-content:space-between}
 .traveler-num{font-size:16px;font-weight:600;letter-spacing:0;color:var(--muted)}
 .rm-traveler{border:none;background:none;color:var(--muted);font-size:16px;font-family:'Figtree',sans-serif;cursor:pointer;padding:3px 8px;border-radius:6px;transition:all .12s;display:inline-flex;align-items:center;gap:5px}
-.rm-traveler:hover{color:var(--red);background:#FEE2E2}
 .traveler-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .traveler-fields .full{grid-column:1/-1}
 .tfield label{font-size:16px;font-weight:600;letter-spacing:0;color:var(--muted);display:block;margin-bottom:5px}
 .tfield input{width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--white);font-family:'Figtree',sans-serif;font-size:16px;color:var(--ink);outline:none;transition:border-color .12s}
 .tfield input:focus{border-color:var(--accent)}
 .btn-add-traveler{width:100%;padding:11px;border-radius:12px;border:1.5px dashed var(--border);background:none;font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .12s;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:7px}
-.btn-add-traveler:hover{border-color:var(--accent);color:var(--accent);background:var(--white)}
 
 /* ── Confirm modal ── */
 .confirm-modal h2{font-size:20px;margin-bottom:8px}
@@ -655,7 +638,6 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:700;
   cursor:pointer;transition:opacity .12s;min-height:52px;text-align:center;
 }
-.btn-danger:hover{opacity:.88}
 
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .field input.error{border-color:var(--red);animation:shake .35s ease}
@@ -679,7 +661,6 @@ svg.lucide-2xl{width:28px;height:28px}
   cursor:pointer;font-family:'Figtree',sans-serif;font-size:16px;
   font-weight:600;padding:0;transition:color .12s;
 }
-.btn-signout:hover{color:var(--red)}
 .nav-right{display:flex;align-items:center;gap:8px}
 
 /* ── Share / Join ── */
@@ -758,7 +739,6 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:600;
   color:var(--muted);cursor:pointer;transition:all .15s;
 }
-.btn-pack-again:hover{border-color:var(--accent);color:var(--accent);background:var(--tint)}
 .trip-packed-badge{
   display:inline-flex;align-items:center;gap:4px;
   font-size:16px;font-weight:700;color:#059669;
@@ -797,7 +777,6 @@ svg.lucide-2xl{width:28px;height:28px}
   padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);
   background:var(--tint);cursor:pointer;transition:all .12s;gap:12px;
 }
-.share-trip-row:hover{border-color:var(--accent);background:var(--white)}
 .share-trip-row-name{font-size:16px;font-weight:700;color:var(--ink)}
 .share-trip-row-sub{font-size:16px;color:var(--muted);margin-top:2px}
 .share-trip-row-badge{
@@ -812,7 +791,6 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:600;
   cursor:pointer;transition:all .15s;min-height:50px;
 }
-.btn-secondary:hover{border-color:var(--accent);background:var(--tint)}
 
 /* ── Burger Menu Button ── */
 .burger-btn{
@@ -823,7 +801,6 @@ svg.lucide-2xl{width:28px;height:28px}
   box-shadow:0 1px 4px rgba(26,26,46,.06);
 }
 .burger-btn svg{width:22px;height:22px}
-.burger-btn:hover{background:var(--tint);color:var(--accent)}
 
 /* ── Trash Sheet ── */
 .trash-sheet{
@@ -847,9 +824,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .trash-item-meta{font-size:16px;color:var(--muted);margin-top:2px}
 .trash-item-actions{display:flex;gap:8px;flex-shrink:0}
 .btn-restore{padding:7px 14px;border-radius:99px;border:1.5px solid var(--accent);background:none;font-family:'Figtree',sans-serif;font-size:16px;font-weight:600;color:var(--accent);cursor:pointer;transition:all .12s;white-space:nowrap}
-.btn-restore:hover{background:var(--accent);color:#fff}
 .btn-perm-del{width:32px;height:32px;border:none;background:none;color:var(--muted);cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0}
-.btn-perm-del:hover{background:#FEE2E2;color:var(--red)}
 .btn-perm-del svg{width:16px;height:16px}
 .trash-empty{text-align:center;padding:48px 0 24px;color:var(--muted)}
 .trash-empty-icon{font-size:36px;margin-bottom:12px}
@@ -882,7 +857,6 @@ svg.lucide-2xl{width:28px;height:28px}
   color:var(--muted);transition:background .12s,color .12s;z-index:1;
 }
 .sheet-close-btn svg{width:22px;height:22px}
-.sheet-close-btn:hover{background:var(--border);color:var(--ink)}
 .sheet-user{
   display:flex;align-items:center;gap:16px;
   padding:8px 0 24px;
@@ -895,7 +869,6 @@ svg.lucide-2xl{width:28px;height:28px}
   color:var(--muted);cursor:pointer;display:flex;align-items:center;
   transition:color .12s;
 }
-.sheet-user-edit-link:hover{color:var(--ink)}
 .sheet-user-email{font-size:16px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet-name-edit-row{
   display:none;align-items:center;gap:8px;
@@ -914,7 +887,6 @@ svg.lucide-2xl{width:28px;height:28px}
   font-family:'Figtree',sans-serif;font-size:16px;font-weight:600;
   cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .12s;
 }
-.sheet-name-save:hover{background:var(--accent-h)}
 .sheet-action{
   display:flex;align-items:center;gap:14px;width:100%;
   padding:20px 4px;border:none;background:none;
@@ -970,6 +942,11 @@ svg.lucide-2xl{width:28px;height:28px}
   }
 }
 @keyframes floatIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* ── Hover states: desktop (pointer:fine) only ── */
+@media(pointer:fine){
+    .card-dots-btn:hover,                                                          .reorder-grip:hover{color:var(--ink);background:var(--tint)}
+}
 
 /* ── Pull-to-refresh ── */
 @keyframes iosStep{to{transform:rotate(360deg)}}
@@ -1667,6 +1644,23 @@ const svgStr = (key, cls='lucide') => {
   return IC[key].replace('class="lucide"', `class="${cls}"`);
 };
 
+/* ── Country flag helpers ── */
+const COUNTRY_CODES={afghanistan:'af',albania:'al',algeria:'dz',andorra:'ad',angola:'ao',argentina:'ar',armenia:'am',australia:'au',austria:'at',azerbaijan:'az',bahamas:'bs',bahrain:'bh',bangladesh:'bd',barbados:'bb',belarus:'by',belgium:'be',belize:'bz',benin:'bj',bhutan:'bt',bolivia:'bo',botswana:'bw',brazil:'br',brunei:'bn',bulgaria:'bg',cambodia:'kh',cameroon:'cm',canada:'ca',chile:'cl',china:'cn',colombia:'co','costa rica':'cr',croatia:'hr',cuba:'cu',cyprus:'cy','czech republic':'cz',czechia:'cz',denmark:'dk',ecuador:'ec',egypt:'eg','el salvador':'sv',ethiopia:'et',fiji:'fj',finland:'fi',france:'fr',gabon:'ga',georgia:'ge',germany:'de',ghana:'gh',greece:'gr',guatemala:'gt',haiti:'ht',honduras:'hn','hong kong':'hk',hungary:'hu',iceland:'is',india:'in',indonesia:'id',iran:'ir',iraq:'iq',ireland:'ie',israel:'il',italy:'it',jamaica:'jm',japan:'jp',jordan:'jo',kazakhstan:'kz',kenya:'ke',kuwait:'kw',kyrgyzstan:'kg',laos:'la',latvia:'lv',lebanon:'lb',libya:'ly',liechtenstein:'li',lithuania:'lt',luxembourg:'lu',madagascar:'mg',malaysia:'my',maldives:'mv',mali:'ml',malta:'mt',mauritius:'mu',mexico:'mx',moldova:'md',monaco:'mc',mongolia:'mn',morocco:'ma',mozambique:'mz',myanmar:'mm',namibia:'na',nepal:'np',netherlands:'nl','new zealand':'nz',nicaragua:'ni',nigeria:'ng','north korea':'kp','north macedonia':'mk',norway:'no',oman:'om',pakistan:'pk',panama:'pa',paraguay:'py',peru:'pe',philippines:'ph',poland:'pl',portugal:'pt',qatar:'qa',romania:'ro',russia:'ru',rwanda:'rw','saudi arabia':'sa',senegal:'sn',serbia:'rs',singapore:'sg',slovakia:'sk',slovenia:'si',somalia:'so','south africa':'za','south korea':'kr','south sudan':'ss',spain:'es','sri lanka':'lk',sudan:'sd',sweden:'se',switzerland:'ch',syria:'sy',taiwan:'tw',tajikistan:'tj',tanzania:'tz',thailand:'th','trinidad and tobago':'tt',tunisia:'tn',turkey:'tr',turkmenistan:'tm',uganda:'ug',ukraine:'ua','united arab emirates':'ae','united kingdom':'gb',uk:'gb',england:'gb',scotland:'gb',wales:'gb','united states':'us',usa:'us',america:'us',uruguay:'uy',uzbekistan:'uz',venezuela:'ve',vietnam:'vn',yemen:'ye',zambia:'zm',zimbabwe:'zw'};
+function getCountryCode(name){
+  const n=name.toLowerCase().trim();
+  if(COUNTRY_CODES[n])return COUNTRY_CODES[n];
+  for(const k of Object.keys(COUNTRY_CODES)){if(n.includes(k))return COUNTRY_CODES[k];}
+  return null;
+}
+function getTripFlagOrIcon(trip,iconCls,defaultIcon='globe'){
+  const code=getCountryCode(trip.name||'');
+  if(code){
+    const fallback=svgStr(trip.iconKey||defaultIcon,iconCls).replace(/'/g,"\\'");
+    return `<img src="https://flagcdn.com/w80/${code}.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML='${fallback}'">`;
+  }
+  return svgStr(trip.iconKey||defaultIcon,iconCls);
+}
+
 /* ── Item Actions Sheet ── */
 let _itemActionsCtx={item:null,sec:null,labelEl:null};
 window.openItemActions=function(item,sec,labelEl){
@@ -2235,7 +2229,7 @@ function renderTrips(){
       <button class="card-dots-btn" id="dots-${t.id}" aria-label="More options">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
       </button>
-      <div class="trip-name" style="padding-right:36px">${svgStr(t.iconKey||'globe','lucide lucide-trip-icon')} ${esc(t.name)}</div>
+      <div class="trip-name" style="padding-right:36px">${getTripFlagOrIcon(t,'lucide lucide-trip-icon')} ${esc(t.name)}</div>
       <div class="trip-date-row">
         ${esc(t.dates||'No dates set')}
         ${cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:''}
@@ -2601,7 +2595,7 @@ function renderChecklist(){
   const trip=getTrip();if(!trip){showTrips();return;}
 
   document.getElementById('clTripName').innerHTML=
-    `${svgStr(trip.iconKey||'plane','lucide lucide-lg')} ${esc(trip.name)}`;
+    `${getTripFlagOrIcon(trip,'lucide lucide-lg','plane')} ${esc(trip.name)}`;
 
   const dEl=document.getElementById('clTripDates');
   dEl.innerHTML=trip.dates?`${svgStr('calendar')} ${esc(trip.dates)}`:'';
