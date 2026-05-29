@@ -2227,8 +2227,9 @@ async function cloudSync(data){
   try{
     const{data:{user}}=await sb.auth.getUser();
     if(!user)return;
-    // Personal trips → user_data blob (include deleted_trips for recovery)
-    const personal=data.filter(t=>!t.sharedTripId);
+    // Personal trips → user_data blob; never push back trips that are trashed
+    const trashedIds=new Set(loadTrash().map(t=>t.id));
+    const personal=data.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
     const deleted_trips=loadTrash();
     await sb.from('user_data').upsert({user_id:user.id,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
     // Shared trips → update their row in shared_trips (tag with who changed it)
@@ -2317,10 +2318,12 @@ async function onSignedIn(user){
   // for any trip that exists locally, local wins — it is always >= cloud.
   const localPersonal=loadAll().filter(t=>!t.sharedTripId);
   const cloudPersonal=data?.trips||[];
+  const trashedIds=new Set(loadTrash().map(t=>t.id));
   const personalById=new Map();
   cloudPersonal.forEach(t=>personalById.set(t.id,t));   // cloud base
   localPersonal.forEach(t=>personalById.set(t.id,t));   // local overrides — always newer
-  const personal=[...personalById.values()];
+  // Never resurface a trip that has been deleted (trashed) on this device
+  const personal=[...personalById.values()].filter(t=>!trashedIds.has(t.id));
 
   // Push merged personal trips back to cloud so it catches up
   if(personal.length>0){
