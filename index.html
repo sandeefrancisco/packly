@@ -728,7 +728,6 @@ svg.lucide-2xl{width:28px;height:28px}
 .cl-prog-bar-fill.complete,
 .trip-prog-fill.complete{
   background:linear-gradient(90deg,#10B981,#34D399);
-  box-shadow:0 0 10px rgba(16,185,129,.4);
 }
 .trip-prog-pct.complete,.cl-pct.complete{color:#059669}
 .trip-pack-again-row{margin-top:12px}
@@ -1652,11 +1651,17 @@ function getCountryCode(name){
   for(const k of Object.keys(COUNTRY_CODES)){if(n.includes(k))return COUNTRY_CODES[k];}
   return null;
 }
+window._flagFallbacks={};
+window.flagImgError=function(el,fbKey){
+  const svg=window._flagFallbacks[fbKey];
+  if(svg){const tmp=document.createElement('div');tmp.innerHTML=svg;el.replaceWith(tmp.firstChild);}
+};
 function getTripFlagOrIcon(trip,iconCls,defaultIcon='globe'){
   const code=getCountryCode(trip.name||'');
   if(code){
-    const fallback=svgStr(trip.iconKey||defaultIcon,iconCls).replace(/'/g,"\\'");
-    return `<img src="https://flagcdn.com/w80/${code}.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML='${fallback}'">`;
+    const fbKey=trip.id+'_'+code;
+    window._flagFallbacks[fbKey]=svgStr(trip.iconKey||defaultIcon,iconCls);
+    return `<img src="https://flagcdn.com/w80/${code}.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="flagImgError(this,'${fbKey}')">`;
   }
   return svgStr(trip.iconKey||defaultIcon,iconCls);
 }
