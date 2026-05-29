@@ -1698,6 +1698,31 @@ async function onSignedIn(user){
   updateTrashBadge();
 }
 
+async function refreshTripsFromCloud(){
+  try{
+    const{data:{user}}=await sb.auth.getUser();
+    if(!user)return;
+    showTripsSkeleton();
+    const{data}=await sb.from('user_data').select('trips,deleted_trips').eq('user_id',user.id).single();
+    saveTrash(mergeTrash(loadTrash(),data?.deleted_trips||[]));
+    const trashedIds=new Set(loadTrash().map(t=>t.id));
+    const localPersonal=loadAll().filter(t=>!t.sharedTripId);
+    const cloudPersonal=data?.trips||[];
+    const personalById=new Map();
+    cloudPersonal.forEach(t=>personalById.set(t.id,t));
+    localPersonal.forEach(t=>personalById.set(t.id,t));
+    const personal=[...personalById.values()].filter(t=>!trashedIds.has(t.id));
+    const shared=await loadSharedTrips();
+    const byId=new Map();
+    personal.forEach(t=>byId.set(t.id,t));
+    shared.forEach(t=>byId.set(t.id,t));
+    trips=[...byId.values()];
+    saveLocalOnly(trips);
+    updateTrashBadge();
+    showTrips();
+  }catch(e){console.warn('Refresh error',e);showTrips();}
+}
+
 function onSignedOut(){
   _currentUserId=null;
   _currentUserName=null;
@@ -3025,8 +3050,8 @@ window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
     if(dy>=PTR_THRESHOLD){
       indicator.textContent='⟳  Refreshing…';
       indicator.style.transform='translateX(-50%) translateY(0)';
-      await new Promise(r=>setTimeout(r,600)); // let the user see feedback
-      location.reload(true);
+      await refreshTripsFromCloud();
+      indicator.style.transform='translateX(-50%) translateY(-100%)';
     } else {
       indicator.style.transform='translateX(-50%) translateY(-100%)';
     }
