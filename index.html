@@ -116,17 +116,17 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .trips-tab-btn.sel .trips-tab-badge{background:#E4E4EE;color:var(--ink)}
 
-.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;padding:4px 2px 8px;overflow:clip}
 
 .trip-card{
   background:var(--white);border-radius:var(--r-card);
-  border:none;padding:28px;
-  box-shadow:0 2px 16px rgba(26,26,46,.07),0 1px 4px rgba(26,26,46,.04);
-  cursor:pointer;transition:box-shadow .18s,transform .18s;
+  border:1px solid rgba(26,26,46,.07);padding:28px;
+  box-shadow:0 1px 6px rgba(26,26,46,.06);
+  cursor:pointer;transition:box-shadow .18s,transform .18s,border-color .18s;
   animation:fadeUp .22s ease both;position:relative;
 }
 @media(pointer:fine){
-  .trip-card:hover{box-shadow:0 8px 36px rgba(26,26,46,.13),0 2px 8px rgba(26,26,46,.06);transform:translateY(-3px)}
+  .trip-card:hover{box-shadow:0 6px 24px rgba(26,26,46,.11),0 1px 4px rgba(26,26,46,.05);transform:translateY(-2px);border-color:rgba(26,26,46,.11)}
 }
 
 /* card layout */
