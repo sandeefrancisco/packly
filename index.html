@@ -123,14 +123,16 @@ svg.lucide-2xl{width:28px;height:28px}
   border:1px solid rgba(26,26,46,.07);padding:28px;
   box-shadow:0 1px 6px rgba(26,26,46,.06);
   cursor:pointer;transition:box-shadow .18s,transform .18s,border-color .18s;
-  animation:fadeUp .22s ease both;position:relative;
+  animation:fadeUp .22s ease both;
 }
 @media(pointer:fine){
   .trip-card:hover{box-shadow:0 6px 24px rgba(26,26,46,.11),0 1px 4px rgba(26,26,46,.05);transform:translateY(-2px);border-color:rgba(26,26,46,.11)}
 }
 
 /* card layout */
-.trip-header-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-right:36px}
+.card-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;min-height:28px}
+.card-badges{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.trip-header-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .trip-header-text{flex:1;min-width:0}
 .trip-name{font-size:17px;font-weight:700;line-height:1.3;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
@@ -143,8 +145,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .trip-cd-pill.today{background:#D1FAE5;color:#059669}
 .trip-cd-pill.past{background:var(--border);color:var(--muted)}
 .card-dots-btn{
-  position:absolute;top:16px;right:16px;
-  width:36px;height:36px;border-radius:50%;border:none;
+  width:32px;height:32px;border-radius:50%;border:none;flex-shrink:0;
   background:none;color:var(--muted);
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;transition:background .12s,color .12s;
@@ -2616,18 +2617,20 @@ function renderTrips(){
     const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave':'Delete';
     const packAgainHtml=_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:'';
     card.innerHTML=`
-      <button class="card-dots-btn" id="dots-${t.id}" aria-label="More options">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
-      </button>
+      <div class="card-top-row">
+        <div class="card-badges">
+          ${cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:''}
+          ${t.isShared?`<span class="trip-shared-tag">${svgStr('users')} Shared</span>`:''}
+        </div>
+        <button class="card-dots-btn" id="dots-${t.id}" aria-label="More options">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
+        </button>
+      </div>
       <div class="trip-header-row">
         ${getTripFlagOrIcon(t,'lucide lucide-trip-icon')}
         <div class="trip-header-text">
           <div class="trip-name">${esc(t.name)}</div>
-          <div class="trip-date-row">
-            ${esc(t.dates||'No dates set')}
-            ${cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:''}
-            ${t.isShared?`<span class="trip-shared-tag">${svgStr('users')} Shared</span>`:''}
-          </div>
+          <div class="trip-date-row">${esc(t.dates||'No dates set')}</div>
         </div>
       </div>
       <div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
