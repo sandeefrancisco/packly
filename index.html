@@ -442,6 +442,36 @@ svg.lucide-2xl{width:28px;height:28px}
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:24px;
 }
+/* ── Reorder mode ── */
+.reorder-grip{
+  display:flex;align-items:center;justify-content:center;
+  width:36px;height:36px;flex-shrink:0;
+  color:var(--muted);cursor:grab;touch-action:none;
+  border-radius:8px;transition:color .12s;
+}
+.reorder-grip:active{cursor:grabbing;color:var(--ink)}
+.reorder-grip svg{width:18px;height:18px;pointer-events:none}
+.btn-done-reorder{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 18px;border-radius:99px;border:none;
+  background:var(--accent);color:#fff;
+  font-family:'Figtree',sans-serif;font-size:16px;font-weight:600;
+  cursor:pointer;transition:opacity .12s;
+}
+.btn-done-reorder:hover{opacity:.85}
+.section-reorder-ghost{
+  position:fixed;pointer-events:none;z-index:9999;
+  border-radius:var(--r-card);
+  box-shadow:0 12px 40px rgba(26,26,46,.22);
+  opacity:.93;transform:scale(1.02);
+  background:var(--white);border:1px solid var(--border);
+}
+.section-reorder-ph{
+  border-radius:var(--r-card);
+  border:2px dashed var(--accent);
+  background:rgba(26,26,46,.04);
+  margin-bottom:20px;box-sizing:border-box;
+}
 .section-list-title{
   font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--muted);
 }
@@ -1364,13 +1394,9 @@ svg.lucide-2xl{width:28px;height:28px}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     Rename
   </button>
-  <button class="sheet-action" id="secActionMoveUp">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-    Move up
-  </button>
-  <button class="sheet-action" id="secActionMoveDown">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-    Move down
+  <button class="sheet-action" id="secActionReorder">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/><circle cx="21" cy="6" r="0"/></svg>
+    Reorder categories
   </button>
   <button class="sheet-action danger" id="secActionDelete">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -1694,21 +1720,9 @@ window.closeMoveCat=function(){
 
 /* ── Section Actions Sheet ── */
 window.openSecActions=function(sec){
-  const trip=getTrip();if(!trip)return;
-  const secs=trip.sections;
-  const idx=secs.findIndex(s=>s.id===sec.id);
   document.getElementById('secActionsLabel').textContent=sec.name;
-  document.getElementById('secActionMoveUp').disabled=idx===0;
-  document.getElementById('secActionMoveDown').disabled=idx===secs.length-1;
   document.getElementById('secActionRename').onclick=()=>{closeSecActions();openRenameSectionModal(sec);};
-  document.getElementById('secActionMoveUp').onclick=()=>{
-    if(idx>0){const[m]=secs.splice(idx,1);secs.splice(idx-1,0,m);saveAll(trips);renderChecklist();}
-    closeSecActions();
-  };
-  document.getElementById('secActionMoveDown').onclick=()=>{
-    if(idx<secs.length-1){const[m]=secs.splice(idx,1);secs.splice(idx+1,0,m);saveAll(trips);renderChecklist();}
-    closeSecActions();
-  };
+  document.getElementById('secActionReorder').onclick=()=>{closeSecActions();enterReorderMode();};
   document.getElementById('secActionDelete').onclick=()=>{closeSecActions();deleteSection(sec.id);};
   document.getElementById('secActionsOverlay').classList.add('open');
   document.getElementById('secActionsSheet').classList.add('open');
@@ -1717,6 +1731,66 @@ window.closeSecActions=function(){
   document.getElementById('secActionsOverlay').classList.remove('open');
   document.getElementById('secActionsSheet').classList.remove('open');
 };
+
+/* ── Section Reorder Mode ── */
+let _reorderMode=false;
+function enterReorderMode(){_reorderMode=true;renderChecklist();}
+window.exitReorderMode=function(){_reorderMode=false;renderChecklist();};
+
+function startSectionDrag(e,wrap){
+  e.preventDefault();e.stopPropagation();
+  const rect=wrap.getBoundingClientRect();
+
+  const ghost=wrap.cloneNode(true);
+  ghost.className='section-reorder-ghost';
+  ghost.style.width=rect.width+'px';
+  ghost.style.left=rect.left+'px';
+  ghost.style.top=rect.top+'px';
+  document.body.appendChild(ghost);
+
+  const ph=document.createElement('div');
+  ph.className='section-reorder-ph';
+  ph.style.height=rect.height+'px';
+  wrap.parentNode.insertBefore(ph,wrap);
+  wrap.style.opacity='0.15';
+
+  const ox=e.clientX-rect.left, oy=e.clientY-rect.top;
+  let target=null, above=true;
+
+  function onMove(ev){
+    const cx=ev.clientX,cy=ev.clientY;
+    ghost.style.left=(cx-ox)+'px';
+    ghost.style.top=(cy-oy)+'px';
+    ghost.style.visibility='hidden';ph.style.visibility='hidden';
+    const under=document.elementFromPoint(cx,cy);
+    ghost.style.visibility='';ph.style.visibility='';
+    const t=under?.closest('.section[data-sid]');
+    if(!t||t===wrap)return;
+    const tr=t.getBoundingClientRect();
+    above=cy<tr.top+tr.height/2;
+    t.parentNode.insertBefore(ph,above?t:t.nextSibling);
+    target=t;
+  }
+  function onEnd(){
+    ghost.remove();ph.remove();wrap.style.opacity='';
+    document.removeEventListener('pointermove',onMove);
+    document.removeEventListener('pointerup',onEnd);
+    document.removeEventListener('pointercancel',onEnd);
+    if(!target)return;
+    const trip=getTrip();if(!trip)return;
+    const secs=trip.sections;
+    const fi=secs.findIndex(s=>s.id===wrap.dataset.sid);
+    const ti=secs.findIndex(s=>s.id===target.dataset.sid);
+    if(fi<0||ti<0||fi===ti)return;
+    const[moved]=secs.splice(fi,1);
+    const ni=secs.findIndex(s=>s.id===target.dataset.sid);
+    secs.splice(above?ni:ni+1,0,moved);
+    saveAll(trips);renderChecklist();
+  }
+  document.addEventListener('pointermove',onMove,{passive:false});
+  document.addEventListener('pointerup',onEnd);
+  document.addEventListener('pointercancel',onEnd);
+}
 
 function openRenameSectionModal(sec){
   document.getElementById('catName').value=sec.name;
@@ -2607,6 +2681,14 @@ function renderChecklist(){
 
   const sTitle=document.getElementById('sectionListTitle');
   if(sTitle)sTitle.textContent=`Categories (${trip.sections.length})`;
+  const addRow=document.querySelector('.add-section-row');
+  if(addRow){
+    if(_reorderMode){
+      addRow.innerHTML=`<span class="section-list-title">Drag to reorder</span><button class="btn-done-reorder" onclick="exitReorderMode()">Done</button>`;
+    } else {
+      addRow.innerHTML=`<span class="section-list-title" id="sectionListTitle">Categories (${trip.sections.length})</span><button class="btn-add-section" onclick="addSection()"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add</button>`;
+    }
+  }
   const c=document.getElementById('sectionsContainer');c.innerHTML='';
   trip.sections.forEach(sec=>c.appendChild(buildSection(sec,trip)));
 }
@@ -2664,28 +2746,42 @@ function buildSection(sec){
     openSecActions(sec);
   };
 
-  lbl.appendChild(left);
-  lbl.appendChild(right);
-
-  lbl.onclick=e=>{
-    if(e.target.closest('.sec-opts-btn'))return;
-    const oSet=getOpenSet(trip.id);
-    if(oSet.has(sec.id)) oSet.delete(sec.id);
-    else oSet.add(sec.id);
-    saveOpenSet(trip.id, oSet);
-    const body=wrap.querySelector('.section-body');
-    const chev=wrap.querySelector('.chevron');
-    const open=oSet.has(sec.id);
-    body.classList.toggle('open',open);
-    lbl.classList.toggle('open',open);
-    chev.classList.toggle('open',open);
-  };
+  if(_reorderMode){
+    // In reorder mode: show grip handle, disable collapse, hide dots
+    const grip=document.createElement('div');
+    grip.className='reorder-grip';
+    grip.innerHTML=svgStr('grip','lucide');
+    grip.addEventListener('pointerdown',e=>startSectionDrag(e,wrap));
+    lbl.appendChild(grip);
+    lbl.appendChild(left);
+    right.querySelector('.sec-opts-btn').style.display='none';
+    lbl.appendChild(right);
+    lbl.style.cursor='default';
+    // Disable collapse in reorder mode
+    lbl.onclick=null;
+  } else {
+    lbl.appendChild(left);
+    lbl.appendChild(right);
+    lbl.onclick=e=>{
+      if(e.target.closest('.sec-opts-btn'))return;
+      const oSet=getOpenSet(trip.id);
+      if(oSet.has(sec.id)) oSet.delete(sec.id);
+      else oSet.add(sec.id);
+      saveOpenSet(trip.id, oSet);
+      const body=wrap.querySelector('.section-body');
+      const chev=wrap.querySelector('.chevron');
+      const open=oSet.has(sec.id);
+      body.classList.toggle('open',open);
+      lbl.classList.toggle('open',open);
+      chev.classList.toggle('open',open);
+    };
+  }
 
   wrap.appendChild(lbl);
 
   /* ── collapsible body ── */
   const body=document.createElement('div');
-  body.className='section-body'+(isOpen?' open':'');
+  body.className=_reorderMode?'section-body':('section-body'+(isOpen?' open':''));
 
   const card=document.createElement('div');card.className='items-card';
 
