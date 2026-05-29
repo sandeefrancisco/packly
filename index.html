@@ -116,7 +116,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .trips-tab-btn.sel .trips-tab-badge{background:#E4E4EE;color:var(--ink)}
 
-.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;padding:4px 2px 8px;overflow:clip}
+.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;padding:4px 2px 8px;overflow:clip}
 
 .trip-card{
   background:var(--white);border-radius:var(--r-card);
@@ -328,15 +328,21 @@ svg.lucide-2xl{width:28px;height:28px}
 .luggage-empty{font-size:16px;color:var(--muted);display:flex;align-items:center;gap:8px}
 
 /* section */
-.section{margin-bottom:20px;transition:margin .2s}
+.section{
+  margin-bottom:8px;
+  border-radius:var(--r-card);
+  box-shadow:0 1px 6px rgba(26,26,46,.06);
+  border:1px solid rgba(26,26,46,.07);
+  background:var(--white);
+  overflow:hidden;
+}
 .section-label{
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 20px;background:var(--white);
-  border-radius:var(--r-card);border:1px solid var(--border);
   cursor:pointer;-webkit-touch-callout:none;touch-action:pan-y;
   transition:background .12s;gap:8px;
 }
-.section-label.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
+.section-label.open{border-bottom:1px solid var(--border)}
 .section-label-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 
 .section-icon-bubble{
@@ -371,7 +377,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .item-opts-btn svg,.sec-opts-btn svg{width:18px;height:18px;stroke-width:2;pointer-events:none}
 
-.items-card{background:var(--white);border-radius:0 0 var(--r-card) var(--r-card);border:1px solid var(--border);border-top:none;overflow:hidden;margin-bottom:36px}
+.items-card{background:var(--white);overflow:hidden;margin-bottom:0}
 .item-row{
   display:flex;align-items:center;padding:17px 22px;gap:14px;
   border-bottom:1px solid var(--border);transition:background .1s;min-height:64px;
@@ -1653,7 +1659,15 @@ const CITY_CODES={
   coventry:'gb',bradford:'gb',oxford:'gb',cambridge:'gb',bath:'gb',york:'gb',exeter:'gb',
   'brighton and hove':'gb',brighton:'gb',portsmouth:'gb',southampton:'gb',plymouth:'gb',
   inverness:'gb',aberdeen:'gb',dundee:'gb',stirling:'gb','st andrews':'gb',
+  eastbourne:'gb',hastings:'gb',folkestone:'gb',dover:'gb',canterbury:'gb',
+  windsor:'gb',guildford:'gb',reading:'gb',swindon:'gb',worcester:'gb',
+  chester:'gb',shrewsbury:'gb',hereford:'gb',gloucester:'gb',cheltenham:'gb',
+  stratford:'gb','stratford-upon-avon':'gb','stratford upon avon':'gb',
+  norwich:'gb',ipswich:'gb',colchester:'gb',cambridge:'gb',peterborough:'gb',
+  'newcastle upon tyne':'gb',sunderland:'gb',middlesbrough:'gb',durham:'gb',
   'lake district':'gb',cornwall:'gb',devon:'gb',cotswolds:'gb',
+  torquay:'gb',newquay:'gb','st ives':'gb',padstow:'gb',
+  oban:'gb',fort:'gb','fort william':'gb','isle of skye':'gb',skye:'gb',
   // ── France ──
   paris:'fr',lyon:'fr',marseille:'fr',nice:'fr',bordeaux:'fr',toulouse:'fr',strasbourg:'fr',
   nantes:'fr',montpellier:'fr',lille:'fr',rennes:'fr',reims:'fr',grenoble:'fr',dijon:'fr',
