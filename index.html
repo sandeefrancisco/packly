@@ -1717,8 +1717,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
       <div class="field">
         <label>Currency</label>
         <select id="expCurrency">
-          <option value="USD">USD – US Dollar</option>
           <option value="EUR">EUR – Euro</option>
+          <option value="USD">USD – US Dollar</option>
           <option value="GBP">GBP – British Pound</option>
           <option value="JPY">JPY – Japanese Yen</option>
           <option value="AUD">AUD – Australian Dollar</option>
@@ -4362,7 +4362,7 @@ window.editExpense=function(id){
   document.getElementById('expLabel').value=e.label||'';
   document.getElementById('expAmount').value=e.amount!=null?e.amount:'';
   document.getElementById('expCategory').value=e.category||'Food';
-  document.getElementById('expCurrency').value=e.currency||'USD';
+  document.getElementById('expCurrency').value=e.currency||'EUR';
   const trigger=document.getElementById('expDateTrigger');
   trigger.dataset.date=e.date||'';
   const disp=document.getElementById('expDateDisplay');
