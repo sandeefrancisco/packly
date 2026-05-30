@@ -250,7 +250,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .cl-tab.active{color:var(--ink);}
 .cl-tab-pill{
   position:absolute;top:3px;left:3px;
-  width:calc(50% - 3px);height:calc(100% - 6px);
+  width:calc(33.333% - 2px);height:calc(100% - 6px);
   background:var(--white);border-radius:9px;
   box-shadow:0 1px 4px rgba(26,26,46,.12);
   transition:transform .22s cubic-bezier(.4,0,.2,1);
@@ -374,6 +374,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .exp-fab svg{width:26px;height:26px;stroke-width:2.5;pointer-events:none;}
 /* Extra bottom padding so FAB never covers the last expense row */
 #clPanelExpenses{padding-bottom:calc(88px + env(safe-area-inset-bottom));}
+#clPanelBudget{padding-bottom:calc(32px + env(safe-area-inset-bottom));}
 /* Expense modal fixed-footer layout */
 .exp-modal{display:flex;flex-direction:column;padding-bottom:0!important;overflow:hidden;}
 .exp-modal h2{flex-shrink:0}
@@ -441,23 +442,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .exp-filter-clear:active{opacity:.75;}
 .exp-filter-clear svg{width:13px;height:13px;stroke-width:2.5;}
 
-/* Expenses view toggle (Transactions | By Card) */
-.exp-view-bar{
-  display:flex;background:#E8E8EE;border-radius:12px;padding:4px;
-  margin-bottom:16px;
-}
-.exp-view-btn{
-  flex:1;padding:8px 0;border:none;background:transparent;
-  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;color:var(--muted);
-  border-radius:9px;cursor:pointer;
-  transition:background .14s,color .14s,box-shadow .14s;
-  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
-}
-.exp-view-btn.active{
-  background:var(--white);color:var(--ink);
-  box-shadow:0 1px 4px rgba(0,0,0,.1);
-}
-/* Card summary view */
+/* Card summary view (Budget tab) */
 .exp-card-group{
   background:var(--white);border-radius:var(--r-card);border:1px solid var(--border);
   margin-bottom:12px;overflow:hidden;
@@ -1345,6 +1330,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <div class="cl-tab-pill" id="clTabPill"></div>
     <button class="cl-tab active" id="clTabPacking" onclick="setTripTab('packing')">Packing List</button>
     <button class="cl-tab" id="clTabExpenses" onclick="setTripTab('expenses')">Expenses</button>
+    <button class="cl-tab" id="clTabBudget" onclick="setTripTab('budget')">Budget</button>
   </div>
   <!-- Packing list panel -->
   <div class="cl-tab-panel active" id="clPanelPacking">
@@ -1385,11 +1371,11 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   </div>
   <!-- Expenses panel -->
   <div class="cl-tab-panel" id="clPanelExpenses">
-    <div class="exp-view-bar" id="expViewBar">
-      <button class="exp-view-btn active" id="expViewBtnList" onclick="setExpView('list')">Transactions</button>
-      <button class="exp-view-btn" id="expViewBtnCards" onclick="setExpView('cards')">By Card</button>
-    </div>
     <div id="expensesContainer"></div>
+  </div>
+  <!-- Budget panel -->
+  <div class="cl-tab-panel" id="clPanelBudget">
+    <div id="budgetContainer"></div>
   </div>
 </div>
 </div><!-- /navStack -->
@@ -3471,7 +3457,7 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
   const resuming=sessionStorage.getItem('packly-nav')===id;
-  if(!resuming){_expFilterCats.clear();_expFilterPays.clear();_expView='list';}
+  if(!resuming){_expFilterCats.clear();_expFilterPays.clear();}
   activeId=id;
   sessionStorage.setItem('packly-nav',id);
   document.getElementById('checklistView').scrollTop=0;
@@ -4230,15 +4216,15 @@ window.setTripTab=function(tab){
   sessionStorage.setItem('packly-cl-tab',tab);
   document.getElementById('clTabPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clTabExpenses').classList.toggle('active',tab==='expenses');
-  document.getElementById('clTabPill').style.transform=tab==='expenses'?'translateX(100%)':'';
+  document.getElementById('clTabBudget').classList.toggle('active',tab==='budget');
+  const pillPos=tab==='expenses'?'translateX(100%)':tab==='budget'?'translateX(200%)':'';
+  document.getElementById('clTabPill').style.transform=pillPos;
   document.getElementById('clPanelPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clPanelExpenses').classList.toggle('active',tab==='expenses');
+  document.getElementById('clPanelBudget').classList.toggle('active',tab==='budget');
   document.body.classList.toggle('show-expense-fab',tab==='expenses');
-  if(tab==='expenses'){
-    document.getElementById('expViewBtnList')?.classList.toggle('active',_expView==='list');
-    document.getElementById('expViewBtnCards')?.classList.toggle('active',_expView==='cards');
-    renderExpenses();
-  }
+  if(tab==='expenses')renderExpenses();
+  if(tab==='budget')renderBudget();
 };
 
 /* ── Expenses ── */
@@ -4270,7 +4256,6 @@ let _editingExpenseId=null;
 let _selectedPayment='cash';
 let _expFilterCats=new Set();
 let _expFilterPays=new Set();
-let _expView='list'; // 'list' | 'cards'
 let _cardDueDays={};
 (function(){try{_cardDueDays=JSON.parse(localStorage.getItem('packly-card-dues')||'{}')||{};}catch{}}());
 function _saveCardDueDays(){localStorage.setItem('packly-card-dues',JSON.stringify(_cardDueDays));}
@@ -4280,13 +4265,6 @@ function _nextDueDate(dueDay){
   const t=new Date(),y=t.getFullYear(),m=t.getMonth(),d=t.getDate();
   return d<dueDay?new Date(y,m,dueDay):new Date(y,m+1,dueDay);
 }
-
-window.setExpView=function(v){
-  _expView=v;
-  document.getElementById('expViewBtnList')?.classList.toggle('active',v==='list');
-  document.getElementById('expViewBtnCards')?.classList.toggle('active',v==='cards');
-  renderExpenses();
-};
 
 function getExpenses(){
   const trip=getTrip();return trip?.expenses||[];
@@ -4299,69 +4277,6 @@ function renderExpenses(){
 
   if(!allExpenses.length){
     el.innerHTML=`<div class="exp-empty"><div class="exp-empty-icon">💸</div><p>No expenses yet.<br>Tap <strong>+</strong> to track your spending.</p></div>`;
-    return;
-  }
-
-  // ── By Card view ──────────────────────────────────────────────────────────
-  if(_expView==='cards'){
-    const byCard=new Map();
-    allExpenses.forEach(e=>{
-      const k=e.payWith||'cash';
-      if(!byCard.has(k))byCard.set(k,[]);
-      byCard.get(k).push(e);
-    });
-    const sorted=[...byCard.entries()].sort((a,b)=>{
-      const tA=a[1].reduce((s,e)=>s+e.amount,0);
-      const tB=b[1].reduce((s,e)=>s+e.amount,0);
-      return tB-tA;
-    });
-    const cardGroupsHtml=sorted.map(([payId,items])=>{
-      const pm=EXP_PAYMENTS.find(p=>p.id===payId);
-      const dueDay=_cardDueDays[payId];
-      let dueHtml='';
-      if(dueDay){
-        const due=_nextDueDate(dueDay);
-        const dueFmt=due.toLocaleDateString(undefined,{month:'short',day:'numeric'});
-        dueHtml=`<div class="exp-card-due-row">
-          <div class="exp-card-due-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
-            Due ${dueFmt} · ${_ordinal(dueDay)} each month
-          </div>
-          <button class="exp-card-set-due" onclick="openCardDueModal('${payId}')">Edit</button>
-        </div>`;
-      }else if(payId!=='cash'){
-        dueHtml=`<div class="exp-card-due-row"><button class="exp-card-set-due" onclick="openCardDueModal('${payId}')">+ Set due date</button></div>`;
-      }
-      // Per-currency totals
-      const tots={};items.forEach(e=>{tots[e.currency]=(tots[e.currency]||0)+e.amount;});
-      const totalStr=Object.entries(tots).map(([cur,amt])=>
-        `${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
-      ).join('<br>');
-      // Recent expenses (sorted by date desc, max 4)
-      const recent=[...items].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,4);
-      const rowsHtml=recent.map(e=>{
-        const dateFmt=e.date?new Date(e.date+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';
-        return`<div class="exp-card-expense-row" onclick="editExpense('${e.id}')">
-          <span class="exp-card-expense-label">${esc(e.label)}</span>
-          <span class="exp-card-expense-date">${dateFmt}</span>
-          <span class="exp-card-expense-amt">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-        </div>`;
-      }).join('');
-      const moreCount=items.length-recent.length;
-      const moreRow=moreCount>0?`<div style="padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);text-align:center">+${moreCount} more</div>`:'';
-      return`<div class="exp-card-group">
-        <div class="exp-card-header">
-          <div class="exp-card-logo">${pm?.logo||''}</div>
-          <div class="exp-card-info">
-            <div class="exp-card-name">${pm?.name||esc(payId)}</div>
-            ${dueHtml}
-          </div>
-          <div class="exp-card-total">${totalStr}</div>
-        </div>
-        <div class="exp-card-expenses">${rowsHtml}${moreRow}</div>
-      </div>`;
-    }).join('');
-    el.innerHTML=cardGroupsHtml;
     return;
   }
 
@@ -4503,6 +4418,75 @@ window.clearExpFilters=function(){
   _expFilterCats.clear();_expFilterPays.clear();
   renderExpenses();
 };
+
+// ── Budget tab — card summary view ────────────────────────────────────────
+function renderBudget(){
+  const trip=getTrip();if(!trip)return;
+  const allExpenses=trip.expenses||[];
+  const el=document.getElementById('budgetContainer');if(!el)return;
+
+  if(!allExpenses.length){
+    el.innerHTML=`<div class="exp-empty"><div class="exp-empty-icon">💳</div><p>No expenses yet.<br>Add some on the Expenses tab.</p></div>`;
+    return;
+  }
+
+  const byCard=new Map();
+  allExpenses.forEach(e=>{
+    const k=e.payWith||'cash';
+    if(!byCard.has(k))byCard.set(k,[]);
+    byCard.get(k).push(e);
+  });
+  const sorted=[...byCard.entries()].sort((a,b)=>{
+    const tA=a[1].reduce((s,e)=>s+e.amount,0);
+    const tB=b[1].reduce((s,e)=>s+e.amount,0);
+    return tB-tA;
+  });
+  const html=sorted.map(([payId,items])=>{
+    const pm=EXP_PAYMENTS.find(p=>p.id===payId);
+    const dueDay=_cardDueDays[payId];
+    let dueHtml='';
+    if(dueDay){
+      const due=_nextDueDate(dueDay);
+      const dueFmt=due.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      dueHtml=`<div class="exp-card-due-row">
+        <div class="exp-card-due-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+          Due ${dueFmt} · ${_ordinal(dueDay)} each month
+        </div>
+        <button class="exp-card-set-due" onclick="openCardDueModal('${payId}')">Edit</button>
+      </div>`;
+    }else if(payId!=='cash'){
+      dueHtml=`<div class="exp-card-due-row"><button class="exp-card-set-due" onclick="openCardDueModal('${payId}')">+ Set due date</button></div>`;
+    }
+    const tots={};items.forEach(e=>{tots[e.currency]=(tots[e.currency]||0)+e.amount;});
+    const totalStr=Object.entries(tots).map(([cur,amt])=>
+      `${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
+    ).join('<br>');
+    const recent=[...items].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,4);
+    const rowsHtml=recent.map(e=>{
+      const dateFmt=e.date?new Date(e.date+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';
+      return`<div class="exp-card-expense-row" onclick="editExpense('${e.id}')">
+        <span class="exp-card-expense-label">${esc(e.label)}</span>
+        <span class="exp-card-expense-date">${dateFmt}</span>
+        <span class="exp-card-expense-amt">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+      </div>`;
+    }).join('');
+    const moreCount=items.length-recent.length;
+    const moreRow=moreCount>0?`<div style="padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);text-align:center">+${moreCount} more</div>`:'';
+    return`<div class="exp-card-group">
+      <div class="exp-card-header">
+        <div class="exp-card-logo">${pm?.logo||''}</div>
+        <div class="exp-card-info">
+          <div class="exp-card-name">${pm?.name||esc(payId)}</div>
+          ${dueHtml}
+        </div>
+        <div class="exp-card-total">${totalStr}</div>
+      </div>
+      <div class="exp-card-expenses">${rowsHtml}${moreRow}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML=html;
+}
 
 // ── Card due date modal ────────────────────────────────────────────────────
 let _editingCardDueId=null;
