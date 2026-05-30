@@ -233,21 +233,28 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* ── Segmented tabs ── */
 .cl-tabs{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;
+  background:rgba(26,26,46,.07);
+  border-radius:12px;
+  padding:3px;
   margin-bottom:24px;
+  position:relative;
 }
 .cl-tab{
-  display:inline-flex;align-items:center;
-  padding:9px 18px;
-  border:1.5px solid var(--border);background:var(--white);
-  border-radius:99px;
+  flex:1;position:relative;z-index:1;
+  padding:9px 0;border:none;background:none;
   font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
-  color:var(--muted);cursor:pointer;
-  transition:background .15s,color .15s,border-color .15s;
-  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  color:var(--muted);cursor:pointer;border-radius:9px;
+  transition:color .18s;
 }
-.cl-tab.active{
-  background:var(--accent);color:#fff;border-color:var(--accent);
+.cl-tab.active{color:var(--ink);}
+.cl-tab-pill{
+  position:absolute;top:3px;left:3px;
+  width:calc(50% - 3px);height:calc(100% - 6px);
+  background:var(--white);border-radius:9px;
+  box-shadow:0 1px 4px rgba(26,26,46,.12);
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;
 }
 .cl-tab-panel{display:none;}
 .cl-tab-panel.active{display:block;}
@@ -1271,6 +1278,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   </div>
   <!-- Segmented tabs -->
   <div class="cl-tabs" id="clTabs">
+    <div class="cl-tab-pill" id="clTabPill"></div>
     <button class="cl-tab active" id="clTabPacking" onclick="setTripTab('packing')">Packing List</button>
     <button class="cl-tab" id="clTabExpenses" onclick="setTripTab('expenses')">Expenses</button>
   </div>
@@ -4091,6 +4099,7 @@ window.setTripTab=function(tab){
   sessionStorage.setItem('packly-cl-tab',tab);
   document.getElementById('clTabPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clTabExpenses').classList.toggle('active',tab==='expenses');
+  document.getElementById('clTabPill').style.transform=tab==='expenses'?'translateX(100%)':'';
   document.getElementById('clPanelPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clPanelExpenses').classList.toggle('active',tab==='expenses');
   document.body.classList.toggle('show-expense-fab',tab==='expenses');
