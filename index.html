@@ -4240,7 +4240,7 @@ function renderExpenses(){
       :'No date';
     return`<div class="exp-day-group">
       <div class="exp-day-header">
-        <span class="exp-day-label">${labelStr}</span>
+        <span class="exp-day-label">${labelStr} <span style="font-weight:400;opacity:.6">(${items.length})</span></span>
         <span class="exp-day-total">${dayTotalStr}</span>
       </div>
       <div class="exp-list">${items.map(expItemHtml).join('')}</div>
