@@ -2557,6 +2557,9 @@ async function onSignedIn(user){
   document.getElementById('sheetEmail').textContent=user.email;
   document.getElementById('sheetName').textContent=_currentUserName||user.email;
   document.getElementById('authOverlay').classList.remove('open');
+  // Capture restore targets before _clClose() wipes sessionStorage
+  const _restoreTripId=sessionStorage.getItem('packly-nav');
+  const _restoreClTab=sessionStorage.getItem('packly-cl-tab')||'packing';
   // Show skeleton while cloud loads
   _clClose();
   showTripsSkeleton();
@@ -2605,12 +2608,13 @@ async function onSignedIn(user){
   trips=[...byId.values()];
   saveLocalOnly(trips);
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
-  const savedTripId=sessionStorage.getItem('packly-nav');
-  const savedTrip=savedTripId&&trips.find(t=>t.id===savedTripId);
+  const savedTrip=_restoreTripId&&trips.find(t=>t.id===_restoreTripId);
   if(savedTrip){
     showTrips();
     dismissAppLoader();
-    showChecklist(savedTripId);
+    showChecklist(_restoreTripId);
+    // Restore whichever tab was active (packing or expenses)
+    setTripTab(_restoreClTab);
   } else {
     showTrips();
     dismissAppLoader();
@@ -4274,6 +4278,8 @@ if(location.hash==='#checklist') history.replaceState(null,'',location.pathname)
 
 // Listen for auth changes (login/logout)
 sb.auth.onAuthStateChange((event,session)=>{
+  // TOKEN_REFRESHED fires on every app-switch / PWA resume — skip full re-init
+  if(event==='TOKEN_REFRESHED')return;
   if(session)onSignedIn(session.user);
   else onSignedOut();
 });
