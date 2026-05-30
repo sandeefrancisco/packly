@@ -4560,6 +4560,9 @@ window.editExpense=function(id){
   else{disp.textContent='Select date';disp.className='cal-trigger-val empty';}
   document.getElementById('expNotes').value=e.notes||'';
   ['expAmountError','expLabelError'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent='';e.classList.remove('show');}});
+  document.getElementById('expAmount').classList.remove('error');
+  document.getElementById('expLabel').classList.remove('error');
+  document.getElementById('expAmount').closest('.amount-cur-row')?.classList.remove('error');
   renderPayChips(e.payWith||'visa');
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
