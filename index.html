@@ -403,12 +403,40 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 #expDateTrigger{background:var(--tint);border-radius:12px;border:1.5px solid var(--border);transition:border-color .12s;}
 #expDateTrigger:hover,#expDateTrigger:focus-within{border-color:var(--accent);background:var(--white);}
 /* Expense filter bar */
-.exp-filter-bar{
-  display:flex;gap:6px;overflow-x:auto;
-  padding:4px 0 12px;
+.exp-filter-row{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:12px;flex-wrap:wrap;
+}
+/* Category dropdown */
+.exp-cat-select-wrap{position:relative;flex-shrink:0;}
+.exp-cat-select{
+  appearance:none;-webkit-appearance:none;
+  padding:9px 34px 9px 14px;
+  min-height:40px;
+  border-radius:99px;
+  border:1.5px solid var(--border);background:var(--white);
+  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;color:var(--muted);
+  cursor:pointer;
+  transition:border-color .14s,color .14s;
+  -webkit-tap-highlight-color:transparent;
+}
+.exp-cat-select.active{border-color:var(--accent);color:var(--accent);}
+.exp-cat-select-wrap::after{
+  content:'';
+  position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  width:0;height:0;
+  border-left:4px solid transparent;border-right:4px solid transparent;
+  border-top:5px solid var(--muted);
+  pointer-events:none;
+}
+.exp-cat-select-wrap:has(.exp-cat-select.active)::after{border-top-color:var(--accent);}
+/* Payment chips */
+.exp-pay-filter-bar{
+  display:flex;gap:6px;overflow-x:auto;flex:1;
+  padding:2px 0 2px;
   scrollbar-width:none;-ms-overflow-style:none;
 }
-.exp-filter-bar::-webkit-scrollbar{display:none}
+.exp-pay-filter-bar::-webkit-scrollbar{display:none}
 .exp-filter-chip{
   display:inline-flex;align-items:center;gap:6px;
   padding:8px 14px 8px 8px;
@@ -421,25 +449,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .exp-filter-chip:active{opacity:.75;}
-.chip-icon{
-  width:22px;height:22px;border-radius:7px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-}
-.chip-icon svg{width:12px;height:12px;stroke-width:2;}
 .chip-pay-logo{display:inline-flex;align-items:center;}
 .chip-pay-logo svg{width:26px;height:17px;border-radius:4px;overflow:hidden;}
-.exp-filter-clear{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:8px 14px 8px 10px;
-  min-height:40px;
-  border-radius:99px;
-  border:1.5px solid var(--border);background:var(--tint);
-  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;color:var(--ink);
-  white-space:nowrap;cursor:pointer;flex-shrink:0;
-  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
-}
-.exp-filter-clear:active{opacity:.75;}
-.exp-filter-clear svg{width:13px;height:13px;stroke-width:2.5;}
 
 /* luggage compact bar */
 .luggage-bar{
@@ -4171,28 +4182,21 @@ function renderExpenses(){
     ?`Filtered Total <span style="font-size:11px;font-weight:500;opacity:.6;letter-spacing:0;text-transform:none">${expenses.length} of ${allExpenses.length}</span>`
     :'Total Spent';
 
-  // Build filter bar — show chips for categories and payments used in this trip
+  // Build filter row — category dropdown + payment chips
   const usedCats=[...new Set(allExpenses.map(e=>e.category))].filter(Boolean)
     .sort((a,b)=>a.localeCompare(b));
   const usedPays=[...new Set(allExpenses.map(e=>e.payWith))].filter(Boolean);
 
-  function _catChipIcon(catKey,active){
-    const cat=EXP_CATS[catKey]||EXP_CATS.Other;
-    const bg=active?cat.color:cat.bg;
-    const stroke=active?'#fff':cat.color;
-    return`<span class="chip-icon" style="background:${bg}"><svg viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg></span>`;
-  }
-
-  const clearChip=hasFilter
-    ?`<button class="exp-filter-clear" onclick="clearExpFilters()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Clear</button>`
+  const activeCat=[..._expFilterCats][0]||'';
+  const catOptions=usedCats.map(k=>`<option value="${k}"${k===activeCat?' selected':''}>${k}</option>`).join('');
+  const catSelect=usedCats.length>1
+    ?`<div class="exp-cat-select-wrap">
+        <select class="exp-cat-select${activeCat?' active':''}" onchange="onExpCatFilter(this.value)">
+          <option value="">All categories</option>
+          ${catOptions}
+        </select>
+      </div>`
     :'';
-
-  const catChips=usedCats.map(catKey=>{
-    const cat=EXP_CATS[catKey]||EXP_CATS.Other;
-    const active=_expFilterCats.has(catKey);
-    const chipStyle=active?`border-color:${cat.color};background:${cat.bg};color:${cat.color}`:'';
-    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('cat','${catKey}')">${_catChipIcon(catKey,active)}${catKey}</button>`;
-  }).join('');
 
   const payChips=usedPays.map(payId=>{
     const pm=EXP_PAYMENTS.find(p=>p.id===payId);if(!pm)return'';
@@ -4200,9 +4204,10 @@ function renderExpenses(){
     const chipStyle=active?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
     return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('pay','${payId}')"><span class="chip-pay-logo">${pm.logo}</span>${pm.name}</button>`;
   }).join('');
+  const payBar=usedPays.length>1?`<div class="exp-pay-filter-bar">${payChips}</div>`:'';
 
-  const filterBarHtml=(usedCats.length+usedPays.length>1)
-    ?`<div class="exp-filter-bar">${clearChip}${catChips}${payChips}</div>`
+  const filterBarHtml=(catSelect||payBar)
+    ?`<div class="exp-filter-row">${catSelect}${payBar}</div>`
     :'';
 
   // Group expenses by date (undated go last)
@@ -4278,8 +4283,13 @@ function renderExpenses(){
     ${groupsHtml}`;
 }
 
+window.onExpCatFilter=function(value){
+  _expFilterCats.clear();
+  if(value)_expFilterCats.add(value);
+  renderExpenses();
+};
 window.toggleExpFilter=function(type,value){
-  const set=type==='cat'?_expFilterCats:_expFilterPays;
+  const set=type==='pay'?_expFilterPays:_expFilterCats;
   if(set.has(value))set.delete(value);else set.add(value);
   renderExpenses();
 };
