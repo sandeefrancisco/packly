@@ -783,6 +783,11 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
 #calOverlay{z-index:400;}
 #currencyPickerOverlay{z-index:300;}
+.amount-cur-row{display:flex;border:1.5px solid var(--border);border-radius:12px;background:var(--tint);overflow:hidden;transition:border-color .12s;}
+.amount-cur-row:focus-within{border-color:var(--accent);background:var(--white);}
+.cur-inline-btn{flex-shrink:0;display:flex;align-items:center;gap:4px;padding:13px 14px;background:none;border:none;border-right:1.5px solid var(--border);font-family:'Figtree',sans-serif;font-size:15px;font-weight:700;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;}
+.cur-inline-btn svg{color:var(--muted);}
+.amount-cur-row input{flex:1;border:none;background:transparent;padding:13px 16px;font-family:'Figtree',sans-serif;font-size:16px;font-weight:500;color:var(--ink);outline:none;min-width:0;}
 .cur-trigger{
   width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);
   background:var(--tint);font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--ink);
@@ -1778,19 +1783,18 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
       </div>
       <div class="field">
         <label>Amount</label>
-        <input id="expAmount" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00">
+        <div class="amount-cur-row">
+          <button type="button" class="cur-inline-btn" id="expCurrencyTrigger" onclick="openCurrencyPicker()">
+            <span id="expCurrencyDisplay">EUR</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <input id="expAmount" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00">
+        </div>
+        <input type="hidden" id="expCurrency" value="EUR">
       </div>
       <div class="field">
         <label>Description</label>
         <input id="expLabel" placeholder="e.g. Dinner, Taxi, Hotel" maxlength="60">
-      </div>
-      <div class="field">
-        <label>Currency</label>
-        <button type="button" class="cur-trigger" id="expCurrencyTrigger" onclick="openCurrencyPicker()">
-          <span id="expCurrencyDisplay">EUR – Euro</span>
-          <svg class="cur-trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <input type="hidden" id="expCurrency" value="EUR">
       </div>
       <div class="field">
         <label>Date</label>
@@ -4403,7 +4407,7 @@ const CURRENCIES=[
 
 function _setCurrency(code,name){
   document.getElementById('expCurrency').value=code;
-  document.getElementById('expCurrencyDisplay').textContent=code+' – '+name;
+  document.getElementById('expCurrencyDisplay').textContent=code;
 }
 
 function renderCurrencyList(query){
