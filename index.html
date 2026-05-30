@@ -343,9 +343,9 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .btn-add-expense:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.04);}
 /* Expense modal fixed-footer layout */
-.exp-modal{display:flex;flex-direction:column;padding-bottom:0!important;}
+.exp-modal{display:flex;flex-direction:column;padding-bottom:0!important;overflow:hidden;}
 .exp-modal h2{flex-shrink:0}
-.exp-modal-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px;}
+.exp-modal-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px;}
 .exp-modal-footer{
   flex-shrink:0;
   padding:16px 0 calc(16px + env(safe-area-inset-bottom));
@@ -674,6 +674,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* ── MODAL → Bottom Sheet ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
+#calOverlay{z-index:400;}
 .overlay.open{display:flex}
 .modal{background:var(--white);border-radius:24px 24px 0 0;padding:28px 28px calc(44px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 -8px 40px rgba(26,26,46,.14);animation:slideUp .28s cubic-bezier(.32,.72,0,1)}
 .modal{position:relative}
