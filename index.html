@@ -344,14 +344,35 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .field textarea:focus{border-color:var(--accent);background:var(--white)}
 .btn-add-expense{
-  width:100%;padding:14px;border-radius:var(--r-card);
-  border:none;background:var(--accent);
-  font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;
-  color:#fff;cursor:pointer;transition:opacity .12s;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  margin-top:0;margin-bottom:16px;
+  display:none; /* hidden by default; shown via .expenses-active class on checklistView */
 }
-.btn-add-expense:hover{opacity:.88;}
+/* FAB — floating action button for Add Expense */
+.exp-fab{
+  position:fixed;
+  right:max(20px, env(safe-area-inset-right) + 16px);
+  bottom:calc(28px + env(safe-area-inset-bottom));
+  width:56px;height:56px;
+  border-radius:50%;
+  border:none;
+  background:var(--accent);
+  color:#fff;
+  cursor:pointer;
+  display:none; /* toggled by JS when expenses tab is active */
+  align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(99,102,241,.45),0 2px 6px rgba(0,0,0,.18);
+  z-index:60; /* above content, below overlays (z-index:200) */
+  transition:transform .12s cubic-bezier(.32,.72,0,1),box-shadow .12s,opacity .18s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.exp-fab:hover{box-shadow:0 6px 24px rgba(99,102,241,.55),0 3px 8px rgba(0,0,0,.22);}
+.exp-fab:active{transform:scale(.93);}
+.exp-fab:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
+.exp-fab svg{width:26px;height:26px;stroke-width:2.5;pointer-events:none;}
+/* Show FAB only on expenses tab */
+#checklistView.expenses-active .exp-fab{display:flex;}
+/* Extra bottom padding on expenses panel so FAB never covers the last row */
+#clPanelExpenses{padding-bottom:calc(80px + env(safe-area-inset-bottom));}
 /* Expense modal fixed-footer layout */
 .exp-modal{display:flex;flex-direction:column;padding-bottom:0!important;overflow:hidden;}
 .exp-modal h2{flex-shrink:0}
@@ -1264,6 +1285,14 @@ svg.lucide-2xl{width:28px;height:28px}
   <div class="cl-tab-panel" id="clPanelExpenses">
     <div id="expensesContainer"></div>
   </div>
+
+  <!-- FAB: Add Expense — visible only on expenses tab, fixed bottom-right -->
+  <button class="exp-fab" onclick="openAddExpense()"
+    aria-label="Add expense" role="button" title="Add Expense">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
 </div>
 </div><!-- /navStack -->
 
@@ -4098,6 +4127,7 @@ window.setTripTab=function(tab){
   document.getElementById('clTabPill').style.transform=tab==='expenses'?'translateX(100%)':'';
   document.getElementById('clPanelPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clPanelExpenses').classList.toggle('active',tab==='expenses');
+  document.getElementById('checklistView').classList.toggle('expenses-active',tab==='expenses');
   if(tab==='expenses')renderExpenses();
 };
 
@@ -4129,7 +4159,7 @@ function renderExpenses(){
   const el=document.getElementById('expensesContainer');if(!el)return;
 
   if(!expenses.length){
-    el.innerHTML=`<button class="btn-add-expense" onclick="openAddExpense()"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Expense</button><div class="exp-empty"><div class="exp-empty-icon">💸</div><p>No expenses yet.<br>Tap above to track your spending.</p></div>`;
+    el.innerHTML=`<div class="exp-empty"><div class="exp-empty-icon">💸</div><p>No expenses yet.<br>Tap <strong>+</strong> to track your spending.</p></div>`;
     return;
   }
 
@@ -4190,13 +4220,11 @@ function renderExpenses(){
     </div>`;
   }).join('');
 
-  const addBtn=`<button class="btn-add-expense" onclick="openAddExpense()"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Expense</button>`;
   el.innerHTML=`
     <div class="exp-total-card">
       <div class="exp-total-label">Total Spent</div>
       ${totalHtml}
     </div>
-    ${addBtn}
     ${groupsHtml}`;
 }
 
