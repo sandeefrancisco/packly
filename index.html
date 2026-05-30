@@ -343,36 +343,41 @@ svg.lucide-2xl{width:28px;height:28px}
   outline:none;transition:border-color .12s;resize:none;min-height:80px;
 }
 .field textarea:focus{border-color:var(--accent);background:var(--white)}
-.btn-add-expense{
-  display:none; /* hidden by default; shown via .expenses-active class on checklistView */
-}
-/* FAB — floating action button for Add Expense */
+.btn-add-expense{display:none;}
+/* ── FAB: Add Expense ───────────────────────────────────────────────────────
+   Must live outside every CSS transform / will-change ancestor (#navStack,
+   #checklistView both use translateX), so position:fixed anchors to the
+   true viewport. The element is placed just before </body> in the HTML. */
 .exp-fab{
   position:fixed;
   right:max(20px, env(safe-area-inset-right) + 16px);
-  bottom:calc(28px + env(safe-area-inset-bottom));
+  bottom:calc(24px + env(safe-area-inset-bottom));
   width:56px;height:56px;
   border-radius:50%;
   border:none;
   background:var(--accent);
   color:#fff;
   cursor:pointer;
-  display:none; /* toggled by JS when expenses tab is active */
+  /* hidden by default; body.show-expense-fab reveals it */
+  display:flex;
   align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transform:scale(.8);
   box-shadow:0 4px 16px rgba(99,102,241,.45),0 2px 6px rgba(0,0,0,.18);
-  z-index:60; /* above content, below overlays (z-index:200) */
-  transition:transform .12s cubic-bezier(.32,.72,0,1),box-shadow .12s,opacity .18s;
+  z-index:150; /* above page content, below overlays (z-index:200) */
+  transition:opacity .18s cubic-bezier(.32,.72,0,1),
+             transform .18s cubic-bezier(.32,.72,0,1);
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
 }
+/* Revealed when expenses tab is active */
+body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);}
 .exp-fab:hover{box-shadow:0 6px 24px rgba(99,102,241,.55),0 3px 8px rgba(0,0,0,.22);}
-.exp-fab:active{transform:scale(.93);}
+.exp-fab:active{transform:scale(.91)!important;}
 .exp-fab:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
 .exp-fab svg{width:26px;height:26px;stroke-width:2.5;pointer-events:none;}
-/* Show FAB only on expenses tab */
-#checklistView.expenses-active .exp-fab{display:flex;}
-/* Extra bottom padding on expenses panel so FAB never covers the last row */
-#clPanelExpenses{padding-bottom:calc(80px + env(safe-area-inset-bottom));}
+/* Extra bottom padding so FAB never covers the last expense row */
+#clPanelExpenses{padding-bottom:calc(88px + env(safe-area-inset-bottom));}
 /* Expense modal fixed-footer layout */
 .exp-modal{display:flex;flex-direction:column;padding-bottom:0!important;overflow:hidden;}
 .exp-modal h2{flex-shrink:0}
@@ -1285,14 +1290,6 @@ svg.lucide-2xl{width:28px;height:28px}
   <div class="cl-tab-panel" id="clPanelExpenses">
     <div id="expensesContainer"></div>
   </div>
-
-  <!-- FAB: Add Expense — visible only on expenses tab, fixed bottom-right -->
-  <button class="exp-fab" onclick="openAddExpense()"
-    aria-label="Add expense" role="button" title="Add Expense">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-  </button>
 </div>
 </div><!-- /navStack -->
 
@@ -2859,6 +2856,7 @@ function _doShowTrips(){
   stopSharedTripPolling();
   trips=loadAll();
   _clClose();
+  document.body.classList.remove('show-expense-fab');
   renderTrips();
 }
 window.showTrips=function(){
@@ -4127,7 +4125,7 @@ window.setTripTab=function(tab){
   document.getElementById('clTabPill').style.transform=tab==='expenses'?'translateX(100%)':'';
   document.getElementById('clPanelPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clPanelExpenses').classList.toggle('active',tab==='expenses');
-  document.getElementById('checklistView').classList.toggle('expenses-active',tab==='expenses');
+  document.body.classList.toggle('show-expense-fab',tab==='expenses');
   if(tab==='expenses')renderExpenses();
 };
 
@@ -4676,5 +4674,14 @@ window.addEventListener('pageshow',(ev)=>{
   );
 })();
 </script>
+
+<!-- FAB lives here — outside every transformed/will-change ancestor so position:fixed
+     is relative to the true viewport, not a stacking-context container -->
+<button class="exp-fab" id="expFab" onclick="openAddExpense()"
+  aria-label="Add expense" title="Add Expense">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
 </body>
 </html>
