@@ -295,12 +295,6 @@ svg.lucide-2xl{width:28px;height:28px}
 .exp-item-notes{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .exp-item{cursor:pointer;}
 .exp-item:active{background:var(--tint);}
-.exp-item-del{
-  width:28px;height:28px;border-radius:50%;border:none;background:none;
-  color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:background .12s,color .12s;
-}
-.exp-item-del:hover{background:rgba(220,53,69,.1);color:#dc3545;}
 .exp-day-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:10px 4px 6px;
@@ -389,8 +383,17 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   padding:16px 0 calc(16px + env(safe-area-inset-bottom));
   border-top:1px solid var(--border);
   margin-top:8px;
+  display:flex;gap:10px;
 }
-.exp-modal-footer .btn-save{width:100%;}
+.exp-modal-footer .btn-save{flex:1;}
+.exp-modal-footer .btn-del-expense{
+  width:48px;height:48px;border-radius:12px;border:1.5px solid var(--border);
+  background:none;color:var(--muted);cursor:pointer;
+  display:none;align-items:center;justify-content:center;flex-shrink:0;
+  transition:background .12s,color .12s,border-color .12s;
+}
+.exp-modal-footer .btn-del-expense:hover{background:rgba(220,53,69,.08);color:#dc3545;border-color:#dc3545;}
+.exp-modal-footer .btn-del-expense svg{width:18px;height:18px;}
 /* Date trigger inside expense modal */
 .exp-date-trigger-inner{
   display:flex;align-items:center;gap:10px;
@@ -1738,6 +1741,9 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
       <div id="expenseError" class="auth-error"></div>
     </div>
     <div class="exp-modal-footer">
+      <button class="btn-del-expense" id="expenseDelBtn" onclick="deleteEditingExpense()" title="Delete expense" aria-label="Delete expense">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
       <button class="btn-save" id="expenseSaveBtn" onclick="saveExpense()">Add</button>
     </div>
   </div>
@@ -4224,9 +4230,6 @@ function renderExpenses(){
         ${e.notes?`<div class="exp-item-notes">${esc(e.notes)}</div>`:''}
       </div>
       <div class="exp-item-amount">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-      <button class="exp-item-del" onclick="event.stopPropagation();deleteExpense('${e.id}')" title="Delete">
-        <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-      </button>
     </div>`;
   }
 
@@ -4280,6 +4283,7 @@ window.openAddExpense=function(){
   _editingExpenseId=null;
   document.getElementById('expenseModalTitle').textContent='Add Expense';
   document.getElementById('expenseSaveBtn').textContent='Add';
+  document.getElementById('expenseDelBtn').style.display='none';
   document.getElementById('expLabel').value='';
   document.getElementById('expAmount').value='';
   document.getElementById('expCategory').value='Food';
@@ -4315,6 +4319,7 @@ window.editExpense=function(id){
   _editingExpenseId=id;
   document.getElementById('expenseModalTitle').textContent='Edit Expense';
   document.getElementById('expenseSaveBtn').textContent='Save';
+  document.getElementById('expenseDelBtn').style.display='flex';
   document.getElementById('expLabel').value=e.label||'';
   document.getElementById('expAmount').value=e.amount!=null?e.amount:'';
   document.getElementById('expCategory').value=e.category||'Food';
@@ -4363,6 +4368,12 @@ window.deleteExpense=function(id){
   trip.expenses=(trip.expenses||[]).filter(e=>e.id!==id);
   saveAll(trips);
   renderExpenses();
+};
+
+window.deleteEditingExpense=function(){
+  if(!_editingExpenseId)return;
+  deleteExpense(_editingExpenseId);
+  closeExpenseModal();
 };
 
 /* ── INIT ── */
