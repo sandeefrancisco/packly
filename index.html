@@ -1646,7 +1646,7 @@ svg.lucide-2xl{width:28px;height:28px}
       </div>
       <div class="field">
         <label>Amount</label>
-        <input id="expAmount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+        <input id="expAmount" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00">
       </div>
       <div class="field">
         <label>Currency</label>
@@ -4168,7 +4168,7 @@ window.handleExpenseOverlay=function(e){
 
 window.saveExpense=function(){
   const label=document.getElementById('expLabel').value.trim();
-  const amount=parseFloat(document.getElementById('expAmount').value);
+  const amount=parseFloat(document.getElementById('expAmount').value.replace(',','.'));
   const currency=document.getElementById('expCurrency').value;
   const category=document.getElementById('expCategory').value;
   const date=document.getElementById('expDateTrigger').dataset.date||'';
