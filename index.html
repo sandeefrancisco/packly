@@ -394,6 +394,30 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 }
 .exp-modal-footer .btn-del-expense:hover{background:rgba(220,53,69,.08);color:#dc3545;border-color:#dc3545;}
 .exp-modal-footer .btn-del-expense svg{width:18px;height:18px;}
+/* Category picker grid */
+.exp-cat-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+}
+.exp-cat-opt{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:10px 4px;border-radius:12px;
+  border:1.5px solid var(--border);background:var(--white);
+  cursor:pointer;
+  transition:border-color .14s,background .14s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.exp-cat-opt:active{opacity:.75;}
+.exp-cat-opt.active{background:var(--tint);}
+.exp-cat-opt-icon{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.exp-cat-opt-icon svg{width:17px;height:17px;stroke-width:2;}
+.exp-cat-opt-label{
+  font-size:10px;font-weight:700;color:var(--muted);
+  text-align:center;line-height:1.2;
+  width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 /* Date trigger inside expense modal */
 .exp-date-trigger-inner{
   display:flex;align-items:center;gap:10px;
@@ -1708,16 +1732,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <div class="exp-modal-body" data-scroll-inner>
       <div class="field">
         <label>Category</label>
-        <select id="expCategory">
-          <option value="Food">Food & drinks</option>
-          <option value="Transport">Transport</option>
-          <option value="Accommodation">Accommodation</option>
-          <option value="Shopping">Shopping</option>
-          <option value="Entertainment">Entertainment</option>
-          <option value="Health">Health</option>
-          <option value="Other">Other</option>
-          <option value="Misc">Misc</option>
-        </select>
+        <div class="exp-cat-grid" id="expCatGrid"></div>
+        <input type="hidden" id="expCategory" value="Food">
       </div>
       <div class="field">
         <label>Description</label>
@@ -4311,12 +4327,26 @@ function renderPayChips(selected){
 }
 window.selectPayment=function(id){
   _selectedPayment=id;
-  document.querySelectorAll('.exp-pay-chip').forEach(c=>{
-    c.classList.toggle('selected',c.querySelector('.exp-pay-name').textContent===EXP_PAYMENTS.find(p=>p.id===id)?.name);
-  });
-  // simpler: re-render
   renderPayChips(id);
 };
+
+function renderExpCatGrid(selected){
+  const grid=document.getElementById('expCatGrid');if(!grid)return;
+  document.getElementById('expCategory').value=selected;
+  grid.innerHTML=Object.entries(EXP_CATS).map(([key,cat])=>{
+    const active=key===selected;
+    const iconBg=active?cat.color:cat.bg;
+    const iconStroke=active?'#fff':cat.color;
+    const borderStyle=active?`border-color:${cat.color}`:'';
+    const labelStyle=active?`color:${cat.color}`:'';
+    const shortLabel=key==='Accommodation'?'Stay':key==='Entertainment'?'Fun':key==='Transport'?'Travel':key;
+    return`<button type="button" class="exp-cat-opt${active?' active':''}" style="${borderStyle}" onclick="selectExpCat('${key}')">
+      <span class="exp-cat-opt-icon" style="background:${iconBg}"><svg viewBox="0 0 24 24" fill="none" stroke="${iconStroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg></span>
+      <span class="exp-cat-opt-label" style="${labelStyle}">${shortLabel}</span>
+    </button>`;
+  }).join('');
+}
+window.selectExpCat=function(key){renderExpCatGrid(key);};
 
 window.openAddExpense=function(){
   _editingExpenseId=null;
@@ -4325,7 +4355,7 @@ window.openAddExpense=function(){
   document.getElementById('expenseDelBtn').style.display='none';
   document.getElementById('expLabel').value='';
   document.getElementById('expAmount').value='';
-  document.getElementById('expCategory').value='Food';
+  renderExpCatGrid('Food');
   // Pre-fill today's date on the trigger
   const todayStr=new Date().toISOString().slice(0,10);
   const trigger=document.getElementById('expDateTrigger');
@@ -4361,7 +4391,7 @@ window.editExpense=function(id){
   document.getElementById('expenseDelBtn').style.display='flex';
   document.getElementById('expLabel').value=e.label||'';
   document.getElementById('expAmount').value=e.amount!=null?e.amount:'';
-  document.getElementById('expCategory').value=e.category||'Food';
+  renderExpCatGrid(e.category||'Food');
   document.getElementById('expCurrency').value=e.currency||'EUR';
   const trigger=document.getElementById('expDateTrigger');
   trigger.dataset.date=e.date||'';
