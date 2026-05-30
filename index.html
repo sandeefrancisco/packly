@@ -291,12 +291,21 @@ svg.lucide-2xl{width:28px;height:28px}
 .exp-item-amount{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;}
 .exp-item-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .exp-item-notes{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.exp-item{cursor:pointer;}
+.exp-item:active{background:var(--tint);}
 .exp-item-del{
   width:28px;height:28px;border-radius:50%;border:none;background:none;
   color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
   flex-shrink:0;transition:background .12s,color .12s;
 }
 .exp-item-del:hover{background:rgba(220,53,69,.1);color:#dc3545;}
+.exp-day-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 4px 6px;
+}
+.exp-day-label{font-size:13px;font-weight:600;color:var(--muted);}
+.exp-day-total{font-size:13px;font-weight:700;color:var(--ink);}
+.exp-day-group{margin-bottom:12px;}
 /* Payment method chips */
 .exp-pay-row{
   display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;
@@ -4084,39 +4093,69 @@ function renderExpenses(){
     return;
   }
 
-  // Group by currency for totals
+  // Overall totals by currency
   const totals={};
   expenses.forEach(e=>{totals[e.currency]=(totals[e.currency]||0)+e.amount;});
   const totalHtml=Object.entries(totals).map(([cur,amt])=>
     `<div class="exp-total-amount">${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`
   ).join('');
 
+  // Group expenses by date (undated go last)
+  const byDate=new Map();
+  expenses.forEach(e=>{
+    const key=e.date||'';
+    if(!byDate.has(key))byDate.set(key,[]);
+    byDate.get(key).push(e);
+  });
+  // Sort date keys descending (most recent first), undated last
+  const sortedKeys=[...byDate.keys()].sort((a,b)=>{
+    if(!a)return 1;if(!b)return-1;return b.localeCompare(a);
+  });
+
+  function expItemHtml(e){
+    const pm=EXP_PAYMENTS.find(p=>p.id===e.payWith);
+    const payBadge=pm?`<span class="exp-pay-badge" title="${pm.name}">${pm.logo}${pm.name}</span>`:'';
+    const metaParts=[e.category,payBadge].filter(Boolean);
+    return`<div class="exp-item" onclick="editExpense('${e.id}')">
+      <div class="exp-cat-dot" style="background:${EXP_CATS[e.category]||EXP_CATS.Other}"></div>
+      <div class="exp-item-info">
+        <div class="exp-item-label">${esc(e.label)}</div>
+        <div class="exp-item-meta">${metaParts.join('<span style="opacity:.35">·</span>')}</div>
+        ${e.notes?`<div class="exp-item-notes">${esc(e.notes)}</div>`:''}
+      </div>
+      <div class="exp-item-amount">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <button class="exp-item-del" onclick="event.stopPropagation();deleteExpense('${e.id}')" title="Delete">
+        <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>`;
+  }
+
+  const groupsHtml=sortedKeys.map(key=>{
+    const items=byDate.get(key);
+    // Day total by currency
+    const dayTotals={};
+    items.forEach(e=>{dayTotals[e.currency]=(dayTotals[e.currency]||0)+e.amount;});
+    const dayTotalStr=Object.entries(dayTotals).map(([cur,amt])=>
+      `${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
+    ).join(' · ');
+    const labelStr=key
+      ?new Date(key+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
+      :'No date';
+    return`<div class="exp-day-group">
+      <div class="exp-day-header">
+        <span class="exp-day-label">${labelStr}</span>
+        <span class="exp-day-total">${dayTotalStr}</span>
+      </div>
+      <div class="exp-list">${items.map(expItemHtml).join('')}</div>
+    </div>`;
+  }).join('');
+
   el.innerHTML=`
     <div class="exp-total-card">
       <div class="exp-total-label">Total Spent</div>
       ${totalHtml}
     </div>
-    <div class="exp-list">
-      ${expenses.map(e=>{
-        const pm=EXP_PAYMENTS.find(p=>p.id===e.payWith);
-        const dateStr=e.date?new Date(e.date+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';
-        const payBadge=pm?`<span class="exp-pay-badge" title="${pm.name}">${pm.logo}${pm.name}</span>`:'';
-        const datePart=dateStr?`<span>${dateStr}</span>`:'';
-        const metaParts=[e.category,datePart,payBadge].filter(Boolean);
-        return`<div class="exp-item">
-          <div class="exp-cat-dot" style="background:${EXP_CATS[e.category]||EXP_CATS.Other}"></div>
-          <div class="exp-item-info">
-            <div class="exp-item-label">${esc(e.label)}</div>
-            <div class="exp-item-meta">${metaParts.join('<span style="opacity:.35">·</span>')}</div>
-            ${e.notes?`<div class="exp-item-notes">${esc(e.notes)}</div>`:''}
-          </div>
-          <div class="exp-item-amount">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-          <button class="exp-item-del" onclick="deleteExpense('${e.id}')" title="Delete">
-            <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          </button>
-        </div>`;
-      }).join('')}
-    </div>`;
+    ${groupsHtml}`;
 }
 
 function renderPayChips(selected){
@@ -4166,6 +4205,28 @@ window.handleExpenseOverlay=function(e){
   if(e.target===document.getElementById('expenseOverlay'))closeExpenseModal();
 };
 
+window.editExpense=function(id){
+  const trip=getTrip();if(!trip)return;
+  const e=(trip.expenses||[]).find(x=>x.id===id);if(!e)return;
+  _editingExpenseId=id;
+  document.getElementById('expenseModalTitle').textContent='Edit Expense';
+  document.getElementById('expenseSaveBtn').textContent='Save';
+  document.getElementById('expLabel').value=e.label||'';
+  document.getElementById('expAmount').value=e.amount!=null?e.amount:'';
+  document.getElementById('expCategory').value=e.category||'Food';
+  document.getElementById('expCurrency').value=e.currency||'USD';
+  const trigger=document.getElementById('expDateTrigger');
+  trigger.dataset.date=e.date||'';
+  const disp=document.getElementById('expDateDisplay');
+  if(e.date){disp.textContent=_calFmt(e.date);disp.className='cal-trigger-val';}
+  else{disp.textContent='Select date';disp.className='cal-trigger-val empty';}
+  document.getElementById('expNotes').value=e.notes||'';
+  document.getElementById('expenseError').textContent='';
+  renderPayChips(e.payWith||'cash');
+  document.getElementById('expenseOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('expLabel').focus(),50);
+};
+
 window.saveExpense=function(){
   const label=document.getElementById('expLabel').value.trim();
   const amount=parseFloat(document.getElementById('expAmount').value.replace(',','.'));
@@ -4181,7 +4242,12 @@ window.saveExpense=function(){
 
   const trip=getTrip();if(!trip)return;
   if(!trip.expenses)trip.expenses=[];
-  trip.expenses.unshift({id:uid(),label,amount,currency,category,date,notes,payWith});
+  if(_editingExpenseId){
+    const idx=trip.expenses.findIndex(e=>e.id===_editingExpenseId);
+    if(idx>-1)trip.expenses[idx]={...trip.expenses[idx],label,amount,currency,category,date,notes,payWith};
+  }else{
+    trip.expenses.unshift({id:uid(),label,amount,currency,category,date,notes,payWith});
+  }
   saveAll(trips);
   closeExpenseModal();
   renderExpenses();
