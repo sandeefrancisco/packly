@@ -626,12 +626,21 @@ svg.lucide-2xl{width:28px;height:28px}
 
 .field{margin-bottom:24px}
 .field label{display:block;font-size:16px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:8px}
-.field input{
+.field input,.field select{
   width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);
-  background:var(--tint);font-family:'Figtree',sans-serif;font-size:16px;color:var(--ink);
+  background:var(--tint);font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--ink);
   outline:none;transition:border-color .12s;min-height:50px;
 }
-.field input:focus{border-color:var(--accent);background:var(--white)}
+.field input:focus,.field select:focus{border-color:var(--accent);background:var(--white)}
+.field label{font-size:14px!important}
+.field select{
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235C5975' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+  padding-right:40px;
+  cursor:pointer;
+}
 
 /* icon picker */
 .icon-picker-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:6px}
@@ -1603,13 +1612,13 @@ svg.lucide-2xl{width:28px;height:28px}
     <div class="field">
       <label>Category</label>
       <select id="expCategory">
-        <option value="Food">🍽 Food & Drinks</option>
-        <option value="Transport">🚌 Transport</option>
-        <option value="Accommodation">🏨 Accommodation</option>
-        <option value="Shopping">🛍 Shopping</option>
-        <option value="Entertainment">🎭 Entertainment</option>
-        <option value="Health">💊 Health</option>
-        <option value="Other">📌 Other</option>
+        <option value="Food">Food & drinks</option>
+        <option value="Transport">Transport</option>
+        <option value="Accommodation">Accommodation</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Entertainment">Entertainment</option>
+        <option value="Health">Health</option>
+        <option value="Other">Other</option>
       </select>
     </div>
     <div id="expenseError" class="auth-error"></div>
