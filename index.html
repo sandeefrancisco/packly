@@ -4429,15 +4429,18 @@ function renderCurrencyList(query){
 }
 
 function _adjustCurPickerForKb(){
-  const overlay=document.getElementById('currencyPickerOverlay');
-  if(!overlay||!overlay.classList.contains('open'))return;
   const vv=window.visualViewport;
   if(!vv)return;
+  const overlay=document.getElementById('currencyPickerOverlay');
+  if(!overlay||!overlay.classList.contains('open'))return;
+  // Push the overlay's bottom up to the keyboard top.
+  // On iOS, position:fixed uses the layout viewport so we must do this manually.
+  const kbHeight=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+  overlay.style.bottom=kbHeight+'px';
   overlay.style.top=vv.offsetTop+'px';
-  overlay.style.height=vv.height+'px';
-  overlay.style.bottom='auto';
+  // Keep modal within the visible area
   const modal=overlay.querySelector('.cur-picker-modal');
-  if(modal)modal.style.maxHeight=Math.round(vv.height*0.9)+'px';
+  if(modal)modal.style.maxHeight=Math.round(vv.height*0.92)+'px';
 }
 
 window.openCurrencyPicker=function(){
@@ -4459,7 +4462,7 @@ window.openCurrencyPicker=function(){
 window.closeCurrencyPicker=function(){
   const overlay=document.getElementById('currencyPickerOverlay');
   overlay.classList.remove('open');
-  overlay.style.top='';overlay.style.height='';overlay.style.bottom='';
+  overlay.style.top='';overlay.style.bottom='';
   const modal=overlay.querySelector('.cur-picker-modal');
   if(modal)modal.style.maxHeight='';
   if(window.visualViewport){
