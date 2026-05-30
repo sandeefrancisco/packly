@@ -230,6 +230,80 @@ svg.lucide-2xl{width:28px;height:28px}
 .cl-prog-bar-fill{height:100%;background:var(--green);border-radius:99px;transition:width .4s}
 .cl-pct{font-size:16px;font-weight:700;white-space:nowrap}
 
+/* ── Segmented tabs ── */
+.cl-tabs{
+  display:flex;align-items:center;
+  background:rgba(26,26,46,.07);
+  border-radius:12px;
+  padding:3px;
+  margin-bottom:24px;
+  position:relative;
+}
+.cl-tab{
+  flex:1;position:relative;z-index:1;
+  padding:9px 0;border:none;background:none;
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
+  color:var(--muted);cursor:pointer;border-radius:9px;
+  transition:color .18s;
+}
+.cl-tab.active{color:var(--ink);}
+.cl-tab-pill{
+  position:absolute;top:3px;left:3px;
+  width:calc(50% - 3px);height:calc(100% - 6px);
+  background:var(--white);border-radius:9px;
+  box-shadow:0 1px 4px rgba(26,26,46,.12);
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;
+}
+.cl-tab-panel{display:none;}
+.cl-tab-panel.active{display:block;}
+
+/* ── Expenses ── */
+.exp-empty{
+  text-align:center;padding:48px 0 32px;
+  color:var(--muted);font-size:14px;
+}
+.exp-empty-icon{font-size:36px;margin-bottom:12px;}
+.exp-total-card{
+  background:var(--white);border-radius:var(--r-card);
+  border:1px solid var(--border);padding:20px 20px 16px;
+  margin-bottom:8px;
+  box-shadow:0 1px 6px rgba(26,26,46,.06);
+}
+.exp-total-label{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.exp-total-amount{font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1}
+.exp-list{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
+.exp-item{
+  background:var(--white);border-radius:0;
+  border:1px solid var(--border);border-bottom:none;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+}
+.exp-item:first-child{border-radius:var(--r-card) var(--r-card) 0 0;}
+.exp-item:last-child{border-radius:0 0 var(--r-card) var(--r-card);border-bottom:1px solid var(--border);}
+.exp-item:only-child{border-radius:var(--r-card);border-bottom:1px solid var(--border);}
+.exp-cat-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+}
+.exp-item-info{flex:1;min-width:0;}
+.exp-item-label{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.exp-item-cat{font-size:12px;color:var(--muted);margin-top:2px;}
+.exp-item-amount{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;}
+.exp-item-del{
+  width:28px;height:28px;border-radius:50%;border:none;background:none;
+  color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:background .12s,color .12s;
+}
+.exp-item-del:hover{background:rgba(220,53,69,.1);color:#dc3545;}
+.btn-add-expense{
+  width:100%;padding:14px;border-radius:var(--r-card);
+  border:1.5px dashed var(--border);background:none;
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:all .12s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:8px;
+}
+.btn-add-expense:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.04);}
+
 /* luggage compact bar */
 .luggage-bar{
   display:flex;align-items:center;gap:12px;
@@ -1062,40 +1136,57 @@ svg.lucide-2xl{width:28px;height:28px}
       <div class="cl-trip-dates" id="clTripDates"></div>
     </div>
   </div>
-  <div class="cl-summary-card">
-    <div class="cl-progress-strip" id="clProgressStrip"></div>
-    <div class="cl-summary-divider"></div>
-    <div id="luggageBarEl"></div>
-    <div class="cl-summary-divider" id="clStatsDivider"></div>
-    <div class="cl-stats-row" id="clStatsRow">
-      <div class="cl-stat">
-        <div class="cl-stat-val" id="clStatItems">—</div>
-        <div class="cl-stat-lbl" id="clStatItemsLbl">ITEMS TO PACK</div>
-      </div>
-      <div class="cl-stat-sep"></div>
-      <div class="cl-stat">
-        <div class="cl-stat-val" id="clStatCats">—</div>
-        <div class="cl-stat-lbl">CATEGORIES</div>
+  <!-- Segmented tabs -->
+  <div class="cl-tabs" id="clTabs">
+    <div class="cl-tab-pill" id="clTabPill"></div>
+    <button class="cl-tab active" id="clTabPacking" onclick="setTripTab('packing')">Packing List</button>
+    <button class="cl-tab" id="clTabExpenses" onclick="setTripTab('expenses')">Expenses</button>
+  </div>
+  <!-- Packing list panel -->
+  <div class="cl-tab-panel active" id="clPanelPacking">
+    <div class="cl-summary-card">
+      <div class="cl-progress-strip" id="clProgressStrip"></div>
+      <div class="cl-summary-divider"></div>
+      <div id="luggageBarEl"></div>
+      <div class="cl-summary-divider" id="clStatsDivider"></div>
+      <div class="cl-stats-row" id="clStatsRow">
+        <div class="cl-stat">
+          <div class="cl-stat-val" id="clStatItems">—</div>
+          <div class="cl-stat-lbl" id="clStatItemsLbl">ITEMS TO PACK</div>
+        </div>
+        <div class="cl-stat-sep"></div>
+        <div class="cl-stat">
+          <div class="cl-stat-val" id="clStatCats">—</div>
+          <div class="cl-stat-lbl">CATEGORIES</div>
+        </div>
       </div>
     </div>
+    <div class="add-section-row">
+      <span class="section-list-title" id="sectionListTitle">Categories</span>
+      <button class="btn-add-section" onclick="addSection()">
+        <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add
+      </button>
+    </div>
+    <div id="docsReminderBanner" style="display:none;margin-bottom:20px">
+      <div class="docs-reminder">
+        <div class="docs-reminder-icon" id="docsReminderIcon"></div>
+        <div class="docs-reminder-body">
+          <div class="docs-reminder-title">Don't forget your travel docs</div>
+          <div class="docs-reminder-items" id="docsReminderItems"></div>
+        </div>
+      </div>
+    </div>
+    <div id="sectionsContainer"></div>
   </div>
-  <div class="add-section-row">
-    <span class="section-list-title" id="sectionListTitle">Categories</span>
-    <button class="btn-add-section" onclick="addSection()">
+  <!-- Expenses panel -->
+  <div class="cl-tab-panel" id="clPanelExpenses">
+    <div id="expensesContainer"></div>
+    <button class="btn-add-expense" onclick="openAddExpense()">
       <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add
+      Add Expense
     </button>
   </div>
-  <div id="docsReminderBanner" style="display:none;margin-bottom:20px">
-    <div class="docs-reminder">
-      <div class="docs-reminder-icon" id="docsReminderIcon"></div>
-      <div class="docs-reminder-body">
-        <div class="docs-reminder-title">Don't forget your travel docs</div>
-        <div class="docs-reminder-items" id="docsReminderItems"></div>
-      </div>
-    </div>
-  </div>
-  <div id="sectionsContainer"></div>
 </div>
 </div><!-- /navStack -->
 
@@ -1468,6 +1559,61 @@ svg.lucide-2xl{width:28px;height:28px}
     <div class="modal-footer">
       <button class="btn-save" id="joinSubmitBtn" onclick="handleJoinSubmit()">Join trip</button>
     </div>
+  </div>
+</div>
+
+<!-- EXPENSE MODAL -->
+<div class="overlay" id="expenseOverlay" onclick="handleExpenseOverlay(event)">
+  <div class="modal">
+    <button class="sheet-close-btn" onclick="closeExpenseModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <h2 id="expenseModalTitle">Add Expense</h2>
+    <div class="field">
+      <label>Description</label>
+      <input id="expLabel" placeholder="e.g. Dinner, Taxi, Hotel" maxlength="60">
+    </div>
+    <div class="field">
+      <label>Amount</label>
+      <input id="expAmount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label>Currency</label>
+      <select id="expCurrency">
+        <option value="USD">USD – US Dollar</option>
+        <option value="EUR">EUR – Euro</option>
+        <option value="GBP">GBP – British Pound</option>
+        <option value="JPY">JPY – Japanese Yen</option>
+        <option value="AUD">AUD – Australian Dollar</option>
+        <option value="CAD">CAD – Canadian Dollar</option>
+        <option value="SGD">SGD – Singapore Dollar</option>
+        <option value="PHP">PHP – Philippine Peso</option>
+        <option value="THB">THB – Thai Baht</option>
+        <option value="IDR">IDR – Indonesian Rupiah</option>
+        <option value="MYR">MYR – Malaysian Ringgit</option>
+        <option value="KRW">KRW – South Korean Won</option>
+        <option value="HKD">HKD – Hong Kong Dollar</option>
+        <option value="NZD">NZD – New Zealand Dollar</option>
+        <option value="CHF">CHF – Swiss Franc</option>
+        <option value="AED">AED – UAE Dirham</option>
+        <option value="SAR">SAR – Saudi Riyal</option>
+        <option value="INR">INR – Indian Rupee</option>
+        <option value="BRL">BRL – Brazilian Real</option>
+        <option value="MXN">MXN – Mexican Peso</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="expCategory">
+        <option value="Food">🍽 Food & Drinks</option>
+        <option value="Transport">🚌 Transport</option>
+        <option value="Accommodation">🏨 Accommodation</option>
+        <option value="Shopping">🛍 Shopping</option>
+        <option value="Entertainment">🎭 Entertainment</option>
+        <option value="Health">💊 Health</option>
+        <option value="Other">📌 Other</option>
+      </select>
+    </div>
+    <div id="expenseError" class="auth-error"></div>
+    <button class="btn-primary" id="expenseSaveBtn" onclick="saveExpense()">Add</button>
   </div>
 </div>
 
@@ -3012,6 +3158,8 @@ async function showChecklist(id){
   sessionStorage.setItem('packly-nav',id);
   // Always start at the top — never resume stale scroll position
   document.getElementById('checklistView').scrollTop=0;
+  // Reset to packing tab on each trip open
+  setTripTab('packing');
   _clOpen();
   history.pushState({packly:'checklist',tripId:id},'','#checklist');
   startSharedTripPolling(id);
@@ -3746,6 +3894,113 @@ function startSharedTripPolling(tripId){
 function stopSharedTripPolling(){
   if(_sharedTripPoller){clearInterval(_sharedTripPoller);_sharedTripPoller=null;}
 }
+
+/* ── Trip Tabs ── */
+let _activeTripTab='packing';
+
+window.setTripTab=function(tab){
+  _activeTripTab=tab;
+  document.getElementById('clTabPacking').classList.toggle('active',tab==='packing');
+  document.getElementById('clTabExpenses').classList.toggle('active',tab==='expenses');
+  document.getElementById('clTabPill').style.transform=tab==='expenses'?'translateX(100%)':'';
+  document.getElementById('clPanelPacking').classList.toggle('active',tab==='packing');
+  document.getElementById('clPanelExpenses').classList.toggle('active',tab==='expenses');
+  if(tab==='expenses')renderExpenses();
+};
+
+/* ── Expenses ── */
+const EXP_CATS={
+  Food:'#f59e0b',Transport:'#3b82f6',Accommodation:'#8b5cf6',
+  Shopping:'#ec4899',Entertainment:'#14b8a6',Health:'#ef4444',Other:'#6b7280'
+};
+let _editingExpenseId=null;
+
+function getExpenses(){
+  const trip=getTrip();return trip?.expenses||[];
+}
+
+function renderExpenses(){
+  const trip=getTrip();if(!trip)return;
+  const expenses=trip.expenses||[];
+  const el=document.getElementById('expensesContainer');if(!el)return;
+
+  if(!expenses.length){
+    el.innerHTML=`<div class="exp-empty"><div class="exp-empty-icon">💸</div><p>No expenses yet.<br>Tap below to track your spending.</p></div>`;
+    return;
+  }
+
+  // Group by currency for totals
+  const totals={};
+  expenses.forEach(e=>{totals[e.currency]=(totals[e.currency]||0)+e.amount;});
+  const totalHtml=Object.entries(totals).map(([cur,amt])=>
+    `<div class="exp-total-amount">${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`
+  ).join('');
+
+  el.innerHTML=`
+    <div class="exp-total-card">
+      <div class="exp-total-label">Total Spent</div>
+      ${totalHtml}
+    </div>
+    <div class="exp-list">
+      ${expenses.map(e=>`
+        <div class="exp-item">
+          <div class="exp-cat-dot" style="background:${EXP_CATS[e.category]||EXP_CATS.Other}"></div>
+          <div class="exp-item-info">
+            <div class="exp-item-label">${esc(e.label)}</div>
+            <div class="exp-item-cat">${e.category}</div>
+          </div>
+          <div class="exp-item-amount">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          <button class="exp-item-del" onclick="deleteExpense('${e.id}')" title="Delete">
+            <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>`).join('')}
+    </div>`;
+}
+
+window.openAddExpense=function(){
+  _editingExpenseId=null;
+  document.getElementById('expenseModalTitle').textContent='Add Expense';
+  document.getElementById('expenseSaveBtn').textContent='Add';
+  document.getElementById('expLabel').value='';
+  document.getElementById('expAmount').value='';
+  document.getElementById('expCategory').value='Food';
+  document.getElementById('expenseError').textContent='';
+  document.getElementById('expenseOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('expLabel').focus(),50);
+};
+
+window.closeExpenseModal=function(){
+  document.getElementById('expenseOverlay').classList.remove('open');
+};
+
+window.handleExpenseOverlay=function(e){
+  if(e.target===document.getElementById('expenseOverlay'))closeExpenseModal();
+};
+
+window.saveExpense=function(){
+  const label=document.getElementById('expLabel').value.trim();
+  const amount=parseFloat(document.getElementById('expAmount').value);
+  const currency=document.getElementById('expCurrency').value;
+  const category=document.getElementById('expCategory').value;
+  const errEl=document.getElementById('expenseError');
+  if(!label){errEl.textContent='Please enter a description.';return;}
+  if(!amount||amount<=0){errEl.textContent='Please enter a valid amount.';return;}
+  errEl.textContent='';
+
+  const trip=getTrip();if(!trip)return;
+  if(!trip.expenses)trip.expenses=[];
+  trip.expenses.unshift({id:uid(),label,amount,currency,category});
+  saveAll(trips);
+  closeExpenseModal();
+  renderExpenses();
+};
+
+window.deleteExpense=function(id){
+  const trip=getTrip();if(!trip)return;
+  trip.expenses=(trip.expenses||[]).filter(e=>e.id!==id);
+  saveAll(trips);
+  renderExpenses();
+};
 
 /* ── INIT ── */
 renderVersionLabels();
