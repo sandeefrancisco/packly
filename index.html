@@ -1777,12 +1777,12 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
         <input type="hidden" id="expCategory" value="Food">
       </div>
       <div class="field">
-        <label>Description</label>
-        <input id="expLabel" placeholder="e.g. Dinner, Taxi, Hotel" maxlength="60">
-      </div>
-      <div class="field">
         <label>Amount</label>
         <input id="expAmount" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00">
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <input id="expLabel" placeholder="e.g. Dinner, Taxi, Hotel" maxlength="60">
       </div>
       <div class="field">
         <label>Currency</label>
@@ -4499,7 +4499,7 @@ window.openAddExpense=function(){
   document.getElementById('expenseError').textContent='';
   document.getElementById('exp-modal-body')?.scrollTo(0,0);
   _setCurrency('EUR','Euro');
-  renderPayChips('cash');
+  renderPayChips('visa');
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -4536,7 +4536,7 @@ window.editExpense=function(id){
   else{disp.textContent='Select date';disp.className='cal-trigger-val empty';}
   document.getElementById('expNotes').value=e.notes||'';
   document.getElementById('expenseError').textContent='';
-  renderPayChips(e.payWith||'cash');
+  renderPayChips(e.payWith||'visa');
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
