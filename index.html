@@ -745,6 +745,8 @@ svg.lucide-2xl{width:28px;height:28px}
 .cal-day.sel-end:not(.sel-start){background:linear-gradient(to left,transparent 50%,#DCFCE7 50%)}
 .cal-day.sel-start .cal-day-inner,.cal-day.sel-end .cal-day-inner{background:var(--accent);color:#fff;font-weight:700}
 .cal-day.sel-start.today .cal-day-inner::after,.cal-day.sel-end.today .cal-day-inner::after{background:#fff}
+.cal-day.single-sel .cal-day-inner{background:var(--ink);color:#fff;font-weight:700}
+.cal-day.single-sel.today .cal-day-inner::after{background:#fff}
 .cal-footer-row{display:flex;gap:10px}
 .cal-footer-row .btn-secondary{flex:1}
 .cal-footer-row .btn-save{flex:2}
@@ -3163,13 +3165,14 @@ function _calRenderGrid(){
   for(let i=0;i<firstDow;i++){const e=document.createElement('div');e.className='cal-day';grid.appendChild(e);}
   for(let d=1;d<=daysInMonth;d++){
     const ds=_calStr(_calYear,_calMonth,d);
-    const isPast=ds<todayStr;
+    const isPast=!_calSingleMode&&ds<todayStr; // single mode allows past dates
     const isToday=ds===todayStr;
     const isStart=ds===_calStart;
     const isEnd=ds===_calEnd;
-    const inRange=_calStart&&_calEnd&&ds>_calStart&&ds<_calEnd;
+    const inRange=!_calSingleMode&&_calStart&&_calEnd&&ds>_calStart&&ds<_calEnd;
     const btn=document.createElement('button');
-    btn.className='cal-day'+(isPast?' past':'')+(isToday?' today':'')+(isStart?' sel-start':'')+(isEnd?' sel-end':'')+(inRange?' in-range':'');
+    const isSingleSel=_calSingleMode&&isStart;
+    btn.className='cal-day'+(isPast?' past':'')+(isToday?' today':'')+(isSingleSel?' single-sel':(isStart?' sel-start':''))+(isEnd?' sel-end':'')+(inRange?' in-range':'');
     const inner=document.createElement('span');inner.className='cal-day-inner';inner.textContent=d;
     btn.appendChild(inner);
     btn.onclick=()=>{
