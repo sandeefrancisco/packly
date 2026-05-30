@@ -4427,15 +4427,44 @@ function renderCurrencyList(query){
   }).join('');
 }
 
+function _adjustCurPickerForKb(){
+  const overlay=document.getElementById('currencyPickerOverlay');
+  if(!overlay||!overlay.classList.contains('open'))return;
+  const vv=window.visualViewport;
+  if(!vv)return;
+  overlay.style.top=vv.offsetTop+'px';
+  overlay.style.height=vv.height+'px';
+  overlay.style.bottom='auto';
+  const modal=overlay.querySelector('.cur-picker-modal');
+  if(modal)modal.style.maxHeight=Math.round(vv.height*0.9)+'px';
+}
+
 window.openCurrencyPicker=function(){
   document.getElementById('curSearchInput').value='';
   renderCurrencyList('');
-  document.getElementById('currencyPickerOverlay').classList.add('open');
-  setTimeout(()=>document.getElementById('curSearchInput').focus(),120);
+  const overlay=document.getElementById('currencyPickerOverlay');
+  overlay.classList.add('open');
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize',_adjustCurPickerForKb);
+    window.visualViewport.addEventListener('scroll',_adjustCurPickerForKb);
+  }
+  setTimeout(()=>{
+    const sel=overlay.querySelector('.cur-item.selected');
+    if(sel)sel.scrollIntoView({block:'center'});
+    document.getElementById('curSearchInput').focus();
+  },80);
 };
 
 window.closeCurrencyPicker=function(){
-  document.getElementById('currencyPickerOverlay').classList.remove('open');
+  const overlay=document.getElementById('currencyPickerOverlay');
+  overlay.classList.remove('open');
+  overlay.style.top='';overlay.style.height='';overlay.style.bottom='';
+  const modal=overlay.querySelector('.cur-picker-modal');
+  if(modal)modal.style.maxHeight='';
+  if(window.visualViewport){
+    window.visualViewport.removeEventListener('resize',_adjustCurPickerForKb);
+    window.visualViewport.removeEventListener('scroll',_adjustCurPickerForKb);
+  }
 };
 
 window.handleCurrencyPickerOverlay=function(e){
