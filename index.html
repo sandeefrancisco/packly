@@ -286,7 +286,7 @@ svg.lucide-2xl{width:28px;height:28px}
   width:34px;height:34px;border-radius:10px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
 }
-.exp-cat-icon svg{width:17px;height:17px;stroke-width:2;}
+.exp-cat-icon svg{width:17px;height:17px;stroke-width:2;stroke:var(--ink);}
 .exp-item-info{flex:1;min-width:0;}
 .exp-item-label{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .exp-item-cat{font-size:12px;color:var(--muted);margin-top:2px;}
@@ -4213,7 +4213,7 @@ function renderExpenses(){
     const cat=catIconFor(e);
     return`<div class="exp-item" onclick="editExpense('${e.id}')">
       <div class="exp-cat-icon" style="background:${cat.bg}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="${cat.color}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
       </div>
       <div class="exp-item-info">
         <div class="exp-item-label">${esc(e.label)}</div>
