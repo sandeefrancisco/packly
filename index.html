@@ -3836,16 +3836,19 @@ window.addEventListener('popstate',()=>{
 
 async function _syncFromCloud(uid){
   const[{data:cloudData},sharedTrips]=await Promise.all([
-    sb.from('user_data').select('trips').eq('user_id',uid).single(),
+    sb.from('user_data').select('trips,deleted_trips').eq('user_id',uid).single(),
     loadSharedTrips()
   ]);
+  // Merge local + cloud trash so deleted trips are never resurrected by a stale cloud response
+  saveTrash(mergeTrash(loadTrash(),cloudData?.deleted_trips||[]));
+  const trashedIds=new Set(loadTrash().map(t=>t.id));
   const localPersonal=loadAll().filter(t=>!t.sharedTripId);
   const cloudPersonal=cloudData?.trips||[];
   const byId=new Map();
   cloudPersonal.forEach(t=>byId.set(t.id,t));
   localPersonal.forEach(t=>byId.set(t.id,t));
   sharedTrips.forEach(t=>byId.set(t.id,t));
-  trips=[...byId.values()];
+  trips=[...byId.values()].filter(t=>!trashedIds.has(t.id));
   saveLocalOnly(trips);
 }
 
