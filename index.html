@@ -410,34 +410,36 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 }
 .exp-filter-bar::-webkit-scrollbar{display:none}
 .exp-filter-chip{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:5px 11px 5px 6px;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px 8px 8px;
+  min-height:40px;
   border-radius:99px;
   border:1.5px solid var(--border);background:var(--white);
-  font-family:'Figtree',sans-serif;font-size:12px;font-weight:600;color:var(--muted);
+  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;color:var(--muted);
   white-space:nowrap;cursor:pointer;flex-shrink:0;
   transition:all .14s;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .exp-filter-chip:active{opacity:.75;}
 .chip-icon{
-  width:20px;height:20px;border-radius:6px;flex-shrink:0;
+  width:22px;height:22px;border-radius:7px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
 }
-.chip-icon svg{width:11px;height:11px;stroke-width:2;}
+.chip-icon svg{width:12px;height:12px;stroke-width:2;}
 .chip-pay-logo{display:inline-flex;align-items:center;}
-.chip-pay-logo svg{width:24px;height:15px;border-radius:4px;overflow:hidden;}
+.chip-pay-logo svg{width:26px;height:17px;border-radius:4px;overflow:hidden;}
 .exp-filter-clear{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:5px 11px 5px 8px;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:8px 14px 8px 10px;
+  min-height:40px;
   border-radius:99px;
   border:1.5px solid var(--border);background:var(--tint);
-  font-family:'Figtree',sans-serif;font-size:12px;font-weight:600;color:var(--ink);
+  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;color:var(--ink);
   white-space:nowrap;cursor:pointer;flex-shrink:0;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .exp-filter-clear:active{opacity:.75;}
-.exp-filter-clear svg{width:12px;height:12px;stroke-width:2.5;}
+.exp-filter-clear svg{width:13px;height:13px;stroke-width:2.5;}
 
 /* luggage compact bar */
 .luggage-bar{
