@@ -288,12 +288,51 @@ svg.lucide-2xl{width:28px;height:28px}
 .exp-item-label{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .exp-item-cat{font-size:12px;color:var(--muted);margin-top:2px;}
 .exp-item-amount{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;}
+.exp-item-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.exp-item-notes{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .exp-item-del{
   width:28px;height:28px;border-radius:50%;border:none;background:none;
   color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
   flex-shrink:0;transition:background .12s,color .12s;
 }
 .exp-item-del:hover{background:rgba(220,53,69,.1);color:#dc3545;}
+/* Payment method chips */
+.exp-pay-row{
+  display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;
+  scrollbar-width:none;
+}
+.exp-pay-row::-webkit-scrollbar{display:none}
+.exp-pay-chip{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  flex-shrink:0;cursor:pointer;
+}
+.exp-pay-logo{
+  width:56px;height:36px;border-radius:10px;
+  border:2px solid var(--border);background:var(--white);
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .14s,box-shadow .14s;
+  overflow:hidden;
+}
+.exp-pay-chip.selected .exp-pay-logo{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(99,102,241,.15);
+}
+.exp-pay-name{font-size:11px;font-weight:600;color:var(--muted);transition:color .14s;}
+.exp-pay-chip.selected .exp-pay-name{color:var(--accent);}
+/* Payment badge shown in list */
+.exp-pay-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--tint);border:1px solid var(--border);
+  border-radius:6px;padding:1px 6px 1px 4px;
+  font-size:11px;font-weight:600;color:var(--muted);
+}
+.exp-pay-badge svg{width:16px;height:10px;}
+.field textarea{
+  width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);
+  background:var(--tint);font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--ink);
+  outline:none;transition:border-color .12s;resize:none;min-height:80px;
+}
+.field textarea:focus{border-color:var(--accent);background:var(--white)}
 .btn-add-expense{
   width:100%;padding:14px;border-radius:var(--r-card);
   border:1.5px dashed var(--border);background:none;
@@ -1620,6 +1659,18 @@ svg.lucide-2xl{width:28px;height:28px}
         <option value="Health">Health</option>
         <option value="Other">Other</option>
       </select>
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input id="expDate" type="date">
+    </div>
+    <div class="field">
+      <label>Paid with</label>
+      <div class="exp-pay-row" id="expPayRow"></div>
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="expNotes" placeholder="Optional note…" maxlength="200" rows="2"></textarea>
     </div>
     <div id="expenseError" class="auth-error"></div>
     <button class="btn-primary" id="expenseSaveBtn" onclick="saveExpense()">Add</button>
@@ -3922,7 +3973,18 @@ const EXP_CATS={
   Food:'#f59e0b',Transport:'#3b82f6',Accommodation:'#8b5cf6',
   Shopping:'#ec4899',Entertainment:'#14b8a6',Health:'#ef4444',Other:'#6b7280'
 };
+// Payment methods — logo is an inline SVG string, badge is a compact version
+const EXP_PAYMENTS=[
+  {id:'cash',  name:'Cash',       logo:`<svg viewBox="0 0 56 36" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#f0fdf4"/><text x="28" y="24" text-anchor="middle" font-size="18" font-weight="700" fill="#16a34a" font-family="Figtree,sans-serif">$</text></svg>`},
+  {id:'visa',  name:'Visa',       logo:`<svg viewBox="0 0 56 36" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#1A1F71"/><text x="28" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="white" font-family="Arial,sans-serif" letter-spacing="1">VISA</text></svg>`},
+  {id:'mc',    name:'Mastercard', logo:`<svg viewBox="0 0 56 36" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#252525"/><circle cx="22" cy="18" r="9" fill="#EB001B" opacity=".95"/><circle cx="34" cy="18" r="9" fill="#F79E1B" opacity=".95"/><path d="M28 11.3a9 9 0 0 1 0 13.4 9 9 0 0 1 0-13.4z" fill="#FF5F00"/></svg>`},
+  {id:'amex',  name:'Amex',       logo:`<svg viewBox="0 0 56 36" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#007BC1"/><text x="28" y="22" text-anchor="middle" font-size="9" font-weight="700" fill="white" font-family="Arial,sans-serif" letter-spacing=".5">AMERICAN</text><text x="28" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="white" font-family="Arial,sans-serif" letter-spacing=".5">EXPRESS</text></svg>`},
+  {id:'applepay',name:'Apple Pay',logo:`<svg viewBox="0 0 56 36" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#000"/><text x="16" y="25" font-size="16" fill="white" font-family="-apple-system,sans-serif"></text><text x="28" y="25" text-anchor="middle" font-size="11" font-weight="600" fill="white" font-family="-apple-system,Figtree,sans-serif"> Pay</text><text x="17" y="25" text-anchor="middle" font-size="14" fill="white" font-family="-apple-system,sans-serif">&#xF8FF;</text></svg>`},
+  {id:'gpay',  name:'Google Pay', logo:`<svg viewBox="0 0 56 36" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#fff"/><text x="14" y="25" font-size="15" font-weight="700" fill="#4285F4" font-family="Arial,sans-serif">G</text><text x="24" y="25" font-size="12" font-weight="500" fill="#5f6368" font-family="Arial,sans-serif">Pay</text></svg>`},
+  {id:'debit', name:'Debit',      logo:`<svg viewBox="0 0 56 36" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#f5f5f5" stroke="#e5e7eb"/><rect x="7" y="12" width="42" height="6" rx="2" fill="#d1d5db"/><rect x="7" y="22" width="12" height="4" rx="1" fill="#9ca3af"/><rect x="22" y="22" width="8" height="4" rx="1" fill="#9ca3af"/></svg>`},
+];
 let _editingExpenseId=null;
+let _selectedPayment='cash';
 
 function getExpenses(){
   const trip=getTrip();return trip?.expenses||[];
@@ -3951,20 +4013,45 @@ function renderExpenses(){
       ${totalHtml}
     </div>
     <div class="exp-list">
-      ${expenses.map(e=>`
-        <div class="exp-item">
+      ${expenses.map(e=>{
+        const pm=EXP_PAYMENTS.find(p=>p.id===e.payWith);
+        const dateStr=e.date?new Date(e.date+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';
+        const payBadge=pm?`<span class="exp-pay-badge" title="${pm.name}">${pm.logo}${pm.name}</span>`:'';
+        const datePart=dateStr?`<span>${dateStr}</span>`:'';
+        const metaParts=[e.category,datePart,payBadge].filter(Boolean);
+        return`<div class="exp-item">
           <div class="exp-cat-dot" style="background:${EXP_CATS[e.category]||EXP_CATS.Other}"></div>
           <div class="exp-item-info">
             <div class="exp-item-label">${esc(e.label)}</div>
-            <div class="exp-item-cat">${e.category}</div>
+            <div class="exp-item-meta">${metaParts.join('<span style="opacity:.35">·</span>')}</div>
+            ${e.notes?`<div class="exp-item-notes">${esc(e.notes)}</div>`:''}
           </div>
           <div class="exp-item-amount">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
           <button class="exp-item-del" onclick="deleteExpense('${e.id}')" title="Delete">
             <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </button>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>`;
 }
+
+function renderPayChips(selected){
+  _selectedPayment=selected||'cash';
+  const row=document.getElementById('expPayRow');if(!row)return;
+  row.innerHTML=EXP_PAYMENTS.map(p=>`
+    <div class="exp-pay-chip${p.id===_selectedPayment?' selected':''}" onclick="selectPayment('${p.id}')">
+      <div class="exp-pay-logo">${p.logo}</div>
+      <div class="exp-pay-name">${p.name}</div>
+    </div>`).join('');
+}
+window.selectPayment=function(id){
+  _selectedPayment=id;
+  document.querySelectorAll('.exp-pay-chip').forEach(c=>{
+    c.classList.toggle('selected',c.querySelector('.exp-pay-name').textContent===EXP_PAYMENTS.find(p=>p.id===id)?.name);
+  });
+  // simpler: re-render
+  renderPayChips(id);
+};
 
 window.openAddExpense=function(){
   _editingExpenseId=null;
@@ -3973,7 +4060,10 @@ window.openAddExpense=function(){
   document.getElementById('expLabel').value='';
   document.getElementById('expAmount').value='';
   document.getElementById('expCategory').value='Food';
+  document.getElementById('expDate').value=new Date().toISOString().slice(0,10);
+  document.getElementById('expNotes').value='';
   document.getElementById('expenseError').textContent='';
+  renderPayChips('cash');
   document.getElementById('expenseOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
 };
@@ -3991,6 +4081,9 @@ window.saveExpense=function(){
   const amount=parseFloat(document.getElementById('expAmount').value);
   const currency=document.getElementById('expCurrency').value;
   const category=document.getElementById('expCategory').value;
+  const date=document.getElementById('expDate').value;
+  const notes=document.getElementById('expNotes').value.trim();
+  const payWith=_selectedPayment;
   const errEl=document.getElementById('expenseError');
   if(!label){errEl.textContent='Please enter a description.';return;}
   if(!amount||amount<=0){errEl.textContent='Please enter a valid amount.';return;}
@@ -3998,7 +4091,7 @@ window.saveExpense=function(){
 
   const trip=getTrip();if(!trip)return;
   if(!trip.expenses)trip.expenses=[];
-  trip.expenses.unshift({id:uid(),label,amount,currency,category});
+  trip.expenses.unshift({id:uid(),label,amount,currency,category,date,notes,payWith});
   saveAll(trips);
   closeExpenseModal();
   renderExpenses();
