@@ -3370,12 +3370,15 @@ async function showChecklist(id){
   activeId=id;
   sessionStorage.setItem('packly-nav',id);
   document.getElementById('checklistView').scrollTop=0;
-  setTripTab(resuming?(sessionStorage.getItem('packly-cl-tab')||'packing'):'packing');
+  const trip=trips.find(t=>t.id===id);
+  const defaultTab=resuming
+    ?(sessionStorage.getItem('packly-cl-tab')||'packing')
+    :(tripTabOf(trip)==='ongoing'?'expenses':'packing');
+  setTripTab(defaultTab);
   _clOpen();
   history.pushState({packly:'checklist',tripId:id},'','#checklist');
   startSharedTripPolling(id);
   // For shared trips, always fetch latest from cloud — show skeleton during the wait
-  const trip=trips.find(t=>t.id===id);
   if(trip?.sharedTripId){
     showChecklistSkeleton();
     const{data}=await sb.from('shared_trips').select('data').eq('id',trip.sharedTripId).single();
