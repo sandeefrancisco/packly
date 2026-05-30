@@ -3307,12 +3307,11 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
+  const resuming=sessionStorage.getItem('packly-nav')===id;
   activeId=id;
   sessionStorage.setItem('packly-nav',id);
-  // Always start at the top — never resume stale scroll position
   document.getElementById('checklistView').scrollTop=0;
-  // Reset to packing tab on each trip open
-  setTripTab('packing');
+  setTripTab(resuming?(sessionStorage.getItem('packly-cl-tab')||'packing'):'packing');
   _clOpen();
   history.pushState({packly:'checklist',tripId:id},'','#checklist');
   startSharedTripPolling(id);
@@ -4049,10 +4048,11 @@ function stopSharedTripPolling(){
 }
 
 /* ── Trip Tabs ── */
-let _activeTripTab='packing';
+let _activeTripTab=sessionStorage.getItem('packly-cl-tab')||'packing';
 
 window.setTripTab=function(tab){
   _activeTripTab=tab;
+  sessionStorage.setItem('packly-cl-tab',tab);
   document.getElementById('clTabPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clTabExpenses').classList.toggle('active',tab==='expenses');
   document.getElementById('clTabPill').style.transform=tab==='expenses'?'translateX(100%)':'';
