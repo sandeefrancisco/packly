@@ -93,9 +93,10 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 
 .trips-tabs-bar{
-  display:inline-flex;background:#E8E8EE;border-radius:12px;padding:4px;
+  display:flex;width:100%;background:#E8E8EE;border-radius:12px;padding:4px;
   margin-bottom:32px;gap:0;
 }
+.trips-tab-btn{flex:1;justify-content:center;}
 .trips-tab-btn{
   display:inline-flex;align-items:center;gap:6px;
   padding:7px 18px;border-radius:9px;
@@ -1185,7 +1186,8 @@ svg.lucide-2xl{width:28px;height:28px}
     </div>
   </div>
   <div class="trips-tabs-bar">
-    <button class="trips-tab-btn sel" id="tabUpcoming" onclick="switchTab('upcoming')">Upcoming <span class="trips-tab-badge" id="tabUpcomingBadge">0</span></button>
+    <button class="trips-tab-btn" id="tabUpcoming" onclick="switchTab('upcoming')">Upcoming <span class="trips-tab-badge" id="tabUpcomingBadge">0</span></button>
+    <button class="trips-tab-btn sel" id="tabOngoing" onclick="switchTab('ongoing')">Ongoing <span class="trips-tab-badge" id="tabOngoingBadge">0</span></button>
     <button class="trips-tab-btn" id="tabPast" onclick="switchTab('past')">Past <span class="trips-tab-badge" id="tabPastBadge">0</span></button>
   </div>
   <div class="trips-grid" id="tripsGrid"></div>
@@ -2827,19 +2829,22 @@ function showChecklistSkeleton(){
     </div>`).join('');
 }
 
-/* ── Upcoming / Past tabs ── */
-let _tripsTab='upcoming';
+/* ── Upcoming / Ongoing / Past tabs ── */
+let _tripsTab=sessionStorage.getItem('packly-trips-tab')||'ongoing';
 
-function isPastTrip(t){
-  const{total,done}=stats(t);
-  if(total>0&&done===total)return true;
-  if(tripCountdown(t.dateFrom,t.dateTo)?.type==='past')return true;
-  return false;
+function tripTabOf(t){
+  const cd=tripCountdown(t.dateFrom,t.dateTo);
+  if(!cd)return'upcoming';             // no dates → upcoming
+  if(cd.type==='past')return'past';
+  if(cd.type==='today')return'ongoing';
+  return'upcoming';                    // soon / future
 }
 
 window.switchTab=function(tab){
   _tripsTab=tab;
+  sessionStorage.setItem('packly-trips-tab',tab);
   document.getElementById('tabUpcoming').classList.toggle('sel',tab==='upcoming');
+  document.getElementById('tabOngoing').classList.toggle('sel',tab==='ongoing');
   document.getElementById('tabPast').classList.toggle('sel',tab==='past');
   renderTrips();
 };
@@ -2849,21 +2854,34 @@ function renderTrips(){
   grid.innerHTML='';
 
   const byDate=(a,b)=>(a.dateFrom||'').localeCompare(b.dateFrom||'');
-  const upcoming=trips.filter(t=>!isPastTrip(t)).sort(byDate);
-  const past=trips.filter(t=>isPastTrip(t)).sort((a,b)=>byDate(b,a));
+  const upcoming=trips.filter(t=>tripTabOf(t)==='upcoming').sort(byDate);
+  const ongoing=trips.filter(t=>tripTabOf(t)==='ongoing').sort(byDate);
+  const past=trips.filter(t=>tripTabOf(t)==='past').sort((a,b)=>byDate(b,a));
+
   const upBadge=document.getElementById('tabUpcomingBadge');
+  const onBadge=document.getElementById('tabOngoingBadge');
   const pastBadge=document.getElementById('tabPastBadge');
   if(upBadge)upBadge.textContent=upcoming.length;
+  if(onBadge)onBadge.textContent=ongoing.length;
   if(pastBadge)pastBadge.textContent=past.length;
 
-  const display=_tripsTab==='past'?past:upcoming;
+  // Sync selected state with current tab (handles page-load restore)
+  document.getElementById('tabUpcoming')?.classList.toggle('sel',_tripsTab==='upcoming');
+  document.getElementById('tabOngoing')?.classList.toggle('sel',_tripsTab==='ongoing');
+  document.getElementById('tabPast')?.classList.toggle('sel',_tripsTab==='past');
+
+  const display=_tripsTab==='past'?past:_tripsTab==='ongoing'?ongoing:upcoming;
 
   if(!display.length){
-    const isPastTab=_tripsTab==='past';
+    const msgs={
+      past:   ['No past trips yet','Trips whose end date has passed will appear here.'],
+      ongoing:['No ongoing trips','Trips happening today will appear here.'],
+      upcoming:['No upcoming trips','Create your first packing list to get started.'],
+    };
+    const[h,p]=msgs[_tripsTab]||msgs.upcoming;
     grid.innerHTML=`<div class="empty-state">
       <div class="empty-icon-wrap">${svgStr('luggage','lucide lucide-2xl')}</div>
-      <h3>${isPastTab?'No past trips yet':'No upcoming trips'}</h3>
-      <p>${isPastTab?'Completed trips will appear here once everything is packed.':'Create your first packing list to get started.'}</p>
+      <h3>${h}</h3><p>${p}</p>
     </div>`;
     return;
   }
