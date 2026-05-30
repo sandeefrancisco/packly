@@ -402,6 +402,42 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .exp-date-trigger-inner .lucide{width:18px;height:18px;flex-shrink:0;color:var(--muted);}
 #expDateTrigger{background:var(--tint);border-radius:12px;border:1.5px solid var(--border);transition:border-color .12s;}
 #expDateTrigger:hover,#expDateTrigger:focus-within{border-color:var(--accent);background:var(--white);}
+/* Expense filter bar */
+.exp-filter-bar{
+  display:flex;gap:6px;overflow-x:auto;
+  padding:4px 0 12px;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.exp-filter-bar::-webkit-scrollbar{display:none}
+.exp-filter-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 11px 5px 6px;
+  border-radius:99px;
+  border:1.5px solid var(--border);background:var(--white);
+  font-family:'Figtree',sans-serif;font-size:12px;font-weight:600;color:var(--muted);
+  white-space:nowrap;cursor:pointer;flex-shrink:0;
+  transition:all .14s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.exp-filter-chip:active{opacity:.75;}
+.chip-icon{
+  width:20px;height:20px;border-radius:6px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.chip-icon svg{width:11px;height:11px;stroke-width:2;}
+.chip-pay-logo{display:inline-flex;align-items:center;}
+.chip-pay-logo svg{width:24px;height:15px;border-radius:4px;overflow:hidden;}
+.exp-filter-clear{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:5px 11px 5px 8px;
+  border-radius:99px;
+  border:1.5px solid var(--border);background:var(--tint);
+  font-family:'Figtree',sans-serif;font-size:12px;font-weight:600;color:var(--ink);
+  white-space:nowrap;cursor:pointer;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.exp-filter-clear:active{opacity:.75;}
+.exp-filter-clear svg{width:12px;height:12px;stroke-width:2.5;}
 
 /* luggage compact bar */
 .luggage-bar{
@@ -3375,6 +3411,7 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
   const resuming=sessionStorage.getItem('packly-nav')===id;
+  if(!resuming){_expFilterCats.clear();_expFilterPays.clear();}
   activeId=id;
   sessionStorage.setItem('packly-nav',id);
   document.getElementById('checklistView').scrollTop=0;
@@ -4167,6 +4204,8 @@ const EXP_PAYMENTS=[
 ];
 let _editingExpenseId=null;
 let _selectedPayment='cash';
+let _expFilterCats=new Set();
+let _expFilterPays=new Set();
 
 function getExpenses(){
   const trip=getTrip();return trip?.expenses||[];
@@ -4174,20 +4213,69 @@ function getExpenses(){
 
 function renderExpenses(){
   const trip=getTrip();if(!trip)return;
-  const expenses=trip.expenses||[];
+  const allExpenses=trip.expenses||[];
   const el=document.getElementById('expensesContainer');if(!el)return;
 
-  if(!expenses.length){
+  if(!allExpenses.length){
     el.innerHTML=`<div class="exp-empty"><div class="exp-empty-icon">💸</div><p>No expenses yet.<br>Tap <strong>+</strong> to track your spending.</p></div>`;
     return;
   }
 
-  // Overall totals by currency
+  // Apply filters
+  const hasFilter=_expFilterCats.size>0||_expFilterPays.size>0;
+  const expenses=hasFilter
+    ?allExpenses.filter(e=>{
+      const catOk=_expFilterCats.size===0||_expFilterCats.has(e.category);
+      const payOk=_expFilterPays.size===0||_expFilterPays.has(e.payWith);
+      return catOk&&payOk;
+    })
+    :allExpenses;
+
+  // Overall totals by currency (respects filters)
   const totals={};
   expenses.forEach(e=>{totals[e.currency]=(totals[e.currency]||0)+e.amount;});
-  const totalHtml=Object.entries(totals).map(([cur,amt])=>
-    `<div class="exp-total-amount">${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`
-  ).join('');
+  const totalHtml=Object.entries(totals).length
+    ?Object.entries(totals).map(([cur,amt])=>
+        `<div class="exp-total-amount">${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`
+      ).join('')
+    :`<div class="exp-total-amount" style="opacity:.35">—</div>`;
+  const totalLabel=hasFilter
+    ?`Filtered Total <span style="font-size:11px;font-weight:500;opacity:.6;letter-spacing:0;text-transform:none">${expenses.length} of ${allExpenses.length}</span>`
+    :'Total Spent';
+
+  // Build filter bar — show chips for categories and payments used in this trip
+  const usedCats=[...new Set(allExpenses.map(e=>e.category))].filter(Boolean)
+    .sort((a,b)=>a.localeCompare(b));
+  const usedPays=[...new Set(allExpenses.map(e=>e.payWith))].filter(Boolean);
+
+  function _catChipIcon(catKey,active){
+    const cat=EXP_CATS[catKey]||EXP_CATS.Other;
+    const bg=active?cat.color:cat.bg;
+    const stroke=active?'#fff':cat.color;
+    return`<span class="chip-icon" style="background:${bg}"><svg viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg></span>`;
+  }
+
+  const clearChip=hasFilter
+    ?`<button class="exp-filter-clear" onclick="clearExpFilters()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Clear</button>`
+    :'';
+
+  const catChips=usedCats.map(catKey=>{
+    const cat=EXP_CATS[catKey]||EXP_CATS.Other;
+    const active=_expFilterCats.has(catKey);
+    const chipStyle=active?`border-color:${cat.color};background:${cat.bg};color:${cat.color}`:'';
+    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('cat','${catKey}')">${_catChipIcon(catKey,active)}${catKey}</button>`;
+  }).join('');
+
+  const payChips=usedPays.map(payId=>{
+    const pm=EXP_PAYMENTS.find(p=>p.id===payId);if(!pm)return'';
+    const active=_expFilterPays.has(payId);
+    const chipStyle=active?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
+    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('pay','${payId}')"><span class="chip-pay-logo">${pm.logo}</span>${pm.name}</button>`;
+  }).join('');
+
+  const filterBarHtml=(usedCats.length+usedPays.length>1)
+    ?`<div class="exp-filter-bar">${clearChip}${catChips}${payChips}</div>`
+    :'';
 
   // Group expenses by date (undated go last)
   const byDate=new Map();
@@ -4196,7 +4284,6 @@ function renderExpenses(){
     if(!byDate.has(key))byDate.set(key,[]);
     byDate.get(key).push(e);
   });
-  // Sort date keys descending (most recent first), undated last
   const sortedKeys=[...byDate.keys()].sort((a,b)=>{
     if(!a)return 1;if(!b)return-1;return b.localeCompare(a);
   });
@@ -4233,33 +4320,45 @@ function renderExpenses(){
     </div>`;
   }
 
-  const groupsHtml=sortedKeys.map(key=>{
-    const items=byDate.get(key);
-    // Day total by currency
-    const dayTotals={};
-    items.forEach(e=>{dayTotals[e.currency]=(dayTotals[e.currency]||0)+e.amount;});
-    const dayTotalStr=Object.entries(dayTotals).map(([cur,amt])=>
-      `${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
-    ).join(' · ');
-    const labelStr=key
-      ?new Date(key+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
-      :'No date';
-    return`<div class="exp-day-group">
-      <div class="exp-day-header">
-        <span class="exp-day-label">${labelStr} <span style="font-weight:400;color:var(--muted)">(${items.length})</span></span>
-        <span class="exp-day-total">${dayTotalStr}</span>
-      </div>
-      <div class="exp-list">${items.map(expItemHtml).join('')}</div>
-    </div>`;
-  }).join('');
+  const groupsHtml=sortedKeys.length
+    ?sortedKeys.map(key=>{
+        const items=byDate.get(key);
+        const dayTotals={};
+        items.forEach(e=>{dayTotals[e.currency]=(dayTotals[e.currency]||0)+e.amount;});
+        const dayTotalStr=Object.entries(dayTotals).map(([cur,amt])=>
+          `${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
+        ).join(' · ');
+        const labelStr=key
+          ?new Date(key+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
+          :'No date';
+        return`<div class="exp-day-group">
+          <div class="exp-day-header">
+            <span class="exp-day-label">${labelStr} <span style="font-weight:400;color:var(--muted)">(${items.length})</span></span>
+            <span class="exp-day-total">${dayTotalStr}</span>
+          </div>
+          <div class="exp-list">${items.map(expItemHtml).join('')}</div>
+        </div>`;
+      }).join('')
+    :`<div class="exp-empty" style="padding-top:24px"><p>No expenses match the selected filters.</p></div>`;
 
   el.innerHTML=`
     <div class="exp-total-card">
-      <div class="exp-total-label">Total Spent</div>
+      <div class="exp-total-label">${totalLabel}</div>
       ${totalHtml}
     </div>
+    ${filterBarHtml}
     ${groupsHtml}`;
 }
+
+window.toggleExpFilter=function(type,value){
+  const set=type==='cat'?_expFilterCats:_expFilterPays;
+  if(set.has(value))set.delete(value);else set.add(value);
+  renderExpenses();
+};
+window.clearExpFilters=function(){
+  _expFilterCats.clear();_expFilterPays.clear();
+  renderExpenses();
+};
 
 function renderPayChips(selected){
   _selectedPayment=selected||'cash';
