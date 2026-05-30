@@ -2551,6 +2551,10 @@ function dismissAppLoader(){
 }
 
 async function onSignedIn(user){
+  // Prevent concurrent calls (double-fired by onAuthStateChange + getSession on startup)
+  if(_onSignedInRunning){console.log('[packly] onSignedIn skipped — already running');return;}
+  _onSignedInRunning=true;
+  try{
   _currentUserId=user.id;
   _currentUserName=_extractName(user);
   updateHeroGreeting();
@@ -2560,8 +2564,12 @@ async function onSignedIn(user){
   // Capture restore targets before _clClose() wipes sessionStorage
   const _restoreTripId=sessionStorage.getItem('packly-nav');
   const _restoreClTab=sessionStorage.getItem('packly-cl-tab')||'packing';
+  console.log('[packly] onSignedIn — restoring tripId=',_restoreTripId,'tab=',_restoreClTab);
   // Show skeleton while cloud loads
   _clClose();
+  // Re-stamp nav so showChecklist's resuming-check works correctly
+  if(_restoreTripId)sessionStorage.setItem('packly-nav',_restoreTripId);
+  if(_restoreClTab)sessionStorage.setItem('packly-cl-tab',_restoreClTab);
   showTripsSkeleton();
 
   // Fetch cloud state
@@ -2610,17 +2618,20 @@ async function onSignedIn(user){
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
   const savedTrip=_restoreTripId&&trips.find(t=>t.id===_restoreTripId);
   if(savedTrip){
+    console.log('[packly] restoring trip view for',_restoreTripId);
     showTrips();
     dismissAppLoader();
     showChecklist(_restoreTripId);
     // Restore whichever tab was active (packing or expenses)
     setTripTab(_restoreClTab);
   } else {
+    console.log('[packly] no saved trip to restore, showing trips list');
     showTrips();
     dismissAppLoader();
   }
   subscribeToSharedTrips();
   updateTrashBadge();
+  }finally{_onSignedInRunning=false;}
 }
 
 function onSignedOut(){
@@ -2782,6 +2793,7 @@ const DEFAULT_SECTIONS=()=>([
 /* ── State ── */
 let trips=loadAll();
 let activeId=null;
+let _onSignedInRunning=false; // mutex — prevents concurrent onSignedIn calls
 let selTripIcon='globe';
 let selCatIcon='list';
 let editingId=null;
@@ -3334,7 +3346,15 @@ function getTrip(){return trips.find(t=>t.id===activeId);}
 
 function renderChecklist(){
   trips=loadAll();
-  const trip=getTrip();if(!trip){showTrips();return;}
+  const trip=getTrip();
+  if(!trip){
+    // activeId not found in localStorage — only navigate away if we're intentionally on this view
+    if(document.getElementById('navStack').classList.contains('pushed')){
+      console.warn('[packly] renderChecklist: trip',activeId,'not found — falling back to trips list');
+      showTrips();
+    }
+    return;
+  }
 
   document.getElementById('clTripName').innerHTML=
     `${getTripFlagOrIcon(trip,'lucide lucide-lg','plane')} ${esc(trip.name)}`;
@@ -4276,21 +4296,16 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
 // Clean up stale #checklist hash — state is restored via sessionStorage instead
 if(location.hash==='#checklist') history.replaceState(null,'',location.pathname);
 
-// Listen for auth changes (login/logout)
+// Listen for auth changes (login/logout/restore)
+// INITIAL_SESSION fires once on startup with current session (or null) — covers page load & PWA reopen
+// TOKEN_REFRESHED / USER_UPDATED / MFA events are background-only, no UI change needed
 sb.auth.onAuthStateChange((event,session)=>{
-  // TOKEN_REFRESHED fires on every app-switch / PWA resume — skip full re-init
-  if(event==='TOKEN_REFRESHED')return;
+  console.log('[packly] auth event:',event,'user:',session?.user?.id||null);
+  if(['TOKEN_REFRESHED','USER_UPDATED','MFA_CHALLENGE_VERIFIED'].includes(event))return;
   if(session)onSignedIn(session.user);
   else onSignedOut();
 });
-// Check existing session on load
-(async()=>{
-  const{data:{session}}=await sb.auth.getSession();
-  if(session)await onSignedIn(session.user);
-  // If no session, auth overlay is already open — still dismiss loader
-  else dismissAppLoader();
-})();
-// Safety: remove loader after 6s regardless (network failure etc.)
+// Safety: remove loader after 6s regardless (network failure / slow startup)
 setTimeout(dismissAppLoader, 6000);
 
 // Sticky checklist nav — add shadow when scrolled
