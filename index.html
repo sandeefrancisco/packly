@@ -639,16 +639,6 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 }
 .add-item-confirm.visible{display:block}
 
-.docs-reminder{
-  display:flex;align-items:flex-start;gap:12px;
-  background:#EFF6FF;border:1px solid #BFDBFE;
-  border-radius:16px;padding:18px 20px;
-}
-.docs-reminder-icon{flex-shrink:0;margin-top:2px;color:#3B82F6}
-.docs-reminder-icon .lucide{width:20px;height:20px}
-.docs-reminder-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:8px}
-.docs-reminder-items{font-size:16px;color:var(--muted);line-height:1.8}
-
 .add-section-row{
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:24px;
@@ -1317,15 +1307,6 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
         <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add
       </button>
-    </div>
-    <div id="docsReminderBanner" style="display:none;margin-bottom:20px">
-      <div class="docs-reminder">
-        <div class="docs-reminder-icon" id="docsReminderIcon"></div>
-        <div class="docs-reminder-body">
-          <div class="docs-reminder-title">Don't forget your travel docs</div>
-          <div class="docs-reminder-items" id="docsReminderItems"></div>
-        </div>
-      </div>
     </div>
     <div id="sectionsContainer"></div>
   </div>
@@ -3477,60 +3458,6 @@ function renderChecklist(){
   if(statLbl)   statLbl.textContent=allDone?'ITEMS PACKED':'ITEMS TO PACK';
   if(statCats)  statCats.textContent=trip.sections.length;
 
-  const banner=document.getElementById('docsReminderBanner');
-  if(banner){
-    const iconEl=document.getElementById('docsReminderIcon');
-    if(iconEl&&!iconEl.innerHTML)iconEl.innerHTML=svgStr('lightbulb');
-    if(allDone){
-      // Priority tiers — items matched earlier tiers appear first
-      const TIERS=[
-        // Tier 1: Can't travel without these
-        /passport|travel document/i,
-        /visa\b/i,
-        /boarding pass|e-?ticket|flight ticket|plane ticket/i,
-        /id card|national id|identity card|driver.?s? licen/i,
-        // Tier 2: Important docs & bookings
-        /travel insurance|health insurance/i,
-        /hotel booking|accommodation|reservation|voucher/i,
-        /itinerary/i,
-        /vaccination|vaccine|health cert|covid|pcr test/i,
-        /emergency contact/i,
-        // Tier 3: Money
-        /cash|forex|currency|money belt/i,
-        /credit card|debit card|bank card|travel card/i,
-        /wallet/i,
-        // Tier 4: Health
-        /medication|prescription|inhaler|epipen|insulin/i,
-        /first.?aid/i,
-        // Tier 5: Electronics & other essentials
-        /charger|power bank/i,
-        /adapter|plug adapter/i,
-        /sim card/i,
-        /laptop|camera/i,
-        /keys|house key|car key/i,
-        /padlock|lock\b/i,
-      ];
-      // Collect all matching items, bucketed by tier
-      const allItems=[];
-      (trip.sections||[]).forEach(sec=>{(sec.items||[]).forEach(i=>allItems.push(i.label));});
-      const seen=new Set();
-      const sorted=[];
-      TIERS.forEach(re=>{
-        allItems.forEach(label=>{
-          if(!seen.has(label)&&re.test(label)){seen.add(label);sorted.push(label);}
-        });
-      });
-      const itemsEl=document.getElementById('docsReminderItems');
-      if(itemsEl){
-        itemsEl.textContent=sorted.length
-          ?sorted.join(' · ')
-          :'Passport · Boarding pass · Visa · Travel insurance · Hotel booking · Cash · Charger';
-      }
-      banner.style.display='';
-    }else{
-      banner.style.display='none';
-    }
-  }
 
   const sTitle=document.getElementById('sectionListTitle');
   if(sTitle)sTitle.textContent=`Categories (${trip.sections.length})`;
