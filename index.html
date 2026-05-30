@@ -282,9 +282,11 @@ svg.lucide-2xl{width:28px;height:28px}
 .exp-item:first-child{border-radius:var(--r-card) var(--r-card) 0 0;}
 .exp-item:last-child{border-radius:0 0 var(--r-card) var(--r-card);border-bottom:1px solid var(--border);}
 .exp-item:only-child{border-radius:var(--r-card);border-bottom:1px solid var(--border);}
-.exp-cat-dot{
-  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+.exp-cat-icon{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
 }
+.exp-cat-icon svg{width:17px;height:17px;stroke-width:2;}
 .exp-item-info{flex:1;min-width:0;}
 .exp-item-label{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .exp-item-cat{font-size:12px;color:var(--muted);margin-top:2px;}
@@ -4134,8 +4136,13 @@ window.setTripTab=function(tab){
 
 /* ── Expenses ── */
 const EXP_CATS={
-  Food:'#f59e0b',Transport:'#3b82f6',Accommodation:'#8b5cf6',
-  Shopping:'#ec4899',Entertainment:'#14b8a6',Health:'#ef4444',Other:'#6b7280'
+  Food:         {color:'#f59e0b',bg:'#fef3c7',icon:'<path d="M3 11l19-9-9 19-2-8-8-2z"/>'},
+  Transport:    {color:'#3b82f6',bg:'#dbeafe',icon:'<rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'},
+  Accommodation:{color:'#8b5cf6',bg:'#ede9fe',icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'},
+  Shopping:     {color:'#ec4899',bg:'#fce7f3',icon:'<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'},
+  Entertainment:{color:'#14b8a6',bg:'#ccfbf1',icon:'<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>'},
+  Health:       {color:'#ef4444',bg:'#fee2e2',icon:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'},
+  Other:        {color:'#6b7280',bg:'#f3f4f6',icon:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'},
 };
 // Payment methods — logo is an inline SVG string, badge is a compact version
 const EXP_PAYMENTS=[
@@ -4187,8 +4194,11 @@ function renderExpenses(){
     const pm=EXP_PAYMENTS.find(p=>p.id===e.payWith);
     const payBadge=pm?`<span class="exp-pay-badge" title="${pm.name}">${pm.logo}${pm.name}</span>`:'';
     const metaParts=[e.category,payBadge].filter(Boolean);
+    const cat=EXP_CATS[e.category]||EXP_CATS.Other;
     return`<div class="exp-item" onclick="editExpense('${e.id}')">
-      <div class="exp-cat-dot" style="background:${EXP_CATS[e.category]||EXP_CATS.Other}"></div>
+      <div class="exp-cat-icon" style="background:${cat.bg}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="${cat.color}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
+      </div>
       <div class="exp-item-info">
         <div class="exp-item-label">${esc(e.label)}</div>
         <div class="exp-item-meta">${metaParts.join('<span style="opacity:.35">·</span>')}</div>
