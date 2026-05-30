@@ -1637,7 +1637,7 @@ svg.lucide-2xl{width:28px;height:28px}
   <div class="modal exp-modal">
     <button class="sheet-close-btn" onclick="closeExpenseModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2 id="expenseModalTitle">Add Expense</h2>
-    <div class="exp-modal-body">
+    <div class="exp-modal-body" data-scroll-inner>
       <div class="field">
         <label>Description</label>
         <input id="expLabel" placeholder="e.g. Dinner, Taxi, Hotel" maxlength="60">
@@ -4314,9 +4314,14 @@ function addSwipeDismiss(el, closeFn, {onlyMobile=false, threshold=150}={}){
     // Don't intercept taps on interactive elements (inputs, buttons, etc.)
     if(e.target.closest('input,button,textarea,select,a,[contenteditable]'))return;
     // Allow from handle area or when not scrolled
+    // Walk up from the target to find any scrollable child — covers modals
+    // whose overflow is on an inner div rather than the element itself.
     const r=el.getBoundingClientRect();
     const fromTop=e.clientY-r.top;
-    if(fromTop>64&&el.scrollTop>0)return; // inside scrolled content
+    const scrolled=(()=>{let n=e.target;while(n&&n!==el){if(n.scrollTop>0)return true;n=n.parentElement;}return el.scrollTop>0;})();
+    if(fromTop>64&&scrolled)return;
+    // Never intercept touches that start inside an explicitly scrollable child
+    if(e.target.closest('[data-scroll-inner]'))return;
     sw={sy:e.clientY,dy:0,id:e.pointerId};
     try{el.setPointerCapture(e.pointerId);}catch(_){}
   },{passive:true});
