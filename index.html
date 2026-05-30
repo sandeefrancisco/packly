@@ -4372,8 +4372,12 @@ window.deleteExpense=function(id){
 
 window.deleteEditingExpense=function(){
   if(!_editingExpenseId)return;
-  deleteExpense(_editingExpenseId);
-  closeExpenseModal();
+  const trip=getTrip();
+  const e=(trip?.expenses||[]).find(x=>x.id===_editingExpenseId);
+  confirmDelete('Delete expense?',`"${esc(e?.label||'This expense')}" will be removed.`,()=>{
+    deleteExpense(_editingExpenseId);
+    closeExpenseModal();
+  });
 };
 
 /* ── INIT ── */
