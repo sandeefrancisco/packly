@@ -779,6 +779,44 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 /* ── MODAL → Bottom Sheet ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
 #calOverlay{z-index:400;}
+#currencyPickerOverlay{z-index:300;}
+.cur-trigger{
+  width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);
+  background:var(--tint);font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--ink);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  cursor:pointer;transition:border-color .12s;min-height:50px;text-align:left;
+  -webkit-tap-highlight-color:transparent;
+}
+.cur-trigger:focus-visible{border-color:var(--accent);background:var(--white);outline:none;}
+.cur-trigger-chevron{width:16px;height:16px;flex-shrink:0;color:var(--muted);}
+.cur-picker-modal{
+  display:flex;flex-direction:column;
+  padding-bottom:0!important;max-height:82vh;
+}
+.cur-picker-modal h2{flex-shrink:0;}
+.cur-search-wrap{flex-shrink:0;margin-bottom:8px;}
+.cur-search-wrap input{
+  width:100%;padding:11px 16px;border-radius:12px;border:1.5px solid var(--border);
+  background:var(--tint);font-family:'Figtree',sans-serif;font-size:15px;font-weight:500;color:var(--ink);
+  outline:none;transition:border-color .12s;
+}
+.cur-search-wrap input:focus{border-color:var(--accent);background:var(--white);}
+.cur-list{flex:1;overflow-y:auto;margin:0 -28px;-webkit-overflow-scrolling:touch;}
+.cur-item{
+  display:flex;align-items:center;gap:12px;
+  width:100%;padding:14px 28px;border:none;background:none;
+  font-family:'Figtree',sans-serif;cursor:pointer;
+  border-bottom:1px solid var(--border);
+  -webkit-tap-highlight-color:transparent;
+}
+.cur-item:last-child{border-bottom:none;}
+.cur-item:active{background:var(--tint);}
+.cur-item-code{font-size:15px;font-weight:700;color:var(--ink);min-width:46px;text-align:left;}
+.cur-item-name{flex:1;font-size:14px;font-weight:500;color:var(--muted);text-align:left;}
+.cur-item-check{width:18px;height:18px;flex-shrink:0;color:var(--accent);opacity:0;}
+.cur-item.selected .cur-item-check{opacity:1;}
+.cur-item.selected .cur-item-code{color:var(--accent);}
+.cur-no-results{padding:32px 28px;text-align:center;color:var(--muted);font-size:14px;}
 .overlay.open{display:flex}
 .modal{background:var(--white);border-radius:24px 24px 0 0;padding:28px 28px calc(44px + env(safe-area-inset-bottom));width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 -8px 40px rgba(26,26,46,.14);animation:slideUp .28s cubic-bezier(.32,.72,0,1)}
 .modal{position:relative}
@@ -1745,28 +1783,11 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
       </div>
       <div class="field">
         <label>Currency</label>
-        <select id="expCurrency">
-          <option value="EUR">EUR – Euro</option>
-          <option value="USD">USD – US Dollar</option>
-          <option value="GBP">GBP – British Pound</option>
-          <option value="JPY">JPY – Japanese Yen</option>
-          <option value="AUD">AUD – Australian Dollar</option>
-          <option value="CAD">CAD – Canadian Dollar</option>
-          <option value="SGD">SGD – Singapore Dollar</option>
-          <option value="PHP">PHP – Philippine Peso</option>
-          <option value="THB">THB – Thai Baht</option>
-          <option value="IDR">IDR – Indonesian Rupiah</option>
-          <option value="MYR">MYR – Malaysian Ringgit</option>
-          <option value="KRW">KRW – South Korean Won</option>
-          <option value="HKD">HKD – Hong Kong Dollar</option>
-          <option value="NZD">NZD – New Zealand Dollar</option>
-          <option value="CHF">CHF – Swiss Franc</option>
-          <option value="AED">AED – UAE Dirham</option>
-          <option value="SAR">SAR – Saudi Riyal</option>
-          <option value="INR">INR – Indian Rupee</option>
-          <option value="BRL">BRL – Brazilian Real</option>
-          <option value="MXN">MXN – Mexican Peso</option>
-        </select>
+        <button type="button" class="cur-trigger" id="expCurrencyTrigger" onclick="openCurrencyPicker()">
+          <span id="expCurrencyDisplay">EUR – Euro</span>
+          <svg class="cur-trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <input type="hidden" id="expCurrency" value="EUR">
       </div>
       <div class="field">
         <label>Date</label>
@@ -4348,6 +4369,88 @@ function renderExpCatGrid(selected){
 }
 window.selectExpCat=function(key){renderExpCatGrid(key);};
 
+// ── Currency picker ──────────────────────────────────────────
+const CURRENCIES=[
+  {code:'EUR',name:'Euro'},
+  {code:'USD',name:'US Dollar'},
+  {code:'GBP',name:'British Pound'},
+  {code:'JPY',name:'Japanese Yen'},
+  {code:'AUD',name:'Australian Dollar'},
+  {code:'CAD',name:'Canadian Dollar'},
+  {code:'CHF',name:'Swiss Franc'},
+  {code:'SGD',name:'Singapore Dollar'},
+  {code:'HKD',name:'Hong Kong Dollar'},
+  {code:'NZD',name:'New Zealand Dollar'},
+  {code:'SEK',name:'Swedish Krona'},
+  {code:'NOK',name:'Norwegian Krone'},
+  {code:'DKK',name:'Danish Krone'},
+  {code:'AED',name:'UAE Dirham'},
+  {code:'SAR',name:'Saudi Riyal'},
+  {code:'INR',name:'Indian Rupee'},
+  {code:'PHP',name:'Philippine Peso'},
+  {code:'THB',name:'Thai Baht'},
+  {code:'IDR',name:'Indonesian Rupiah'},
+  {code:'MYR',name:'Malaysian Ringgit'},
+  {code:'KRW',name:'South Korean Won'},
+  {code:'CNY',name:'Chinese Yuan'},
+  {code:'BRL',name:'Brazilian Real'},
+  {code:'MXN',name:'Mexican Peso'},
+  {code:'ZAR',name:'South African Rand'},
+  {code:'TRY',name:'Turkish Lira'},
+  {code:'PLN',name:'Polish Zloty'},
+  {code:'CZK',name:'Czech Koruna'},
+  {code:'HUF',name:'Hungarian Forint'},
+  {code:'VND',name:'Vietnamese Dong'},
+];
+
+function _setCurrency(code,name){
+  document.getElementById('expCurrency').value=code;
+  document.getElementById('expCurrencyDisplay').textContent=code+' – '+name;
+}
+
+function renderCurrencyList(query){
+  const q=(query||'').toLowerCase().trim();
+  const selected=document.getElementById('expCurrency').value;
+  const filtered=q
+    ?CURRENCIES.filter(c=>c.code.toLowerCase().includes(q)||c.name.toLowerCase().includes(q))
+    :CURRENCIES;
+  const list=document.getElementById('curList');
+  if(!list)return;
+  if(!filtered.length){list.innerHTML='<div class="cur-no-results">No currencies found</div>';return;}
+  list.innerHTML=filtered.map(c=>{
+    const sel=c.code===selected?' selected':'';
+    return`<button type="button" class="cur-item${sel}" onclick="selectCurrency('${c.code}','${c.name}')">
+      <span class="cur-item-code">${c.code}</span>
+      <span class="cur-item-name">${c.name}</span>
+      <svg class="cur-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>`;
+  }).join('');
+}
+
+window.openCurrencyPicker=function(){
+  document.getElementById('curSearchInput').value='';
+  renderCurrencyList('');
+  document.getElementById('currencyPickerOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('curSearchInput').focus(),120);
+};
+
+window.closeCurrencyPicker=function(){
+  document.getElementById('currencyPickerOverlay').classList.remove('open');
+};
+
+window.handleCurrencyPickerOverlay=function(e){
+  if(e.target===document.getElementById('currencyPickerOverlay'))closeCurrencyPicker();
+};
+
+window.filterCurrencies=function(query){
+  renderCurrencyList(query);
+};
+
+window.selectCurrency=function(code,name){
+  _setCurrency(code,name);
+  closeCurrencyPicker();
+};
+
 window.openAddExpense=function(){
   _editingExpenseId=null;
   document.getElementById('expenseModalTitle').textContent='Add Expense';
@@ -4365,6 +4468,7 @@ window.openAddExpense=function(){
   document.getElementById('expNotes').value='';
   document.getElementById('expenseError').textContent='';
   document.getElementById('exp-modal-body')?.scrollTo(0,0);
+  _setCurrency('EUR','Euro');
   renderPayChips('cash');
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
@@ -4392,7 +4496,9 @@ window.editExpense=function(id){
   document.getElementById('expLabel').value=e.label||'';
   document.getElementById('expAmount').value=e.amount!=null?e.amount:'';
   renderExpCatGrid(e.category||'Food');
-  document.getElementById('expCurrency').value=e.currency||'EUR';
+  const _eCur=e.currency||'EUR';
+  const _eCurObj=CURRENCIES.find(c=>c.code===_eCur)||{code:_eCur,name:_eCur};
+  _setCurrency(_eCurObj.code,_eCurObj.name);
   const trigger=document.getElementById('expDateTrigger');
   trigger.dataset.date=e.date||'';
   const disp=document.getElementById('expDateDisplay');
@@ -4790,6 +4896,20 @@ window.addEventListener('pageshow',(ev)=>{
   );
 })();
 </script>
+
+<!-- Currency picker overlay — outside transformed ancestors so position:fixed works correctly -->
+<div class="overlay" id="currencyPickerOverlay" onclick="handleCurrencyPickerOverlay(event)">
+  <div class="modal cur-picker-modal" role="dialog" aria-modal="true" aria-label="Select currency">
+    <button class="sheet-close-btn" onclick="closeCurrencyPicker()" aria-label="Close">
+      <svg class="lucide lucide-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2>Currency</h2>
+    <div class="cur-search-wrap">
+      <input type="search" id="curSearchInput" placeholder="Search currency…" oninput="filterCurrencies(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="cur-list" id="curList"></div>
+  </div>
+</div>
 
 <!-- FAB lives here — outside every transformed/will-change ancestor so position:fixed
      is relative to the true viewport, not a stacking-context container -->
