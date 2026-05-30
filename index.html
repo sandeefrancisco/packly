@@ -4192,11 +4192,15 @@ window.openAddExpense=function(){
   document.getElementById('exp-modal-body')?.scrollTo(0,0);
   renderPayChips('cash');
   document.getElementById('expenseOverlay').classList.add('open');
+  history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
 };
 
 window.closeExpenseModal=function(){
-  document.getElementById('expenseOverlay').classList.remove('open');
+  const overlay=document.getElementById('expenseOverlay');
+  if(!overlay.classList.contains('open'))return;
+  overlay.classList.remove('open');
+  if(history.state?.packly==='expense')history.back();
 };
 
 window.handleExpenseOverlay=function(e){
@@ -4222,6 +4226,7 @@ window.editExpense=function(id){
   document.getElementById('expenseError').textContent='';
   renderPayChips(e.payWith||'cash');
   document.getElementById('expenseOverlay').classList.add('open');
+  history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
 };
 
@@ -4338,7 +4343,12 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
 })();
 
 /* ── Native back button / browser history ── */
-window.addEventListener('popstate',()=>{
+window.addEventListener('popstate',(ev)=>{
+  // Popping the expense modal entry lands us on checklist state — close modal, stay in trip
+  if(ev.state?.packly==='checklist'){
+    document.getElementById('expenseOverlay').classList.remove('open');
+    return;
+  }
   if(document.getElementById('navStack').classList.contains('pushed')){
     _doShowTrips();
   }
