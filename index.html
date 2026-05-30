@@ -399,25 +399,28 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
 }
 .exp-cat-opt{
-  display:flex;flex-direction:column;align-items:center;gap:5px;
-  padding:10px 4px;border-radius:12px;
-  border:1.5px solid var(--border);background:var(--white);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:8px 2px;border-radius:12px;
+  border:none;background:none;
   cursor:pointer;
-  transition:border-color .14s,background .14s;
+  transition:opacity .14s;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
-.exp-cat-opt:active{opacity:.75;}
-.exp-cat-opt.active{background:var(--tint);}
+.exp-cat-opt:active{opacity:.6;}
 .exp-cat-opt-icon{
-  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  width:40px;height:40px;border-radius:50%;flex-shrink:0;
+  background:var(--border);
   display:flex;align-items:center;justify-content:center;
+  transition:background .14s;
 }
-.exp-cat-opt-icon svg{width:17px;height:17px;stroke-width:2;}
+.exp-cat-opt-icon svg{width:18px;height:18px;stroke-width:2;}
 .exp-cat-opt-label{
   font-size:10px;font-weight:700;color:var(--muted);
   text-align:center;line-height:1.2;
   width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  transition:color .14s;
 }
+.exp-cat-opt.active .exp-cat-opt-label{color:var(--ink);}
 /* Date trigger inside expense modal */
 .exp-date-trigger-inner{
   display:flex;align-items:center;gap:10px;
@@ -4356,14 +4359,12 @@ function renderExpCatGrid(selected){
   document.getElementById('expCategory').value=selected;
   grid.innerHTML=Object.entries(EXP_CATS).map(([key,cat])=>{
     const active=key===selected;
-    const iconBg=active?cat.color:cat.bg;
-    const iconStroke=active?'#fff':cat.color;
-    const borderStyle=active?`border-color:${cat.color}`:'';
-    const labelStyle=active?`color:${cat.color}`:'';
+    const iconBg=active?'var(--ink)':'var(--border)';
+    const iconStroke=active?'#fff':'var(--muted)';
     const shortLabel=key==='Accommodation'?'Stay':key==='Entertainment'?'Fun':key==='Transport'?'Travel':key;
-    return`<button type="button" class="exp-cat-opt${active?' active':''}" style="${borderStyle}" onclick="selectExpCat('${key}')">
+    return`<button type="button" class="exp-cat-opt${active?' active':''}" onclick="selectExpCat('${key}')">
       <span class="exp-cat-opt-icon" style="background:${iconBg}"><svg viewBox="0 0 24 24" fill="none" stroke="${iconStroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg></span>
-      <span class="exp-cat-opt-label" style="${labelStyle}">${shortLabel}</span>
+      <span class="exp-cat-opt-label">${shortLabel}</span>
     </button>`;
   }).join('');
 }
