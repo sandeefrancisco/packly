@@ -345,13 +345,13 @@ svg.lucide-2xl{width:28px;height:28px}
 .field textarea:focus{border-color:var(--accent);background:var(--white)}
 .btn-add-expense{
   width:100%;padding:14px;border-radius:var(--r-card);
-  border:1.5px dashed var(--border);background:none;
-  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
-  color:var(--muted);cursor:pointer;transition:all .12s;
+  border:none;background:var(--accent);
+  font-family:'Figtree',sans-serif;font-size:15px;font-weight:600;
+  color:#fff;cursor:pointer;transition:opacity .12s;
   display:flex;align-items:center;justify-content:center;gap:8px;
-  margin-top:8px;
+  margin-top:0;margin-bottom:16px;
 }
-.btn-add-expense:hover{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.04);}
+.btn-add-expense:hover{opacity:.88;}
 /* Expense modal fixed-footer layout */
 .exp-modal{display:flex;flex-direction:column;padding-bottom:0!important;overflow:hidden;}
 .exp-modal h2{flex-shrink:0}
@@ -1262,10 +1262,6 @@ svg.lucide-2xl{width:28px;height:28px}
   </div>
   <!-- Expenses panel -->
   <div class="cl-tab-panel" id="clPanelExpenses">
-    <button class="btn-add-expense" onclick="openAddExpense()">
-      <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Expense
-    </button>
     <div id="expensesContainer"></div>
   </div>
 </div>
@@ -4089,7 +4085,7 @@ function renderExpenses(){
   const el=document.getElementById('expensesContainer');if(!el)return;
 
   if(!expenses.length){
-    el.innerHTML=`<div class="exp-empty"><div class="exp-empty-icon">💸</div><p>No expenses yet.<br>Tap below to track your spending.</p></div>`;
+    el.innerHTML=`<button class="btn-add-expense" onclick="openAddExpense()"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Expense</button><div class="exp-empty"><div class="exp-empty-icon">💸</div><p>No expenses yet.<br>Tap above to track your spending.</p></div>`;
     return;
   }
 
@@ -4150,11 +4146,13 @@ function renderExpenses(){
     </div>`;
   }).join('');
 
+  const addBtn=`<button class="btn-add-expense" onclick="openAddExpense()"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Expense</button>`;
   el.innerHTML=`
     <div class="exp-total-card">
       <div class="exp-total-label">Total Spent</div>
       ${totalHtml}
     </div>
+    ${addBtn}
     ${groupsHtml}`;
 }
 
