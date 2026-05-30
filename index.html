@@ -943,7 +943,9 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 }
 
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-.field input.error{border-color:var(--red);animation:shake .35s ease}
+.field input.error,.field .amount-cur-row.error{border-color:var(--red)!important;animation:shake .35s ease}
+.field-error{font-size:12px;font-weight:600;color:var(--red);margin-top:5px;display:none;}
+.field-error.show{display:block;}
 
 /* ── AUTH ── */
 .auth-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;margin-bottom:24px;color:var(--ink)}
@@ -1406,6 +1408,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <div class="field">
       <label>Destination</label>
       <input id="mDest" placeholder="e.g. Tokyo, Japan" maxlength="60">
+      <p class="field-error" id="mDestError"></p>
     </div>
     <div class="field">
       <label>Dates (optional)</label>
@@ -1719,10 +1722,12 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <div class="field">
       <label>Email</label>
       <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+      <p class="field-error" id="authEmailError"></p>
     </div>
     <div class="field">
       <label>Password</label>
       <input id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+      <p class="field-error" id="authPasswordError"></p>
     </div>
     <p id="authError" class="auth-error"></p>
     <button class="btn-save" style="width:100%;min-height:50px;font-size:16px" id="authSubmitBtn" onclick="handleAuthSubmit()">Sign in</button>
@@ -1791,10 +1796,12 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
           <input id="expAmount" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00">
         </div>
         <input type="hidden" id="expCurrency" value="EUR">
+        <p class="field-error" id="expAmountError"></p>
       </div>
       <div class="field">
         <label>Description</label>
         <input id="expLabel" placeholder="e.g. Dinner, Taxi, Hotel" maxlength="60">
+        <p class="field-error" id="expLabelError"></p>
       </div>
       <div class="field">
         <label>Date</label>
@@ -1813,7 +1820,6 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
         <label>Notes</label>
         <textarea id="expNotes" placeholder="Optional note…" maxlength="200" rows="2"></textarea>
       </div>
-      <div id="expenseError" class="auth-error"></div>
     </div>
     <div class="exp-modal-footer">
       <button class="btn-del-expense" id="expenseDelBtn" onclick="deleteEditingExpense()" title="Delete expense" aria-label="Delete expense">
@@ -2780,9 +2786,19 @@ window.handleAuthSubmit=async function(){
   const password=document.getElementById('authPassword').value;
   const isSignUp=document.getElementById('authToggle').dataset.mode==='signup';
   const errEl=document.getElementById('authError');
+  const emailErr=document.getElementById('authEmailError');
+  const passErr=document.getElementById('authPasswordError');
   const btn=document.getElementById('authSubmitBtn');
   errEl.textContent='';errEl.className='auth-error';
-  if(!email||!password){errEl.textContent='Please fill in all fields.';return;}
+  emailErr.textContent='';emailErr.classList.remove('show');
+  passErr.textContent='';passErr.classList.remove('show');
+  document.getElementById('authEmail').classList.remove('error');
+  document.getElementById('authPassword').classList.remove('error');
+  let hasErr=false;
+  if(!email){emailErr.textContent='Please enter your email.';emailErr.classList.add('show');document.getElementById('authEmail').classList.add('error');hasErr=true;}
+  if(!password){passErr.textContent='Please enter your password.';passErr.classList.add('show');document.getElementById('authPassword').classList.add('error');hasErr=true;}
+  else if(isSignUp&&password.length<6){passErr.textContent='Password must be at least 6 characters.';passErr.classList.add('show');document.getElementById('authPassword').classList.add('error');hasErr=true;}
+  if(hasErr)return;
   btn.disabled=true;btn.textContent='Please wait…';
   let data,error;
   try{
@@ -2825,7 +2841,7 @@ window.handleAuthSubmit=async function(){
     } else if(msg.includes('already registered')){
       errEl.textContent='This email already has an account — try signing in instead.';
     } else if(msg.includes('Password should')){
-      errEl.textContent='Password must be at least 6 characters.';
+      passErr.textContent='Password must be at least 6 characters.';passErr.classList.add('show');document.getElementById('authPassword').classList.add('error');
     } else if(msg.includes('not confirmed')||msg.includes('confirm')){
       errEl.textContent='Please check your email inbox and click the confirmation link first.';
     } else if(msg.includes('invalid')||msg.includes('Unable to validate')){
@@ -3427,11 +3443,12 @@ window.saveTrip=function(){
   const dates=buildDatesLabel(dateFrom,dateTo);
   if(!name){
     const f=document.getElementById('mDest');
-    f.classList.remove('error');
-    void f.offsetWidth; // reflow to restart animation
+    const e=document.getElementById('mDestError');
+    f.classList.remove('error');void f.offsetWidth;
     f.classList.add('error');
+    e.textContent='Please enter a destination.';e.classList.add('show');
     f.focus();
-    f.addEventListener('input',()=>f.classList.remove('error'),{once:true});
+    f.addEventListener('input',()=>{f.classList.remove('error');e.textContent='';e.classList.remove('show');},{once:true});
     return;
   }
   if(editingId){
@@ -4500,8 +4517,11 @@ window.openAddExpense=function(){
   const disp=document.getElementById('expDateDisplay');
   disp.textContent=_calFmt(todayStr);disp.className='cal-trigger-val';
   document.getElementById('expNotes').value='';
-  document.getElementById('expenseError').textContent='';
+  ['expAmountError','expLabelError'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent='';e.classList.remove('show');}});
   document.getElementById('exp-modal-body')?.scrollTo(0,0);
+  document.getElementById('expAmount').classList.remove('error');
+  document.getElementById('expLabel').classList.remove('error');
+  document.getElementById('expAmount').closest('.amount-cur-row')?.classList.remove('error');
   _setCurrency('EUR','Euro');
   renderPayChips('visa');
   document.getElementById('expenseOverlay').classList.add('open');
@@ -4539,7 +4559,7 @@ window.editExpense=function(id){
   if(e.date){disp.textContent=_calFmt(e.date);disp.className='cal-trigger-val';}
   else{disp.textContent='Select date';disp.className='cal-trigger-val empty';}
   document.getElementById('expNotes').value=e.notes||'';
-  document.getElementById('expenseError').textContent='';
+  ['expAmountError','expLabelError'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent='';e.classList.remove('show');}});
   renderPayChips(e.payWith||'visa');
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
@@ -4554,10 +4574,25 @@ window.saveExpense=function(){
   const date=document.getElementById('expDateTrigger').dataset.date||'';
   const notes=document.getElementById('expNotes').value.trim();
   const payWith=_selectedPayment;
-  const errEl=document.getElementById('expenseError');
-  if(!label){errEl.textContent='Please enter a description.';return;}
-  if(!amount||amount<=0){errEl.textContent='Please enter a valid amount.';return;}
-  errEl.textContent='';
+  const amountErr=document.getElementById('expAmountError');
+  const labelErr=document.getElementById('expLabelError');
+  const amountRow=document.getElementById('expAmount').closest('.amount-cur-row');
+  const labelInput=document.getElementById('expLabel');
+  amountErr.textContent='';amountErr.classList.remove('show');
+  labelErr.textContent='';labelErr.classList.remove('show');
+  amountRow?.classList.remove('error');labelInput.classList.remove('error');
+  let hasErr=false;
+  if(!amount||amount<=0){
+    amountErr.textContent='Please enter a valid amount.';amountErr.classList.add('show');
+    amountRow?.classList.add('error');hasErr=true;
+    document.getElementById('expAmount').addEventListener('input',()=>{amountErr.textContent='';amountErr.classList.remove('show');amountRow?.classList.remove('error');},{once:true});
+  }
+  if(!label){
+    labelErr.textContent='Please add a description.';labelErr.classList.add('show');
+    labelInput.classList.add('error');hasErr=true;
+    labelInput.addEventListener('input',()=>{labelErr.textContent='';labelErr.classList.remove('show');labelInput.classList.remove('error');},{once:true});
+  }
+  if(hasErr)return;
 
   const trip=getTrip();if(!trip)return;
   if(!trip.expenses)trip.expenses=[];
