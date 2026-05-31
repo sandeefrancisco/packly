@@ -4273,7 +4273,8 @@ function renderExpenses(){
     const pm=EXP_PAYMENTS.find(p=>p.id===payId);if(!pm)return'';
     const active=_expFilterPays.has(payId);
     const chipStyle=active?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
-    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('pay','${payId}')"><span class="chip-pay-logo">${pm.logo}</span>${pm.name}</button>`;
+    const xIcon=active?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`:'';
+    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('pay','${payId}')"><span class="chip-pay-logo">${pm.logo}</span>${pm.name}${xIcon}</button>`;
   }).join('');
   const payBar=usedPays.length>1?`<div class="exp-pay-filter-bar">${payChips}</div>`:'';
 
