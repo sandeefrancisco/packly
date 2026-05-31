@@ -4360,8 +4360,12 @@ window.onExpCatFilter=function(value){
   renderExpenses();
 };
 window.toggleExpFilter=function(type,value){
-  const set=type==='pay'?_expFilterPays:_expFilterCats;
-  if(set.has(value))set.delete(value);else set.add(value);
+  if(type==='pay'){
+    if(_expFilterPays.has(value)){_expFilterPays.clear();}
+    else{_expFilterPays.clear();_expFilterPays.add(value);}
+  } else {
+    if(_expFilterCats.has(value))_expFilterCats.delete(value);else _expFilterCats.add(value);
+  }
   renderExpenses();
 };
 window.clearExpFilters=function(){
