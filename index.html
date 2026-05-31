@@ -209,7 +209,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 .cl-trip-meta{flex:1;min-width:0}
 .cl-trip-name{font-size:20px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
-.cl-trip-dates{font-size:16px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
+.cl-trip-dates{font-size:13px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
 
 .cl-summary-card{
   background:var(--white);border-radius:16px;border:1px solid var(--border);
@@ -3516,7 +3516,7 @@ function renderChecklist(){
     `${getTripFlagOrIcon(trip,'lucide lucide-lg','plane',24)} ${esc(trip.name)}`;
 
   const dEl=document.getElementById('clTripDates');
-  dEl.innerHTML=trip.dates?`${svgStr('calendar')} ${esc(trip.dates)}`:'';
+  dEl.innerHTML=trip.dates?esc(trip.dates):'';
 
   const{total,done}=stats(trip);
   const pct=total?Math.round(done/total*100):0;
