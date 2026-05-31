@@ -208,7 +208,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 
 .cl-trip-meta{flex:1;min-width:0}
-.cl-trip-name{font-size:26px;font-weight:800;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:10px}
+.cl-trip-name{font-size:20px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
 .cl-trip-dates{font-size:16px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
 
 .cl-summary-card{
@@ -2406,12 +2406,12 @@ window.flagImgError=function(el,fbKey){
   const svg=window._flagFallbacks[fbKey];
   if(svg){const tmp=document.createElement('div');tmp.innerHTML=svg;el.replaceWith(tmp.firstChild);}
 };
-function getTripFlagOrIcon(trip,iconCls,defaultIcon='globe'){
+function getTripFlagOrIcon(trip,iconCls,defaultIcon='globe',flagSize=36){
   const code=getCountryCode(trip.name||'');
   if(code){
     const fbKey=trip.id+'_'+code;
     window._flagFallbacks[fbKey]=svgStr(trip.iconKey||defaultIcon,iconCls);
-    return `<img src="https://flagcdn.com/w80/${code}.png" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="flagImgError(this,'${fbKey}')">`;
+    return `<img src="https://flagcdn.com/w80/${code}.png" style="width:${flagSize}px;height:${flagSize}px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="flagImgError(this,'${fbKey}')">`;
   }
   return svgStr(trip.iconKey||defaultIcon,iconCls);
 }
@@ -3513,7 +3513,7 @@ function renderChecklist(){
   }
 
   document.getElementById('clTripName').innerHTML=
-    `${getTripFlagOrIcon(trip,'lucide lucide-lg','plane')} ${esc(trip.name)}`;
+    `${getTripFlagOrIcon(trip,'lucide lucide-lg','plane',24)} ${esc(trip.name)}`;
 
   const dEl=document.getElementById('clTripDates');
   dEl.innerHTML=trip.dates?`${svgStr('calendar')} ${esc(trip.dates)}`:'';
