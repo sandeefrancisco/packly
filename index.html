@@ -394,6 +394,14 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 }
 .exp-modal-footer .btn-del-expense:hover{background:rgba(220,53,69,.08);color:#dc3545;border-color:#dc3545;}
 .exp-modal-footer .btn-del-expense svg{width:18px;height:18px;}
+.exp-modal-footer .btn-dup-expense{
+  width:48px;height:48px;border-radius:12px;border:1.5px solid var(--border);
+  background:none;color:var(--muted);cursor:pointer;
+  display:none;align-items:center;justify-content:center;flex-shrink:0;
+  transition:background .12s,color .12s,border-color .12s;
+}
+.exp-modal-footer .btn-dup-expense:hover{background:var(--tint);color:var(--ink);border-color:var(--accent);}
+.exp-modal-footer .btn-dup-expense svg{width:18px;height:18px;}
 /* Category picker grid */
 .exp-cat-grid{
   display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
@@ -1824,6 +1832,9 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <div class="exp-modal-footer">
       <button class="btn-del-expense" id="expenseDelBtn" onclick="deleteEditingExpense()" title="Delete expense" aria-label="Delete expense">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+      <button class="btn-dup-expense" id="expenseDupBtn" onclick="duplicateEditingExpense()" title="Duplicate expense" aria-label="Duplicate expense">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
       </button>
       <button class="btn-save" id="expenseSaveBtn" onclick="saveExpense()">Add</button>
     </div>
@@ -4507,6 +4518,7 @@ window.openAddExpense=function(){
   document.getElementById('expenseModalTitle').textContent='Add Expense';
   document.getElementById('expenseSaveBtn').textContent='Add';
   document.getElementById('expenseDelBtn').style.display='none';
+  document.getElementById('expenseDupBtn').style.display='none';
   document.getElementById('expLabel').value='';
   document.getElementById('expAmount').value='';
   renderExpCatGrid('Food');
@@ -4547,6 +4559,7 @@ window.editExpense=function(id){
   document.getElementById('expenseModalTitle').textContent='Edit Expense';
   document.getElementById('expenseSaveBtn').textContent='Save';
   document.getElementById('expenseDelBtn').style.display='flex';
+  document.getElementById('expenseDupBtn').style.display='flex';
   document.getElementById('expLabel').value=e.label||'';
   document.getElementById('expAmount').value=e.amount!=null?e.amount:'';
   renderExpCatGrid(e.category||'Food');
@@ -4614,6 +4627,19 @@ window.deleteExpense=function(id){
   const trip=getTrip();if(!trip)return;
   trip.expenses=(trip.expenses||[]).filter(e=>e.id!==id);
   saveAll(trips);
+  renderExpenses();
+};
+
+window.duplicateEditingExpense=function(){
+  if(!_editingExpenseId)return;
+  const trip=getTrip();if(!trip)return;
+  const src=(trip.expenses||[]).find(x=>x.id===_editingExpenseId);
+  if(!src)return;
+  const copy={...src,id:uid()};
+  const idx=trip.expenses.findIndex(x=>x.id===_editingExpenseId);
+  trip.expenses.splice(idx+1,0,copy);
+  saveAll(trips);
+  closeExpenseModal();
   renderExpenses();
 };
 
