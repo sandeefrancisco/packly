@@ -456,15 +456,9 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   -webkit-tap-highlight-color:transparent;
 }
 .exp-cat-select.active{border-color:var(--accent);color:var(--accent);}
-.exp-cat-select-wrap::after{
-  content:'';
-  position:absolute;right:13px;top:50%;transform:translateY(-50%);
-  width:0;height:0;
-  border-left:4px solid transparent;border-right:4px solid transparent;
-  border-top:5px solid var(--muted);
-  pointer-events:none;
-}
-.exp-cat-select-wrap:has(.exp-cat-select.active)::after{border-top-color:var(--accent);}
+.exp-cat-select-wrap::after{display:none;}
+.exp-cat-chevron{position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);width:14px;height:14px;}
+.exp-cat-select-wrap:has(.exp-cat-select.active) .exp-cat-chevron{color:var(--accent);}
 /* Payment chips */
 .exp-pay-filter-bar{
   display:flex;gap:6px;overflow-x:auto;flex:1;
@@ -4266,6 +4260,7 @@ function renderExpenses(){
           <option value="">All categories</option>
           ${catOptions}
         </select>
+        <svg class="exp-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>`
     :'';
 
