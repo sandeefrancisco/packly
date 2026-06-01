@@ -3086,7 +3086,6 @@ function renderTrips(){
           <div class="trip-date-row">${esc(t.dates||'No dates set')}</div>
         </div>
       </div>
-      <div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
       <div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} All packed`:`${pct}%`}</span></div>
       ${packAgainHtml}`;
     card.onclick=e=>{
