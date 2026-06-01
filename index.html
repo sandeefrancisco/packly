@@ -1785,11 +1785,6 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <h2 id="expenseModalTitle">Add Expense</h2>
     <div class="exp-modal-body" data-scroll-inner>
       <div class="field">
-        <label>Category</label>
-        <div class="exp-cat-grid" id="expCatGrid"></div>
-        <input type="hidden" id="expCategory" value="Food">
-      </div>
-      <div class="field">
         <label>Amount</label>
         <div class="amount-cur-row">
           <button type="button" class="cur-inline-btn" id="expCurrencyTrigger" onclick="openCurrencyPicker()">
@@ -1800,6 +1795,11 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
         </div>
         <input type="hidden" id="expCurrency" value="EUR">
         <p class="field-error" id="expAmountError"></p>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <div class="exp-cat-grid" id="expCatGrid"></div>
+        <input type="hidden" id="expCategory" value="Food">
       </div>
       <div class="field">
         <label>Description</label>
