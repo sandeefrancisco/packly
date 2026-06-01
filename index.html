@@ -304,16 +304,17 @@ svg.lucide-2xl{width:28px;height:28px}
 .exp-day-group{margin-bottom:12px;}
 /* Payment method chips */
 .exp-pay-row{
-  display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;
-  scrollbar-width:none;
+  display:flex;gap:10px;overflow-x:auto;padding:4px 0 6px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
 }
 .exp-pay-row::-webkit-scrollbar{display:none}
 .exp-pay-chip{
-  display:flex;flex-direction:column;align-items:center;gap:5px;
-  flex-shrink:0;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  flex-shrink:0;cursor:pointer;min-width:72px;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .exp-pay-logo{
-  width:56px;height:36px;border-radius:10px;
+  width:72px;height:46px;border-radius:12px;
   border:2px solid var(--border);background:var(--white);
   display:flex;align-items:center;justify-content:center;
   transition:border-color .14s,box-shadow .14s;
@@ -323,7 +324,7 @@ svg.lucide-2xl{width:28px;height:28px}
   border-color:var(--accent);
   box-shadow:0 0 0 3px rgba(99,102,241,.15);
 }
-.exp-pay-name{font-size:11px;font-weight:600;color:var(--muted);transition:color .14s;}
+.exp-pay-name{font-size:12px;font-weight:600;color:var(--muted);transition:color .14s;}
 .exp-pay-chip.selected .exp-pay-name{color:var(--accent);}
 /* Payment badge shown in list */
 .exp-pay-badge{
