@@ -439,8 +439,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 #expDateTrigger:hover,#expDateTrigger:focus-within{border-color:var(--accent);background:var(--white);}
 /* Expense filter bar */
 .exp-filter-row{
-  display:flex;align-items:center;gap:8px;
-  margin-bottom:12px;flex-wrap:wrap;
+  display:flex;flex-direction:column;gap:8px;
+  margin-bottom:12px;
 }
 /* Category dropdown */
 .exp-cat-select-wrap{position:relative;flex-shrink:0;}
@@ -461,9 +461,10 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .exp-cat-select-wrap:has(.exp-cat-select.active) .exp-cat-chevron{color:var(--accent);}
 /* Payment chips */
 .exp-pay-filter-bar{
-  display:flex;gap:6px;overflow-x:auto;flex:1;
-  padding:2px 0 2px;
+  display:flex;gap:6px;overflow-x:auto;
+  padding:2px 0 4px;
   scrollbar-width:none;-ms-overflow-style:none;
+  -webkit-overflow-scrolling:touch;
 }
 .exp-pay-filter-bar::-webkit-scrollbar{display:none}
 .exp-filter-chip{
