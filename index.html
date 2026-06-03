@@ -1670,6 +1670,20 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   </button>
 </div>
 
+<!-- RENAME ITEM OVERLAY -->
+<div class="overlay" id="renameItemOverlay" onclick="handleRenameOverlay(event)">
+  <div class="modal" style="padding-bottom:calc(16px + env(safe-area-inset-bottom))">
+    <button class="sheet-close-btn" onclick="closeRenameItem()" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2>Rename item</h2>
+    <div class="field">
+      <input id="renameItemInput" placeholder="Item name" maxlength="100" autocomplete="off">
+    </div>
+    <button class="btn-save" style="width:100%;min-height:50px" onclick="saveRenameItem()">Save</button>
+  </div>
+</div>
+
 <!-- MOVE TO CATEGORY SHEET -->
 <div class="sheet-overlay" id="moveCatOverlay" onclick="closeMoveCat()"></div>
 <div class="account-sheet" id="moveCatSheet">
@@ -2430,7 +2444,7 @@ window.openItemActions=function(item,sec,labelEl){
   document.getElementById('itemActionsLabel').textContent=item.label;
   document.getElementById('itemActionRename').onclick=()=>{
     closeItemActions();
-    setTimeout(()=>{if(labelEl){labelEl.setAttribute('contenteditable','true');labelEl.focus();const r=document.createRange();r.selectNodeContents(labelEl);const s=window.getSelection();s.removeAllRanges();s.addRange(r);}},120);
+    openRenameItem(item,sec);
   };
   document.getElementById('itemActionMove').onclick=()=>{closeItemActions();openMoveCat(item,sec);};
   document.getElementById('itemActionDelete').onclick=()=>{
@@ -2446,6 +2460,28 @@ window.closeItemActions=function(){
   document.getElementById('itemActionsOverlay').classList.remove('open');
   document.getElementById('itemActionsSheet').classList.remove('open');
 };
+
+/* ── Rename Item ── */
+let _renameCtx={item:null,sec:null};
+window.openRenameItem=function(item,sec){
+  _renameCtx={item,sec};
+  const input=document.getElementById('renameItemInput');
+  input.value=item.label;
+  document.getElementById('renameItemOverlay').classList.add('open');
+  setTimeout(()=>{input.focus();input.select();},80);
+};
+window.closeRenameItem=function(){
+  document.getElementById('renameItemOverlay').classList.remove('open');
+};
+window.handleRenameOverlay=function(e){
+  if(e.target===document.getElementById('renameItemOverlay'))closeRenameItem();
+};
+window.saveRenameItem=function(){
+  const val=document.getElementById('renameItemInput').value.trim();
+  if(val&&_renameCtx.item){_renameCtx.item.label=val;saveAll(trips);renderChecklist();}
+  closeRenameItem();
+};
+document.getElementById('renameItemInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveRenameItem();});
 
 /* ── Move to Category Sheet ── */
 window.openMoveCat=function(item,sec){
@@ -3045,6 +3081,12 @@ function renderTrips(){
   if(upBadge)upBadge.textContent=upcoming.length;
   if(onBadge)onBadge.textContent=ongoing.length;
   if(pastBadge)pastBadge.textContent=past.length;
+
+  // Auto-redirect to upcoming if ongoing tab is empty
+  if(_tripsTab==='ongoing'&&!ongoing.length){
+    _tripsTab='upcoming';
+    sessionStorage.setItem('packly-trips-tab','upcoming');
+  }
 
   // Sync selected state with current tab (handles page-load restore)
   document.getElementById('tabUpcoming')?.classList.toggle('sel',_tripsTab==='upcoming');
