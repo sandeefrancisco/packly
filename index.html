@@ -2870,6 +2870,7 @@ async function onSignedIn(user){
     dismissAppLoader();
   }
   subscribeToSharedTrips();
+  startBgSharedPoll();
   updateTrashBadge();
   }finally{_onSignedInRunning=false;}
 }
@@ -2883,6 +2884,7 @@ function onSignedOut(){
   closeAccountSheet();
   document.getElementById('authOverlay').classList.add('open');
   trips=[];
+  stopBgSharedPoll();
   dismissAppLoader();
 }
 
@@ -4071,6 +4073,7 @@ window.shareTrip=async function(tripId){
   await sb.from('trip_access').insert({trip_id:data.id,user_id:user.id});
   saveAll(trips);renderTrips();
   subscribeToSharedTrips(); // pick up realtime for newly shared trip
+  startBgSharedPoll();
   window.showShareModal(code);
 };
 
@@ -4127,6 +4130,7 @@ window.handleJoinSubmit=async function(){
     saveLocalOnly(trips);
   }
   subscribeToSharedTrips(); // pick up realtime for newly joined trip
+  startBgSharedPoll();
   closeJoinModal();showTrips();
 };
 
@@ -4300,12 +4304,55 @@ function startSharedTripPolling(tripId){
       if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
       trips=dedup(trips);
       saveLocalOnly(trips);
+      renderTrips(); // keep trip card stats (packed count) up to date
       if(activeId===tripId) renderChecklist();
     }catch(_){}
   },5000);
 }
 function stopSharedTripPolling(){
   if(_sharedTripPoller){clearInterval(_sharedTripPoller);_sharedTripPoller=null;}
+}
+
+/* ── Background poll for all shared trips (trips list view fallback) ── */
+// Runs every 20 s regardless of which view is active — catches updates when
+// realtime is unavailable (network switch, mobile sleep, etc.)
+let _bgPoller=null;
+function startBgSharedPoll(){
+  stopBgSharedPoll();
+  _bgPoller=setInterval(async()=>{
+    if(!_currentUserId)return;
+    const shared=trips.filter(t=>t.sharedTripId);
+    if(!shared.length)return;
+    try{
+      const ids=shared.map(t=>t.sharedTripId);
+      const{data:rows}=await sb.from('shared_trips').select('id,data,updated_at').in('id',ids);
+      const returnedIds=new Set((rows||[]).map(r=>r.id));
+      // Detect deleted trips
+      shared.forEach(t=>{
+        if(!returnedIds.has(t.sharedTripId))
+          _removeSharedTrip(t,`✈️ "${t.name}" was deleted by the organizer`);
+      });
+      if(!rows?.length)return;
+      let changed=false;
+      rows.forEach(r=>{
+        if(!r.data)return;
+        if(r.data.lastModifiedBy===_currentUserId)return; // our own changes
+        const incoming={...r.data,sharedTripId:r.id,isShared:true};
+        const idx=trips.findIndex(t=>t.id===incoming.id);
+        if(idx!==-1){trips[idx]=incoming;changed=true;}
+        else{trips.push(incoming);changed=true;}
+      });
+      if(changed){
+        trips=dedup(trips);saveLocalOnly(trips);
+        renderTrips();
+        if(activeId&&document.getElementById('navStack').classList.contains('pushed'))
+          renderChecklist();
+      }
+    }catch(_){}
+  },20000);
+}
+function stopBgSharedPoll(){
+  if(_bgPoller){clearInterval(_bgPoller);_bgPoller=null;}
 }
 
 /* ── Trip Tabs ── */
