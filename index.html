@@ -1573,21 +1573,36 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 /* ── Cloud sync ── */
+let _syncDirty=false;   // true when a save failed and data is unsynced
+let _syncInFlight=0;    // count of active cloudSync calls
+
 async function cloudSync(data){
+  _syncInFlight++;
   try{
     const{data:{user}}=await sb.auth.getUser();
-    if(!user)return;
-    // Personal trips → user_data blob (include deleted_trips for recovery)
+    if(!user){_syncDirty=true;return;}
     const personal=data.filter(t=>!t.sharedTripId);
     const deleted_trips=loadTrash();
     await sb.from('user_data').upsert({user_id:user.id,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
-    // Shared trips → update their row in shared_trips (tag with who changed it)
     const shared=data.filter(t=>t.sharedTripId);
     for(const trip of shared){
       const tripData={...trip,lastModifiedBy:user.id};
       await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
     }
-  }catch(e){console.warn('Sync error',e);}
+    _syncDirty=false;
+  }catch(e){
+    console.warn('Sync error',e);
+    _syncDirty=true;
+  }finally{
+    _syncInFlight--;
+  }
+}
+
+// Cloud wins for shared trips unless we have unsaved local changes in-flight.
+function _pickSharedTrip(cloud, local){
+  if(!local) return cloud;
+  const weHavePending=(_syncDirty||_syncInFlight>0)&&cloud.lastModifiedBy===_currentUserId;
+  return weHavePending ? local : cloud;
 }
 
 async function syncTrashToCloud(){
@@ -1675,9 +1690,13 @@ async function onSignedIn(user){
   // Build trashedIds AFTER merging trash so it includes both local and cloud deletions
   const trashedIds=new Set(loadTrash().map(t=>t.id));
   const personalById=new Map();
-  cloudPersonal.forEach(t=>personalById.set(t.id,t));   // cloud base
-  localPersonal.forEach(t=>personalById.set(t.id,t));   // local overrides — always newer
-  // Never resurface a trip that has been deleted (trashed) on any device
+  cloudPersonal.forEach(t=>personalById.set(t.id,t)); // cloud base
+  localPersonal.forEach(t=>{
+    const cloud=personalById.get(t.id);
+    // Keep local if: no cloud copy, local is newer, or we have unsaved changes
+    if(!cloud||(t._ts||0)>=(cloud._ts||0)||_syncDirty||_syncInFlight>0)
+      personalById.set(t.id,t);
+  });
   const personal=[...personalById.values()].filter(t=>!trashedIds.has(t.id));
 
   // Push merged personal trips back to cloud so it catches up
@@ -1685,16 +1704,18 @@ async function onSignedIn(user){
     sb.from('user_data').upsert({user_id:user.id,trips:personal,updated_at:new Date().toISOString()}).then(()=>{}).catch(()=>{});
   }
 
-  // Load shared trips — cloud always wins for shared (other travellers may have edited)
   const shared=await loadSharedTrips();
+  const localSharedMap=new Map(loadAll().filter(t=>t.sharedTripId).map(t=>[t.id,t]));
   const byId=new Map();
   personal.filter(t=>!t.sharedTripId).forEach(t=>byId.set(t.id,t));
-  shared.forEach(t=>byId.set(t.id,t));
+  shared.forEach(t=>byId.set(t.id,_pickSharedTrip(t,localSharedMap.get(t.id))));
   trips=[...byId.values()];
   saveLocalOnly(trips);
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
   showTrips();
   subscribeToSharedTrips();
+  startBgSharedPoll();
+  subscribeToPersonalTrips();
   updateTrashBadge();
 }
 
@@ -1710,12 +1731,17 @@ async function refreshTripsFromCloud(){
     const cloudPersonal=data?.trips||[];
     const personalById=new Map();
     cloudPersonal.forEach(t=>personalById.set(t.id,t));
-    localPersonal.forEach(t=>personalById.set(t.id,t));
+    localPersonal.forEach(t=>{
+      const cloud=personalById.get(t.id);
+      if(!cloud||(t._ts||0)>=(cloud._ts||0)||_syncDirty||_syncInFlight>0)
+        personalById.set(t.id,t);
+    });
     const personal=[...personalById.values()].filter(t=>!trashedIds.has(t.id));
     const shared=await loadSharedTrips();
+    const localSharedMap=new Map(loadAll().filter(t=>t.sharedTripId).map(t=>[t.id,t]));
     const byId=new Map();
     personal.forEach(t=>byId.set(t.id,t));
-    shared.forEach(t=>byId.set(t.id,t));
+    shared.forEach(t=>byId.set(t.id,_pickSharedTrip(t,localSharedMap.get(t.id))));
     trips=[...byId.values()];
     saveLocalOnly(trips);
     updateTrashBadge();
@@ -1726,6 +1752,8 @@ async function refreshTripsFromCloud(){
 function onSignedOut(){
   _currentUserId=null;
   _currentUserName=null;
+  stopBgSharedPoll();
+  if(_personalChannel){sb.removeChannel(_personalChannel);_personalChannel=null;}
   updateHeroGreeting();
   document.getElementById('sheetEmail').textContent='—';
   closeAccountSheet();
@@ -2661,7 +2689,8 @@ window.shareTrip=async function(tripId){
   trip.sharedTripId=data.id;trip.isShared=true;
   await sb.from('trip_access').insert({trip_id:data.id,user_id:user.id});
   saveAll(trips);renderTrips();
-  subscribeToSharedTrips(); // pick up realtime for newly shared trip
+  subscribeToSharedTrips();
+  startBgSharedPoll();
   window.showShareModal(code);
 };
 
@@ -2717,7 +2746,8 @@ window.handleJoinSubmit=async function(){
     trips.push({...data.data,sharedTripId:data.id,isShared:true});
     saveLocalOnly(trips);
   }
-  subscribeToSharedTrips(); // pick up realtime for newly joined trip
+  subscribeToSharedTrips();
+  startBgSharedPoll();
   closeJoinModal();showTrips();
 };
 
@@ -2774,25 +2804,36 @@ function showToast(msg){
   _toastTimer=setTimeout(()=>{t.classList.remove('show');},4000);
 }
 
+/* ── Remove a shared trip the user can no longer access ── */
+function _removeSharedTrip(ourTrip, toastMsg){
+  stopSharedTripPolling();
+  if(ourTrip.sharedTripId)_bgPollSeenAt.delete(ourTrip.sharedTripId);
+  trips=trips.filter(t=>t.id!==ourTrip.id);
+  saveLocalOnly(trips);
+  if(activeId===ourTrip.id){
+    activeId=null;
+    sessionStorage.removeItem('packly-nav');
+    document.getElementById('navStack').classList.remove('pushed');
+  }
+  renderTrips();
+  showToast(toastMsg);
+}
+
 /* ── Realtime sync for shared trips ── */
 let _realtimeChannel=null;
 function subscribeToSharedTrips(){
   if(_realtimeChannel){sb.removeChannel(_realtimeChannel);_realtimeChannel=null;}
   const shared=trips.filter(t=>t.sharedTripId);
   if(!shared.length)return;
-  // Listen for ALL updates on shared_trips — no row-level filter because
-  // filter:`id=eq.UUID` requires REPLICA IDENTITY FULL on the table and
-  // silently delivers zero events without it. Filter client-side instead.
   _realtimeChannel=sb.channel('packly-shared-'+_currentUserId);
   _realtimeChannel.on('postgres_changes',{
     event:'UPDATE',schema:'public',table:'shared_trips'
   },(payload)=>{
     const sharedId=payload.new?.id;
     const ourTrip=trips.find(t=>t.sharedTripId===sharedId);
-    if(!ourTrip)return; // not a trip we're part of
+    if(!ourTrip)return;
     const updated=payload.new?.data;
     if(!updated)return;
-    // Ignore our own saves
     if(updated.lastModifiedBy===_currentUserId)return;
     const incoming={...updated,sharedTripId:sharedId,isShared:true};
     const idx=trips.findIndex(t=>t.id===incoming.id);
@@ -2807,36 +2848,141 @@ function subscribeToSharedTrips(){
       showToast(`✈️ ${ourTrip.name} — your co-traveler made changes`);
     }
   });
-  _realtimeChannel.subscribe();
+  _realtimeChannel.subscribe((status,err)=>{
+    if(status==='SUBSCRIBED')console.log('[packly] Realtime subscribed');
+    else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('[packly] Realtime failed:',status,err);
+  });
+}
+
+/* ── Realtime sync for personal trips (cross-device) ── */
+let _personalChannel=null;
+function subscribeToPersonalTrips(){
+  if(_personalChannel){sb.removeChannel(_personalChannel);_personalChannel=null;}
+  if(!_currentUserId)return;
+  _personalChannel=sb.channel('packly-personal-'+_currentUserId);
+  _personalChannel.on('postgres_changes',{
+    event:'UPDATE',schema:'public',table:'user_data',
+    filter:`user_id=eq.${_currentUserId}`
+  },(payload)=>{
+    if(_syncDirty||_syncInFlight>0)return; // we have pending saves — don't overwrite
+    const cloudPersonal=payload.new?.trips||[];
+    if(!cloudPersonal.length)return;
+    let changed=false;
+    cloudPersonal.forEach(t=>{
+      const idx=trips.findIndex(x=>x.id===t.id&&!x.sharedTripId);
+      if(idx===-1){trips.push(t);changed=true;}
+      else if((t._ts||0)>(trips[idx]._ts||0)){trips[idx]=t;changed=true;}
+    });
+    if(changed){
+      trips=dedup(trips);saveLocalOnly(trips);renderTrips();
+      if(activeId&&trips.find(t=>t.id===activeId&&!t.sharedTripId))renderChecklist();
+    }
+  });
+  _personalChannel.subscribe((status,err)=>{
+    if(status==='SUBSCRIBED')console.log('[packly] Personal Realtime subscribed');
+    else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('[packly] Personal Realtime failed:',status,err);
+  });
+}
+
+/* ── Background poll: shared + personal trips (fallback when Realtime sleeps) ── */
+let _bgPoller=null;
+const _bgPollSeenAt=new Map();
+let _lastPersonalCloudTs=0;
+
+async function _doBgPoll(){
+  if(!_currentUserId)return;
+  // Personal trips — pick up changes from other devices
+  if(!_syncDirty&&_syncInFlight===0){
+    try{
+      const{data}=await sb.from('user_data').select('trips,updated_at').eq('user_id',_currentUserId).single();
+      const cloudTs=data?.updated_at?new Date(data.updated_at).getTime():0;
+      if(cloudTs>_lastPersonalCloudTs){
+        _lastPersonalCloudTs=cloudTs;
+        const cloudPersonal=data?.trips||[];
+        let changed=false;
+        cloudPersonal.forEach(t=>{
+          const idx=trips.findIndex(x=>x.id===t.id&&!x.sharedTripId);
+          if(idx===-1){trips.push(t);changed=true;}
+          else if((t._ts||0)>(trips[idx]._ts||0)){trips[idx]=t;changed=true;}
+        });
+        if(changed){trips=dedup(trips);saveLocalOnly(trips);renderTrips();}
+      }
+    }catch(_){}
+  }
+  // Shared trips
+  const shared=trips.filter(t=>t.sharedTripId);
+  if(!shared.length)return;
+  try{
+    const ids=shared.map(t=>t.sharedTripId);
+    const{data:rows}=await sb.from('shared_trips').select('id,data,updated_at').in('id',ids);
+    const returnedIds=new Set((rows||[]).map(r=>r.id));
+    shared.forEach(t=>{
+      if(!returnedIds.has(t.sharedTripId))
+        _removeSharedTrip(t,`✈️ "${t.name}" was deleted by the organizer`);
+    });
+    if(!rows?.length)return;
+    let changed=false;
+    rows.forEach(r=>{
+      if(!r.data)return;
+      if(_bgPollSeenAt.get(r.id)===r.updated_at)return;
+      _bgPollSeenAt.set(r.id,r.updated_at);
+      if(r.data.lastModifiedBy===_currentUserId)return;
+      const incoming={...r.data,sharedTripId:r.id,isShared:true};
+      const idx=trips.findIndex(t=>t.id===incoming.id);
+      if(idx!==-1){trips[idx]=incoming;changed=true;}
+      else{trips.push(incoming);changed=true;}
+    });
+    if(changed){
+      trips=dedup(trips);saveLocalOnly(trips);
+      renderTrips();
+      if(activeId&&document.getElementById('navStack').classList.contains('pushed'))
+        renderChecklist();
+    }
+  }catch(_){}
+}
+function startBgSharedPoll(){
+  stopBgSharedPoll();
+  _lastPersonalCloudTs=0;
+  _doBgPoll(); // immediate first run
+  _bgPoller=setInterval(_doBgPoll,5000);
+}
+function stopBgSharedPoll(){
+  if(_bgPoller){clearInterval(_bgPoller);_bgPoller=null;}
+  _bgPollSeenAt.clear();
 }
 
 /* ── Poll for shared-trip updates while checklist is open ── */
 let _sharedTripPoller=null;
 let _polledUpdatedAt=null;
+async function _doChecklistPoll(sid,tripId){
+  try{
+    const{data,error}=await sb.from('shared_trips').select('data,updated_at').eq('id',sid).single();
+    if(error?.code==='PGRST116'||(!data&&!error)){
+      stopSharedTripPolling();
+      const t=trips.find(x=>x.sharedTripId===sid);
+      if(t)_removeSharedTrip(t,'✈️ This shared trip was deleted by the organizer.');
+      return;
+    }
+    if(!data)return;
+    if(_polledUpdatedAt&&data.updated_at<=_polledUpdatedAt)return;
+    _polledUpdatedAt=data.updated_at;
+    if(data.data?.lastModifiedBy===_currentUserId)return;
+    const incoming={...data.data,sharedTripId:sid,isShared:true};
+    const idx=trips.findIndex(t=>t.id===incoming.id);
+    if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
+    trips=dedup(trips);saveLocalOnly(trips);
+    renderTrips();
+    if(activeId===tripId) renderChecklist();
+  }catch(_){}
+}
 function startSharedTripPolling(tripId){
   stopSharedTripPolling();
   const trip=trips.find(t=>t.id===tripId);
   if(!trip?.sharedTripId||!_currentUserId)return;
   const sid=trip.sharedTripId;
   _polledUpdatedAt=null;
-  _sharedTripPoller=setInterval(async()=>{
-    try{
-      const{data}=await sb.from('shared_trips')
-        .select('data,updated_at').eq('id',sid).single();
-      if(!data)return;
-      // Skip if we haven't received anything newer
-      if(_polledUpdatedAt&&data.updated_at<=_polledUpdatedAt)return;
-      _polledUpdatedAt=data.updated_at;
-      // Skip if this is our own last save
-      if(data.data?.lastModifiedBy===_currentUserId)return;
-      const incoming={...data.data,sharedTripId:sid,isShared:true};
-      const idx=trips.findIndex(t=>t.id===incoming.id);
-      if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
-      trips=dedup(trips);
-      saveLocalOnly(trips);
-      if(activeId===tripId) renderChecklist();
-    }catch(_){}
-  },5000);
+  _doChecklistPoll(sid,tripId); // immediate first run
+  _sharedTripPoller=setInterval(()=>_doChecklistPoll(sid,tripId),2000);
 }
 function stopSharedTripPolling(){
   if(_sharedTripPoller){clearInterval(_sharedTripPoller);_sharedTripPoller=null;}
@@ -2977,34 +3123,13 @@ document.querySelectorAll('.overlay').forEach(overlay=>{
   addSwipeDismiss(modal, ()=>overlay.classList.remove('open'), {onlyMobile:true, threshold:100});
 });
 
-/* ── Shared-trip refresh on tab focus ── */
-document.addEventListener('visibilitychange',async()=>{
+/* ── Refresh all trips on tab focus (personal + shared) ── */
+document.addEventListener('visibilitychange',()=>{
   if(document.hidden)return;
   checkForUpdates({manual:false});
   if(!_currentUserId)return;
-  const sharedTrips=trips.filter(t=>t.sharedTripId);
-  if(!sharedTrips.length)return;
-  try{
-    const ids=sharedTrips.map(t=>t.sharedTripId);
-    const{data:rows}=await sb.from('shared_trips').select('id,data').in('id',ids);
-    if(!rows?.length)return;
-    let changed=false;
-    rows.forEach(r=>{
-      if(!r.data)return;
-      const incoming={...r.data,sharedTripId:r.id,isShared:true};
-      const idx=trips.findIndex(t=>t.id===incoming.id);
-      if(idx!==-1){trips[idx]=incoming;changed=true;}
-      else{trips.push(incoming);changed=true;}
-    });
-    if(changed){
-      trips=dedup(trips);
-      saveLocalOnly(trips);
-      renderTrips();
-      if(activeId&&rows.some(r=>trips.find(t=>t.id===activeId&&t.sharedTripId===r.id))){
-        renderChecklist();
-      }
-    }
-  }catch(_){}
+  _lastPersonalCloudTs=0; // force re-check of personal trips
+  _doBgPoll();
 });
 window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
 
