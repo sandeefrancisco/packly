@@ -1384,7 +1384,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
       <div class="cl-stats-row" id="clStatsRow">
         <div class="cl-stat">
           <div class="cl-stat-val" id="clStatItems">—</div>
-          <div class="cl-stat-lbl" id="clStatItemsLbl">ITEMS TO PACK</div>
+          <div class="cl-stat-lbl" id="clStatItemsLbl">ITEMS</div>
         </div>
         <div class="cl-stat-sep"></div>
         <div class="cl-stat">
@@ -1530,7 +1530,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <div class="pack-complete-stats">
       <div class="pack-complete-stat">
         <div class="pack-complete-stat-val" id="packCompleteDone">0</div>
-        <div class="pack-complete-stat-lbl">Items packed</div>
+        <div class="pack-complete-stat-lbl">Items</div>
       </div>
       <div class="pack-complete-stat">
         <div class="pack-complete-stat-val" id="packCompleteSections">0</div>
@@ -3137,7 +3137,7 @@ function renderTrips(){
           <div class="trip-date-row">${esc(t.dates||'No dates set')}</div>
         </div>
       </div>
-      ${_tripsTab==='upcoming'?`<div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div><div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items packed<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} All packed`:`${pct}%`}</span></div>`:''}
+      ${_tripsTab==='upcoming'?`<div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div><div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} All packed`:`${pct}%`}</span></div>`:''}
       ${packAgainHtml}`;
     card.onclick=e=>{
       if(e.target.closest('.card-dots-btn'))return;
@@ -3583,7 +3583,7 @@ function renderChecklist(){
   const statLbl=document.getElementById('clStatItemsLbl');
   const statCats=document.getElementById('clStatCats');
   if(statItems) statItems.textContent=allDone?done:remaining;
-  if(statLbl)   statLbl.textContent=allDone?'ITEMS PACKED':'ITEMS TO PACK';
+  if(statLbl)   statLbl.textContent='ITEMS';
   if(statCats)  statCats.textContent=trip.sections.length;
 
 
