@@ -1310,7 +1310,6 @@ function flushPendingEdits(){
 window.applyAppUpdate=async function(force=false){
   if(_forcedUpdateRequired)force=true;
   flushPendingEdits();
-  localStorage.setItem(SYNC_KEY,new Date().toISOString());
   sessionStorage.setItem(UPDATE_ATTEMPT_VERSION_KEY,_latestDeployedVersion||APP_VERSION);
   if('serviceWorker' in navigator){
     try{
@@ -1580,13 +1579,23 @@ function mergeTrash(local,cloud){
 // Always deduplicate by trip.id before saving — shared copy wins over personal copy
 const dedup=d=>{const m=new Map();d.forEach(t=>m.set(t.id,t));return[...m.values()];};
 const saveLocalOnly=d=>localStorage.setItem(STORE,JSON.stringify(dedup(d)));
-const saveAll=d=>{saveLocalOnly(d);cloudSync(d);};
+// saveAll stamps a local modification timestamp on every personal trip so the
+// merge logic can distinguish offline edits from stale cache.
+const saveAll=d=>{
+  const now=Date.now();
+  d.forEach(t=>{if(!t.sharedTripId)t._ts=now;});
+  saveLocalOnly(d);
+  cloudSync(d);
+};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 /* ── Cloud sync ── */
 let _syncDirty=false;
 let _syncInFlight=0;
+// Epoch ms of the highest _ts we successfully pushed to cloud.
+// Persisted in SYNC_KEY so it survives page reloads.
+let _lastSyncedTs=parseInt(localStorage.getItem(SYNC_KEY)||'0',10)||0;
 let _syncRetryTimer=null;
 let _syncRetryDelay=2000; // ms, doubles on each failure, caps at 32s
 let _syncOfflineToastShown=false;
@@ -1634,13 +1643,20 @@ async function cloudSync(data){
       if(sErr)throw sErr;
     }
 
-    // Success — clear all dirty/retry state
+    // Success — record highest _ts we just sent so the merge knows what's synced
+    const synced=data.filter(t=>!t.sharedTripId&&t._ts);
+    if(synced.length){
+      const maxTs=Math.max(...synced.map(t=>t._ts));
+      if(maxTs>_lastSyncedTs){
+        _lastSyncedTs=maxTs;
+        localStorage.setItem(SYNC_KEY,String(maxTs));
+      }
+    }
     _syncDirty=false;
     _syncOfflineToastShown=false;
     _syncRetryDelay=2000;
     _cancelSyncRetry();
     updateSyncDot(false);
-    localStorage.setItem(SYNC_KEY,new Date().toISOString());
   }catch(e){
     console.warn('[packly] Sync error, retrying in background',e);
     _syncDirty=true;
@@ -1662,6 +1678,23 @@ function _pickSharedTrip(cloud, local){
   if(!local) return cloud;
   const weHavePending=(_syncDirty||_syncInFlight>0)&&cloud.lastModifiedBy===_currentUserId;
   return weHavePending ? local : cloud;
+}
+
+// Merge personal trips: Supabase is the source of truth.
+// Cloud wins for every trip UNLESS the local copy has _ts > _lastSyncedTs,
+// which means it was modified after our last successful cloud push — i.e. an
+// offline or in-flight change that hasn't reached the server yet.
+// Trips that only exist locally (created offline, never synced) are always kept.
+function _mergePersonalTrips(cloudTrips, localTrips, trashedIds){
+  const result=new Map();
+  (cloudTrips||[]).forEach(t=>result.set(t.id,t));             // cloud base
+  (localTrips||[]).forEach(t=>{
+    const modifiedSinceSync=(t._ts||0)>_lastSyncedTs;          // offline edit
+    const onlyLocal=!result.has(t.id);                         // new offline trip
+    if(modifiedSinceSync||onlyLocal) result.set(t.id,t);       // keep local
+    // else: cloud version is authoritative — don't override
+  });
+  return[...result.values()].filter(t=>!trashedIds.has(t.id));
 }
 
 async function syncTrashToCloud(){
@@ -1740,30 +1773,18 @@ async function onSignedIn(user){
     cloudSync(trips);
   }
 
-  // ── Personal trips: local-first merge ──
-  // localStorage.saveLocalOnly is synchronous — it always reflects the latest
-  // user actions (checks, edits, adds) regardless of whether cloud sync finished.
-  // Cloud may be behind if the tab was closed or network failed mid-sync.
-  // Strategy: cloud provides trips this device doesn't know about (multi-device);
-  // for any trip that exists locally, local wins — it is always >= cloud.
+  // ── Personal trips: cloud-first merge ──
+  // Cloud (Supabase) is the source of truth. Local wins only for trips that
+  // have been modified since the last successful cloud sync (_ts > _lastSyncedTs),
+  // covering offline edits and newly created trips not yet pushed to the server.
   const localPersonal=loadAll().filter(t=>!t.sharedTripId);
   const cloudPersonal=data?.trips||[];
-  // Build trashedIds AFTER merging trash so it includes both local and cloud deletions
   const trashedIds=new Set(loadTrash().map(t=>t.id));
-  const personalById=new Map();
-  cloudPersonal.forEach(t=>personalById.set(t.id,t)); // cloud base
-  localPersonal.forEach(t=>{
-    const cloud=personalById.get(t.id);
-    // Keep local if: no cloud copy, local is newer, or we have unsaved changes
-    if(!cloud||(t._ts||0)>=(cloud._ts||0)||_syncDirty||_syncInFlight>0)
-      personalById.set(t.id,t);
-  });
-  const personal=[...personalById.values()].filter(t=>!trashedIds.has(t.id));
+  const personal=_mergePersonalTrips(cloudPersonal,localPersonal,trashedIds);
 
-  // Push merged personal trips back to cloud so it catches up
-  if(personal.length>0){
-    sb.from('user_data').upsert({user_id:user.id,trips:personal,updated_at:new Date().toISOString()}).then(()=>{}).catch(()=>{});
-  }
+  // If local had pending offline changes, push the merged result to cloud now
+  const hasOfflineChanges=personal.some(t=>(t._ts||0)>_lastSyncedTs);
+  if(hasOfflineChanges) cloudSync([...personal]);
 
   const shared=await loadSharedTrips();
   const localSharedMap=new Map(loadAll().filter(t=>t.sharedTripId).map(t=>[t.id,t]));
@@ -1772,7 +1793,6 @@ async function onSignedIn(user){
   shared.forEach(t=>byId.set(t.id,_pickSharedTrip(t,localSharedMap.get(t.id))));
   trips=[...byId.values()];
   saveLocalOnly(trips);
-  localStorage.setItem(SYNC_KEY,new Date().toISOString());
   showTrips();
   subscribeToSharedTrips();
   startBgSharedPoll();
@@ -1791,14 +1811,7 @@ async function refreshTripsFromCloud(){
     const trashedIds=new Set(loadTrash().map(t=>t.id));
     const localPersonal=loadAll().filter(t=>!t.sharedTripId);
     const cloudPersonal=data?.trips||[];
-    const personalById=new Map();
-    cloudPersonal.forEach(t=>personalById.set(t.id,t));
-    localPersonal.forEach(t=>{
-      const cloud=personalById.get(t.id);
-      if(!cloud||(t._ts||0)>=(cloud._ts||0)||_syncDirty||_syncInFlight>0)
-        personalById.set(t.id,t);
-    });
-    const personal=[...personalById.values()].filter(t=>!trashedIds.has(t.id));
+    const personal=_mergePersonalTrips(cloudPersonal,localPersonal,trashedIds);
     const shared=await loadSharedTrips();
     const localSharedMap=new Map(loadAll().filter(t=>t.sharedTripId).map(t=>[t.id,t]));
     const byId=new Map();
@@ -1814,7 +1827,7 @@ async function refreshTripsFromCloud(){
 function onSignedOut(){
   _currentUserId=null;
   _currentUserName=null;
-  _syncDirty=false;_syncOfflineToastShown=false;_syncRetryDelay=2000;
+  _syncDirty=false;_syncOfflineToastShown=false;_syncRetryDelay=2000;_lastSyncedTs=0;
   _cancelSyncRetry();
   stopBgSharedPoll();
   if(_personalChannel){sb.removeChannel(_personalChannel);_personalChannel=null;}
