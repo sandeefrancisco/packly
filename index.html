@@ -3048,6 +3048,7 @@ function showChecklistSkeleton(){
 
 /* ── Upcoming / Ongoing / Past tabs ── */
 let _tripsTab=sessionStorage.getItem('packly-trips-tab')||'ongoing';
+let _userPickedOngoing=false;
 
 function tripTabOf(t){
   const cd=tripCountdown(t.dateFrom,t.dateTo);
@@ -3059,6 +3060,7 @@ function tripTabOf(t){
 
 window.switchTab=function(tab){
   _tripsTab=tab;
+  if(tab==='ongoing')_userPickedOngoing=true;
   sessionStorage.setItem('packly-trips-tab',tab);
   document.getElementById('tabUpcoming').classList.toggle('sel',tab==='upcoming');
   document.getElementById('tabOngoing').classList.toggle('sel',tab==='ongoing');
@@ -3082,8 +3084,8 @@ function renderTrips(){
   if(onBadge)onBadge.textContent=ongoing.length;
   if(pastBadge)pastBadge.textContent=past.length;
 
-  // Auto-redirect to upcoming if ongoing tab is empty
-  if(_tripsTab==='ongoing'&&!ongoing.length){
+  // Auto-redirect to upcoming if ongoing tab is empty and user hasn't explicitly chosen it
+  if(_tripsTab==='ongoing'&&!ongoing.length&&!_userPickedOngoing){
     _tripsTab='upcoming';
     sessionStorage.setItem('packly-trips-tab','upcoming');
   }
