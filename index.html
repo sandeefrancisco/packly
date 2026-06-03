@@ -745,6 +745,7 @@ svg.lucide-2xl{width:28px;height:28px}
 
 /* ── Burger Menu Button ── */
 .burger-btn{
+  position:relative;
   display:flex;align-items:center;justify-content:center;
   width:42px;height:42px;border-radius:12px;border:none;
   background:var(--white);cursor:pointer;
@@ -753,6 +754,13 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .burger-btn svg{width:22px;height:22px}
 .burger-btn:hover{background:var(--tint);color:var(--accent)}
+.sync-dot{
+  position:absolute;top:8px;right:8px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--red,#e53e3e);border:2px solid var(--white);
+  pointer-events:none;animation:syncPulse 1.8s ease-in-out infinite;
+}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── Trash Sheet ── */
 .trash-sheet{
@@ -1577,26 +1585,47 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 /* ── Cloud sync ── */
-let _syncDirty=false;   // true when a save failed and data is unsynced
-let _syncInFlight=0;    // count of active cloudSync calls
+let _syncDirty=false;      // true when a save failed and data is unsynced
+let _syncInFlight=0;       // count of active cloudSync calls
+let _syncToastShown=false; // prevent toast spam within a single dirty session
+
+function updateSyncDot(dirty){
+  const btn=document.querySelector('.burger-btn');if(!btn)return;
+  const existing=btn.querySelector('.sync-dot');
+  if(dirty&&!existing){const d=document.createElement('span');d.className='sync-dot';btn.appendChild(d);}
+  else if(!dirty&&existing)existing.remove();
+}
 
 async function cloudSync(data){
   _syncInFlight++;
   try{
     const{data:{user}}=await sb.auth.getUser();
-    if(!user){_syncDirty=true;return;}
-    const personal=data.filter(t=>!t.sharedTripId);
+    if(!user){_syncDirty=true;updateSyncDot(true);return;}
+    const trashedIds=new Set(loadTrash().map(t=>t.id));
+    const personal=data.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
     const deleted_trips=loadTrash();
-    await sb.from('user_data').upsert({user_id:user.id,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
+    const{error:uErr}=await sb.from('user_data').upsert({user_id:user.id,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
+    if(uErr)throw uErr;
     const shared=data.filter(t=>t.sharedTripId);
     for(const trip of shared){
       const tripData={...trip,lastModifiedBy:user.id};
-      await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
+      const{error:sErr}=await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
+      if(sErr)throw sErr;
     }
-    _syncDirty=false;
+    if(_syncDirty){
+      _syncDirty=false;
+      _syncToastShown=false;
+      updateSyncDot(false);
+    }
+    localStorage.setItem(SYNC_KEY,new Date().toISOString());
   }catch(e){
-    console.warn('Sync error',e);
+    console.warn('[packly] Sync error — queued for retry',e);
     _syncDirty=true;
+    updateSyncDot(true);
+    if(!_syncToastShown){
+      _syncToastShown=true;
+      showToast(navigator.onLine?'Sync issue — retrying automatically':'Saved locally — will sync when back online');
+    }
   }finally{
     _syncInFlight--;
   }
@@ -1615,8 +1644,9 @@ async function syncTrashToCloud(){
     if(!user)return;
     const trashedIds=new Set(loadTrash().map(t=>t.id));
     const personal=trips.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
-    await sb.from('user_data').upsert({user_id:user.id,deleted_trips:loadTrash(),trips:personal,updated_at:new Date().toISOString()});
-  }catch(e){console.warn('Trash sync error',e);}
+    const{error}=await sb.from('user_data').upsert({user_id:user.id,deleted_trips:loadTrash(),trips:personal,updated_at:new Date().toISOString()});
+    if(error)throw error;
+  }catch(e){console.warn('[packly] Trash sync error — will retry',e);_syncDirty=true;updateSyncDot(true);}
 }
 
 async function loadSharedTrips(){
@@ -1756,8 +1786,10 @@ async function refreshTripsFromCloud(){
 function onSignedOut(){
   _currentUserId=null;
   _currentUserName=null;
+  _syncDirty=false;_syncToastShown=false;
   stopBgSharedPoll();
   if(_personalChannel){sb.removeChannel(_personalChannel);_personalChannel=null;}
+  updateSyncDot(false);
   updateHeroGreeting();
   document.getElementById('sheetEmail').textContent='—';
   closeAccountSheet();
@@ -3132,10 +3164,35 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden)return;
   checkForUpdates({manual:false});
   if(!_currentUserId)return;
-  _lastPersonalCloudTs=0; // force re-check of personal trips
+  _lastPersonalCloudTs=0;
   _doBgPoll();
+  if(_syncDirty)cloudSync(trips);
 });
-window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
+
+window.addEventListener('focus',()=>{
+  checkForUpdates({manual:false});
+  if(_syncDirty&&_currentUserId)cloudSync(trips);
+});
+
+// Immediately retry any pending sync when the device comes back online
+window.addEventListener('online',()=>{
+  console.log('[packly] Back online — retrying pending sync');
+  if(_syncDirty&&_currentUserId){
+    _syncToastShown=false; // allow a fresh success/failure toast
+    cloudSync(trips);
+  }
+  if(_currentUserId){_lastPersonalCloudTs=0;_doBgPoll();}
+});
+
+// iOS Safari bfcache restore — page thawed from memory, state intact
+window.addEventListener('pageshow',(ev)=>{
+  if(!ev.persisted)return;
+  checkForUpdates({manual:false});
+  if(!_currentUserId)return;
+  _lastPersonalCloudTs=0;
+  _doBgPoll();
+  if(_syncDirty)cloudSync(trips);
+});
 
 /* ── Pull-to-refresh on Trips view ── */
 (function(){
