@@ -1107,6 +1107,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 
 /* ── Burger Menu Button ── */
 .burger-btn{
+  position:relative;
   display:flex;align-items:center;justify-content:center;
   width:42px;height:42px;border-radius:12px;border:none;
   background:var(--white);cursor:pointer;
@@ -1114,6 +1115,13 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   box-shadow:0 1px 4px rgba(26,26,46,.06);
 }
 .burger-btn svg{width:22px;height:22px}
+.sync-dot{
+  position:absolute;top:8px;right:8px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--red);border:2px solid var(--white);
+  pointer-events:none;animation:syncPulse 1.8s ease-in-out infinite;
+}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── Trash Sheet ── */
 .trash-sheet{
@@ -2635,27 +2643,63 @@ function mergeTrash(local,cloud){
 // Always deduplicate by trip.id before saving — shared copy wins over personal copy
 const dedup=d=>{const m=new Map();d.forEach(t=>m.set(t.id,t));return[...m.values()];};
 const saveLocalOnly=d=>localStorage.setItem(STORE,JSON.stringify(dedup(d)));
-const saveAll=d=>{saveLocalOnly(d);cloudSync(d);};
+const saveAll=d=>{
+  // Stamp the active trip's modification time so merge can pick the correct version
+  if(activeId){const at=d.find(x=>x.id===activeId);if(at)at._ts=Date.now();}
+  saveLocalOnly(d);cloudSync(d);
+};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
+/* ── Sync state ── */
+let _syncDirty=false;      // true when a cloudSync failed and data is unsynced
+let _syncToastShown=false; // prevents toast spam per dirty session
+let _syncInFlight=0;       // count of in-flight cloudSync calls
+
+function updateSyncDot(dirty){
+  const btn=document.querySelector('.burger-btn');if(!btn)return;
+  const existing=btn.querySelector('.sync-dot');
+  if(dirty&&!existing){const d=document.createElement('span');d.className='sync-dot';btn.appendChild(d);}
+  else if(!dirty&&existing)existing.remove();
+}
+
 /* ── Cloud sync ── */
 async function cloudSync(data){
+  _syncInFlight++;
   try{
     const{data:{user}}=await sb.auth.getUser();
-    if(!user)return;
+    if(!user){_syncDirty=true;updateSyncDot(true);return;}
     // Personal trips → user_data blob; never push back trips that are trashed
     const trashedIds=new Set(loadTrash().map(t=>t.id));
     const personal=data.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
     const deleted_trips=loadTrash();
-    await sb.from('user_data').upsert({user_id:user.id,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
+    const{error:uErr}=await sb.from('user_data').upsert({user_id:user.id,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
+    if(uErr)throw uErr;
     // Shared trips → update their row in shared_trips (tag with who changed it)
     const shared=data.filter(t=>t.sharedTripId);
     for(const trip of shared){
       const tripData={...trip,lastModifiedBy:user.id};
-      await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
+      const{error:sErr}=await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
+      if(sErr)throw sErr;
     }
-  }catch(e){console.warn('Sync error',e);}
+    // Sync succeeded — clear dirty state
+    if(_syncDirty){
+      _syncDirty=false;
+      _syncToastShown=false;
+      updateSyncDot(false);
+    }
+    localStorage.setItem(SYNC_KEY,new Date().toISOString());
+  }catch(e){
+    console.warn('[packly] Sync error — queued for retry',e);
+    _syncDirty=true;
+    updateSyncDot(true);
+    if(!_syncToastShown){
+      _syncToastShown=true;
+      showToast('Saved locally — will sync when back online');
+    }
+  }finally{
+    _syncInFlight--;
+  }
 }
 
 async function syncTrashToCloud(){
@@ -2664,8 +2708,12 @@ async function syncTrashToCloud(){
     if(!user)return;
     const trashedIds=new Set(loadTrash().map(t=>t.id));
     const personal=trips.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
-    await sb.from('user_data').upsert({user_id:user.id,deleted_trips:loadTrash(),trips:personal,updated_at:new Date().toISOString()});
-  }catch(e){console.warn('Trash sync error',e);}
+    const{error}=await sb.from('user_data').upsert({user_id:user.id,deleted_trips:loadTrash(),trips:personal,updated_at:new Date().toISOString()});
+    if(error)throw error;
+  }catch(e){
+    console.warn('[packly] Trash sync error — will retry',e);
+    _syncDirty=true;updateSyncDot(true);
+  }
 }
 
 async function loadSharedTrips(){
@@ -2727,13 +2775,18 @@ async function onSignedIn(user){
       const trashedIds=new Set(loadTrash().map(t=>t.id));
       const localPersonal=loadAll().filter(t=>!t.sharedTripId);
       const cloudPersonal=data?.trips||[];
-      const byIdBg=new Map();
-      cloudPersonal.forEach(t=>byIdBg.set(t.id,t));
-      localPersonal.forEach(t=>byIdBg.set(t.id,t));
+      // Timestamp-based merge in background path too
+      const bgPersonalById=new Map();
+      [...cloudPersonal,...localPersonal].forEach(t=>{
+        const e=bgPersonalById.get(t.id);
+        if(!e||(t._ts||0)>=(e._ts||0))bgPersonalById.set(t.id,t);
+      });
       const shared=await loadSharedTrips();
+      const byIdBg=new Map([...bgPersonalById]);
       shared.forEach(t=>byIdBg.set(t.id,t));
       trips=[...byIdBg.values()].filter(t=>!trashedIds.has(t.id));
       saveLocalOnly(trips);
+      if(_syncDirty)cloudSync(trips);
       // Silently refresh whichever view is currently visible
       if(document.getElementById('navStack').classList.contains('pushed')){
         renderChecklist();
@@ -2780,17 +2833,21 @@ async function onSignedIn(user){
     cloudSync(trips);
   }
 
-  // ── Personal trips: local-first merge ──
+  // ── Personal trips: timestamp-based merge (newer _ts wins; local wins for legacy data) ──
   const localPersonal=loadAll().filter(t=>!t.sharedTripId);
   const cloudPersonal=data?.trips||[];
   const trashedIds=new Set(loadTrash().map(t=>t.id));
   const personalById=new Map();
-  cloudPersonal.forEach(t=>personalById.set(t.id,t));
-  localPersonal.forEach(t=>personalById.set(t.id,t));
+  // Process cloud first, then local — when _ts is equal (legacy), local wins
+  [...cloudPersonal,...localPersonal].forEach(t=>{
+    const e=personalById.get(t.id);
+    if(!e||(t._ts||0)>=(e._ts||0))personalById.set(t.id,t);
+  });
   const personal=[...personalById.values()].filter(t=>!trashedIds.has(t.id));
 
   if(personal.length>0){
-    sb.from('user_data').upsert({user_id:user.id,trips:personal,updated_at:new Date().toISOString()}).then(()=>{}).catch(()=>{});
+    // Push merged result back to cloud to ensure cloud is up to date
+    cloudSync([...personal]);
   }
 
   const shared=await loadSharedTrips();
@@ -3211,6 +3268,7 @@ window.restoreTrip=function(id){
   if(idx===-1)return;
   const[restored]=trash.splice(idx,1);
   delete restored.deletedAt;
+  restored._ts=Date.now();
   saveTrash(trash);
   trips=dedup([...trips,restored]);
   saveAll(trips);
@@ -3508,11 +3566,11 @@ window.saveTrip=function(){
   }
   if(editingId){
     const t=trips.find(x=>x.id===editingId);
-    if(t){t.name=name;t.dates=dates;t.dateFrom=dateFrom;t.dateTo=dateTo;t.iconKey=selTripIcon;}
+    if(t){t.name=name;t.dates=dates;t.dateFrom=dateFrom;t.dateTo=dateTo;t.iconKey=selTripIcon;t._ts=Date.now();}
   } else {
     const sections=_duplicateSections||DEFAULT_SECTIONS();
     _duplicateSections=null;
-    trips.push({id:uid(),name,dates,dateFrom,dateTo,iconKey:selTripIcon,sections,travelers:[]});
+    trips.push({id:uid(),name,dates,dateFrom,dateTo,iconKey:selTripIcon,sections,travelers:[],_ts:Date.now()});
   }
   saveAll(trips);closeTripModal();renderTrips();
 };
@@ -4009,7 +4067,7 @@ window.shareTrip=async function(tripId){
     share_code:code,data:trip,owner_id:user.id
   }).select('id').single();
   if(error){console.error('Share error:',error);alert('Could not share trip: '+error.message);return;}
-  trip.sharedTripId=data.id;trip.isShared=true;
+  trip.sharedTripId=data.id;trip.isShared=true;trip._ts=Date.now();
   await sb.from('trip_access').insert({trip_id:data.id,user_id:user.id});
   saveAll(trips);renderTrips();
   subscribeToSharedTrips(); // pick up realtime for newly shared trip
@@ -4802,12 +4860,18 @@ async function _syncFromCloud(uid){
   const trashedIds=new Set(loadTrash().map(t=>t.id));
   const localPersonal=loadAll().filter(t=>!t.sharedTripId);
   const cloudPersonal=cloudData?.trips||[];
-  const byId=new Map();
-  cloudPersonal.forEach(t=>byId.set(t.id,t));
-  localPersonal.forEach(t=>byId.set(t.id,t));
+  // Timestamp-based merge: newer _ts wins; for legacy data (no _ts) local wins (processed last)
+  const personalById=new Map();
+  [...cloudPersonal,...localPersonal].forEach(t=>{
+    const e=personalById.get(t.id);
+    if(!e||(t._ts||0)>=(e._ts||0))personalById.set(t.id,t);
+  });
+  const byId=new Map([...personalById]);
   sharedTrips.forEach(t=>byId.set(t.id,t));
   trips=[...byId.values()].filter(t=>!trashedIds.has(t.id));
   saveLocalOnly(trips);
+  // If sync was dirty, push merged local changes to cloud now
+  if(_syncDirty)cloudSync(trips);
 }
 
 async function _doRefreshChecklist(){
@@ -4882,36 +4946,27 @@ document.querySelectorAll('.overlay').forEach(overlay=>{
   addSwipeDismiss(modal, ()=>overlay.classList.remove('open'), {onlyMobile:true, threshold:100});
 });
 
-/* ── Shared-trip refresh on tab focus ── */
+/* ── Full data refresh on tab focus / app foreground ── */
 document.addEventListener('visibilitychange',async()=>{
   if(document.hidden)return;
   checkForUpdates({manual:false});
   if(!_currentUserId)return;
-  const sharedTrips=trips.filter(t=>t.sharedTripId);
-  if(!sharedTrips.length)return;
   try{
-    const ids=sharedTrips.map(t=>t.sharedTripId);
-    const{data:rows}=await sb.from('shared_trips').select('id,data').in('id',ids);
-    if(!rows?.length)return;
-    let changed=false;
-    rows.forEach(r=>{
-      if(!r.data)return;
-      const incoming={...r.data,sharedTripId:r.id,isShared:true};
-      const idx=trips.findIndex(t=>t.id===incoming.id);
-      if(idx!==-1){trips[idx]=incoming;changed=true;}
-      else{trips.push(incoming);changed=true;}
-    });
-    if(changed){
-      trips=dedup(trips);
-      saveLocalOnly(trips);
-      renderTrips();
-      if(activeId&&rows.some(r=>trips.find(t=>t.id===activeId&&t.sharedTripId===r.id))){
-        renderChecklist();
-      }
+    // Sync all trips (personal + shared) from cloud; also retries any dirty sync
+    await _syncFromCloud(_currentUserId);
+    renderTrips();
+    if(activeId&&document.getElementById('navStack').classList.contains('pushed')){
+      renderChecklist();
     }
-  }catch(_){}
+  }catch(_){
+    // Network unavailable — just retry any pending dirty sync
+    if(_syncDirty)cloudSync(trips);
+  }
 });
-window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
+window.addEventListener('focus',()=>{
+  checkForUpdates({manual:false});
+  if(_syncDirty&&_currentUserId)cloudSync(trips);
+});
 
 // iOS Safari bfcache restore: page is thawed from cache — JS state is intact,
 // so just silently re-sync data without touching navigation.
