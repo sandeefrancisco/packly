@@ -1585,7 +1585,7 @@ const saveAll=d=>{
   const now=Date.now();
   d.forEach(t=>{if(!t.sharedTripId)t._ts=now;});
   saveLocalOnly(d);
-  cloudSync(d);
+  cloudSync();
 };
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1614,14 +1614,15 @@ function _scheduleSyncRetry(){
   _cancelSyncRetry();
   _syncRetryTimer=setTimeout(()=>{
     _syncRetryTimer=null;
-    if(_syncDirty&&_currentUserId&&_syncInFlight===0)cloudSync(trips);
+    if(_syncDirty&&_currentUserId&&_syncInFlight===0)cloudSync();
   },_syncRetryDelay);
   _syncRetryDelay=Math.min(_syncRetryDelay*2,32000);
 }
 
-async function cloudSync(data){
-  if(_syncInFlight>0)return; // don't pile up concurrent saves
+async function cloudSync(){
+  if(_syncInFlight>0){_syncDirty=true;return;} // mark dirty so we retry after in-flight finishes
   _syncInFlight++;
+  let _syncOk=false;
   try{
     // getSession() reads the local token — no extra network call.
     // getUser() makes a round-trip to the auth server and throws on any
@@ -1630,13 +1631,16 @@ async function cloudSync(data){
     const userId=session?.user?.id;
     if(!userId){_syncDirty=true;updateSyncDot(true);_syncInFlight--;return;}
 
+    // Always read from the current global `trips` — never from a stale captured reference.
+    // renderChecklist() replaces trips=loadAll() between saves; reading trips here ensures
+    // we upload the latest version, not whatever snapshot was passed by the caller.
     const trashedIds=new Set(loadTrash().map(t=>t.id));
-    const personal=data.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
+    const personal=trips.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
     const deleted_trips=loadTrash();
     const{error:uErr}=await sb.from('user_data').upsert({user_id:userId,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
     if(uErr)throw uErr;
 
-    const shared=data.filter(t=>t.sharedTripId);
+    const shared=trips.filter(t=>t.sharedTripId);
     for(const trip of shared){
       const tripData={...trip,lastModifiedBy:userId};
       const{error:sErr}=await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
@@ -1644,7 +1648,7 @@ async function cloudSync(data){
     }
 
     // Success — record highest _ts we just sent so the merge knows what's synced
-    const synced=data.filter(t=>!t.sharedTripId&&t._ts);
+    const synced=trips.filter(t=>!t.sharedTripId&&t._ts);
     if(synced.length){
       const maxTs=Math.max(...synced.map(t=>t._ts));
       if(maxTs>_lastSyncedTs){
@@ -1652,6 +1656,7 @@ async function cloudSync(data){
         localStorage.setItem(SYNC_KEY,String(maxTs));
       }
     }
+    _syncOk=true;
     _syncDirty=false;
     _syncOfflineToastShown=false;
     _syncRetryDelay=2000;
@@ -1670,6 +1675,9 @@ async function cloudSync(data){
     _scheduleSyncRetry();
   }finally{
     _syncInFlight--;
+    // If this sync succeeded but a concurrent save was skipped (dirty=true), retry once
+    // immediately to upload that newer change. Only on success — failures use backoff above.
+    if(_syncOk&&_syncDirty&&_syncInFlight===0&&_currentUserId) setTimeout(()=>cloudSync(),50);
   }
 }
 
@@ -1770,7 +1778,7 @@ async function onSignedIn(user){
     pending.forEach(id=>{trips=trips.filter(x=>x.id!==id);});
     saveLocalOnly(trips);
     // Re-sync to cloud in background — trash already contains these IDs
-    cloudSync(trips);
+    cloudSync();
   }
 
   // ── Personal trips: cloud-first merge ──
@@ -1782,9 +1790,7 @@ async function onSignedIn(user){
   const trashedIds=new Set(loadTrash().map(t=>t.id));
   const personal=_mergePersonalTrips(cloudPersonal,localPersonal,trashedIds);
 
-  // If local had pending offline changes, push the merged result to cloud now
   const hasOfflineChanges=personal.some(t=>(t._ts||0)>_lastSyncedTs);
-  if(hasOfflineChanges) cloudSync([...personal]);
 
   const shared=await loadSharedTrips();
   const localSharedMap=new Map(loadAll().filter(t=>t.sharedTripId).map(t=>[t.id,t]));
@@ -1793,6 +1799,8 @@ async function onSignedIn(user){
   shared.forEach(t=>byId.set(t.id,_pickSharedTrip(t,localSharedMap.get(t.id))));
   trips=[...byId.values()];
   saveLocalOnly(trips);
+  // Push any offline changes to cloud now that trips is fully assembled
+  if(hasOfflineChanges) cloudSync();
   showTrips();
   subscribeToSharedTrips();
   startBgSharedPoll();
@@ -3208,12 +3216,12 @@ document.addEventListener('visibilitychange',()=>{
   if(!_currentUserId)return;
   _lastPersonalCloudTs=0;
   _doBgPoll();
-  if(_syncDirty)cloudSync(trips);
+  if(_syncDirty)cloudSync();
 });
 
 window.addEventListener('focus',()=>{
   checkForUpdates({manual:false});
-  if(_syncDirty&&_currentUserId)cloudSync(trips);
+  if(_syncDirty&&_currentUserId)cloudSync();
 });
 
 // Immediately retry any pending sync when the device comes back online
@@ -3222,7 +3230,7 @@ window.addEventListener('online',()=>{
   _syncOfflineToastShown=false; // allow offline toast again on next disconnect
   _syncRetryDelay=2000;         // reset backoff
   _cancelSyncRetry();
-  if(_syncDirty&&_currentUserId)cloudSync(trips);
+  if(_syncDirty&&_currentUserId)cloudSync();
   if(_currentUserId){_lastPersonalCloudTs=0;_doBgPoll();}
 });
 
@@ -3233,7 +3241,7 @@ window.addEventListener('pageshow',(ev)=>{
   if(!_currentUserId)return;
   _lastPersonalCloudTs=0;
   _doBgPoll();
-  if(_syncDirty)cloudSync(trips);
+  if(_syncDirty)cloudSync();
 });
 
 /* ── Pull-to-refresh on Trips view ── */
