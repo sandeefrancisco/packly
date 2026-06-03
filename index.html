@@ -2784,7 +2784,7 @@ async function onSignedIn(user){
       const shared=await loadSharedTrips();
       const byIdBg=new Map([...bgPersonalById]);
       const localSharedBg=new Map(trips.filter(t=>t.sharedTripId).map(t=>[t.id,t]));
-      shared.forEach(t=>{const loc=localSharedBg.get(t.id);byIdBg.set(t.id,(!loc||(t._ts||0)>(loc._ts||0))?t:loc);});
+      shared.forEach(t=>{const loc=localSharedBg.get(t.id);byIdBg.set(t.id,(!loc||t.lastModifiedBy!==_currentUserId||(t._ts||0)>(loc._ts||0))?t:loc);});
       trips=[...byIdBg.values()].filter(t=>!trashedIds.has(t.id));
       saveLocalOnly(trips);
       if(_syncDirty)cloudSync(trips);
@@ -2855,7 +2855,7 @@ async function onSignedIn(user){
   const byId=new Map();
   personal.filter(t=>!t.sharedTripId).forEach(t=>byId.set(t.id,t));
   const localSharedB=new Map(loadAll().filter(t=>t.sharedTripId).map(t=>[t.id,t]));
-  shared.forEach(t=>{const loc=localSharedB.get(t.id);byId.set(t.id,(!loc||(t._ts||0)>(loc._ts||0))?t:loc);});
+  shared.forEach(t=>{const loc=localSharedB.get(t.id);byId.set(t.id,(!loc||t.lastModifiedBy!==_currentUserId||(t._ts||0)>(loc._ts||0))?t:loc);});
   trips=[...byId.values()];
   saveLocalOnly(trips);
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
@@ -3603,9 +3603,10 @@ async function showChecklist(id){
     if(data?.data){
       const fresh={...data.data,sharedTripId:trip.sharedTripId,isShared:true};
       const localTrip=trips.find(t=>t.id===fresh.id);
-      // Only replace local with cloud if cloud has strictly newer data — prevents
-      // a stale cloud read from erasing items saved locally but not yet uploaded.
-      if(!localTrip||(fresh._ts||0)>(localTrip._ts||0)){
+      // Apply cloud if: no local copy, OR someone else last modified (collaborator update),
+      // OR cloud is strictly newer (guards against a race where our own cloudSync hasn't
+      // landed yet but the cloud still shows us as last modifier from a prior save).
+      if(!localTrip||fresh.lastModifiedBy!==_currentUserId||(fresh._ts||0)>(localTrip._ts||0)){
         const idx=trips.findIndex(t=>t.id===fresh.id);
         if(idx!==-1) trips[idx]=fresh; else trips.push(fresh);
         trips=dedup(trips);
@@ -4357,13 +4358,8 @@ function startBgSharedPoll(){
         if(r.data.lastModifiedBy===_currentUserId)return; // our own save — local is already correct
         const incoming={...r.data,sharedTripId:r.id,isShared:true};
         const idx=trips.findIndex(t=>t.id===incoming.id);
-        if(idx!==-1){
-          // Only replace local if cloud version is strictly newer — prevents
-          // overwriting a local add that cloudSync hasn't finished uploading yet
-          if((incoming._ts||0)>(trips[idx]._ts||0)){trips[idx]=incoming;changed=true;}
-        } else {
-          trips.push(incoming);changed=true;
-        }
+        if(idx!==-1){trips[idx]=incoming;changed=true;}
+        else{trips.push(incoming);changed=true;}
       });
       if(changed){
         trips=dedup(trips);saveLocalOnly(trips);
@@ -4970,7 +4966,7 @@ async function _syncFromCloud(uid){
   });
   const byId=new Map([...personalById]);
   const localSharedMap=new Map(trips.filter(t=>t.sharedTripId).map(t=>[t.id,t]));
-  sharedTrips.forEach(t=>{const loc=localSharedMap.get(t.id);byId.set(t.id,(!loc||(t._ts||0)>(loc._ts||0))?t:loc);});
+  sharedTrips.forEach(t=>{const loc=localSharedMap.get(t.id);byId.set(t.id,(!loc||t.lastModifiedBy!==_currentUserId||(t._ts||0)>(loc._ts||0))?t:loc);});
   const newTrips=[...byId.values()].filter(t=>!trashedIds.has(t.id));
   // Detect shared trips removed since our last sync (owner deleted them)
   const newSharedIds=new Set(newTrips.filter(t=>t.sharedTripId).map(t=>t.id));
