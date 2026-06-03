@@ -4263,12 +4263,19 @@ function subscribeToSharedTrips(){
     if(!ourTrip)return; // not our trip
     _removeSharedTrip(ourTrip,'✈️ Trip was deleted by the organizer');
   });
-  _realtimeChannel.subscribe();
+  _realtimeChannel.subscribe((status,err)=>{
+    if(status==='SUBSCRIBED'){
+      console.log('[packly] Realtime subscribed — shared trip updates active');
+    } else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+      console.warn('[packly] Realtime subscription failed:',status,err,'— pollers will cover updates');
+    }
+  });
 }
 
 /* ── Helper: remove a shared trip that was deleted by its owner ── */
 function _removeSharedTrip(ourTrip, toastMsg){
   stopSharedTripPolling();
+  if(ourTrip.sharedTripId)_bgPollSeenAt.delete(ourTrip.sharedTripId);
   trips=trips.filter(t=>t.id!==ourTrip.id);
   saveLocalOnly(trips);
   if(activeId===ourTrip.id){
@@ -4314,16 +4321,17 @@ function startSharedTripPolling(tripId){
       renderTrips(); // keep trip card stats (packed count) up to date
       if(activeId===tripId) renderChecklist();
     }catch(_){}
-  },5000);
+  },2000);
 }
 function stopSharedTripPolling(){
   if(_sharedTripPoller){clearInterval(_sharedTripPoller);_sharedTripPoller=null;}
 }
 
 /* ── Background poll for all shared trips (trips list view fallback) ── */
-// Runs every 20 s regardless of which view is active — catches updates when
+// Runs every 5 s regardless of which view is active — catches updates when
 // realtime is unavailable (network switch, mobile sleep, etc.)
 let _bgPoller=null;
+const _bgPollSeenAt=new Map(); // sharedTripId → last updated_at we processed
 function startBgSharedPoll(){
   stopBgSharedPoll();
   _bgPoller=setInterval(async()=>{
@@ -4343,11 +4351,19 @@ function startBgSharedPoll(){
       let changed=false;
       rows.forEach(r=>{
         if(!r.data)return;
-        if(r.data.lastModifiedBy===_currentUserId)return; // our own changes
+        // Skip if we already processed this exact version
+        if(_bgPollSeenAt.get(r.id)===r.updated_at)return;
+        _bgPollSeenAt.set(r.id,r.updated_at);
+        if(r.data.lastModifiedBy===_currentUserId)return; // our own save — local is already correct
         const incoming={...r.data,sharedTripId:r.id,isShared:true};
         const idx=trips.findIndex(t=>t.id===incoming.id);
-        if(idx!==-1){trips[idx]=incoming;changed=true;}
-        else{trips.push(incoming);changed=true;}
+        if(idx!==-1){
+          // Only replace local if cloud version is strictly newer — prevents
+          // overwriting a local add that cloudSync hasn't finished uploading yet
+          if((incoming._ts||0)>(trips[idx]._ts||0)){trips[idx]=incoming;changed=true;}
+        } else {
+          trips.push(incoming);changed=true;
+        }
       });
       if(changed){
         trips=dedup(trips);saveLocalOnly(trips);
@@ -4356,10 +4372,11 @@ function startBgSharedPoll(){
           renderChecklist();
       }
     }catch(_){}
-  },20000);
+  },5000);
 }
 function stopBgSharedPoll(){
   if(_bgPoller){clearInterval(_bgPoller);_bgPoller=null;}
+  _bgPollSeenAt.clear();
 }
 
 /* ── Trip Tabs ── */
