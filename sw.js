@@ -1,8 +1,8 @@
-/* packly service worker — v1.3.0
+/* packly service worker — v1.4.0
  * IMPORTANT: bump the CACHE constant below on every production deploy so
  * browsers detect the changed file, install the new SW, and purge old caches.
  */
-const CACHE = 'packly-1.3.0';
+const CACHE = 'packly-1.4.0';
 
 // Local assets to pre-cache at install time for offline use.
 // External CDN URLs (Supabase JS, Google Fonts) are intentionally excluded —
