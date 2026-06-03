@@ -4,15 +4,15 @@
  */
 const CACHE = 'packly-1.4.0';
 
-// Local assets to pre-cache at install time for offline use.
-// External CDN URLs (Supabase JS, Google Fonts) are intentionally excluded —
-// they are served from different origins and are not intercepted by this SW.
+// Static assets to pre-cache at install time (offline support).
+// version.json is intentionally excluded — it must ALWAYS come from the
+// network so the version-checker can detect new deployments.
+// External CDN URLs (Supabase JS, Google Fonts) are excluded — different origins.
 const PRECACHE = [
   './',
   './index.html',
   './Logo-colored.png',
   './Logo1.png',
-  './version.json',
 ];
 
 // ── Install ──────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ self.addEventListener('install', e => {
   );
   // Do NOT call self.skipWaiting() here.
   // The new SW waits until the app sends SKIP_WAITING (user-initiated update)
-  // or until all old tabs are naturally closed.
+  // or until all old tabs close naturally.
 });
 
 // ── Activate ─────────────────────────────────────────────────────────────────
@@ -36,22 +36,32 @@ self.addEventListener('activate', e => {
           .filter(k => k !== CACHE)
           .map(k => { console.log('[SW] Removing old cache:', k); return caches.delete(k); })
       ))
-      .then(() => self.clients.claim()) // Take control of all open tabs immediately
+      .then(() => self.clients.claim())
   );
 });
 
 // ── Fetch ─────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', e => {
   const { request } = e;
-  if (request.method !== 'GET') return; // Never intercept non-GET requests
+  if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  // Only handle same-origin requests — Supabase, Google Fonts CDN etc. pass through unmodified
+  // Only intercept same-origin requests — Supabase, Google Fonts, etc. pass through.
   if (url.origin !== self.location.origin) return;
 
+  // version.json — always network, never cache.
+  // The in-app version checker must see the live file so it can detect new deploys.
+  if (url.pathname.endsWith('/version.json')) {
+    e.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } }))
+    );
+    return;
+  }
+
+  // HTML navigations — network first so users always get the latest index.html.
+  // Falls back to cached copy only when offline.
   if (request.mode === 'navigate') {
-    // Navigation (HTML page load) — network first so users always get the latest index.html.
-    // Falls back to cached copy when offline.
     e.respondWith(
       fetch(request)
         .then(resp => {
@@ -65,7 +75,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // All other same-origin assets (images, version.json, etc.) — cache first, network fallback.
+  // All other same-origin assets (images, etc.) — cache first, network fallback.
   e.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;

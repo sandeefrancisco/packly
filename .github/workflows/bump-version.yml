@@ -21,7 +21,7 @@ jobs:
       - name: Generate version string
         id: ver
         run: |
-          # Format: YYYY.MMDD.RUN_NUMBER — monotonically increasing, human-readable
+          # Format: YYYY.MMDD.RUN_NUMBER — always monotonically increasing
           VERSION="$(date -u +'%Y.%m%d').${{ github.run_number }}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Generated version: $VERSION"
@@ -29,7 +29,6 @@ jobs:
       - name: Update version.json
         run: |
           V="${{ steps.ver.outputs.version }}"
-          # Preserve minimumSupportedVersion, only update version field
           node -e "
             const fs = require('fs');
             const j = JSON.parse(fs.readFileSync('version.json','utf8'));
@@ -41,13 +40,15 @@ jobs:
         run: |
           V="${{ steps.ver.outputs.version }}"
           sed -i "s/const CACHE = 'packly-[^']*'/const CACHE = 'packly-$V'/" sw.js
-          # Also update the version comment on line 1
           sed -i "s/packly service worker — v[0-9][^ ]*/packly service worker — v$V/" sw.js
 
-      - name: Update index.html meta version tag
+      - name: Update index.html version references
         run: |
           V="${{ steps.ver.outputs.version }}"
+          # Update the <meta> tag (read by APP_VERSION at runtime)
           sed -i "s/<meta name=\"packly-version\" content=\"[^\"]*\">/<meta name=\"packly-version\" content=\"$V\">/" index.html
+          # Update the JS fallback string so it matches even before the DOM is ready
+          sed -i "s/||'[0-9][^']*')\.trim()/||'$V').trim()/" index.html
 
       - name: Commit and push
         run: |
@@ -55,7 +56,6 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add version.json sw.js index.html
-          # Only commit if something actually changed
-          git diff --cached --quiet && echo "No version changes, skipping commit." && exit 0
+          git diff --cached --quiet && echo "No version changes to commit." && exit 0
           git commit -m "chore: bump version to $V [skip ci]"
           git push origin main

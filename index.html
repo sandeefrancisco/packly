@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="packly-version" content="1.2.0">
+<meta name="packly-version" content="1.4.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Master Packer — Travel Checklist</title>
+<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="Logo-colored.png">
 <link rel="apple-touch-icon" href="Logo-colored.png">
 <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
@@ -1234,7 +1238,7 @@ svg.lucide-2xl{width:28px;height:28px}
 const SUPA_URL='https://ldxvvqrxqcewygdnotpz.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkeHZ2cXJ4cWNld3lnZG5vdHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODE1ODgsImV4cCI6MjA5NTI1NzU4OH0.cdTIO75QLSrufmCzTSAcFAKRZdSy2XYbFVgggcj0qag';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
-const APP_VERSION=(window.__PACKLY_VERSION__||document.querySelector('meta[name="packly-version"]')?.content||'1.2.0').trim();
+const APP_VERSION=(window.__PACKLY_VERSION__||document.querySelector('meta[name="packly-version"]')?.content||'1.4.0').trim();
 const VERSION_INFO_URL='version.json';
 const UPDATE_CHECK_INTERVAL_MS=10*60*1000;
 const UPDATE_DISMISSED_VERSION_KEY='packly-dismissed-update-version';
@@ -3181,6 +3185,55 @@ window.addEventListener('focus',()=>{checkForUpdates({manual:false});});
       indicator.style.transform='translateX(-50%) translateY(-100%)';
     }
     dy=0;
+  });
+})();
+
+/* ── Service Worker registration & update lifecycle ─────────────────────────
+ * sw.js uses network-first for HTML so every navigation fetches fresh HTML.
+ * When a new SW installs and waits, the update banner is surfaced so users
+ * can opt in.  controllerchange fires after skipWaiting → reload for fresh HTML.
+ */
+(function registerServiceWorker(){
+  if(!('serviceWorker' in navigator))return;
+  let _swRefreshPending=false;
+
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(_swRefreshPending)return;
+    _swRefreshPending=true;
+    console.log('[packly] New SW in control — reloading for fresh HTML');
+    location.reload();
+  });
+
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
+      console.log('[packly] SW registered, scope:',reg.scope);
+
+      function onSwWaiting(){
+        console.log('[packly] New SW waiting — triggering update check');
+        checkForUpdates({manual:false});
+        _appUpdateAvailable=true;
+        if(typeof showAppUpdateToast==='function') showAppUpdateToast();
+      }
+
+      if(reg.waiting) onSwWaiting();
+
+      reg.addEventListener('updatefound',()=>{
+        const installing=reg.installing;
+        if(!installing)return;
+        installing.addEventListener('statechange',()=>{
+          if(installing.state==='installed'&&navigator.serviceWorker.controller){
+            onSwWaiting();
+          }
+        });
+      });
+
+      // Poll for SW updates every 60 s — ensures fresh deploys propagate quickly
+      setInterval(()=>reg.update().catch(()=>{}),60*1000);
+
+    }catch(err){
+      console.warn('[packly] SW registration failed:',err);
+    }
   });
 })();
 </script>
