@@ -4292,37 +4292,36 @@ function _removeSharedTrip(ourTrip, toastMsg){
 /* ── Poll for shared-trip updates while checklist is open ── */
 let _sharedTripPoller=null;
 let _polledUpdatedAt=null;
+async function _doChecklistPoll(sid,tripId){
+  try{
+    const{data,error}=await sb.from('shared_trips')
+      .select('data,updated_at').eq('id',sid).single();
+    if(error?.code==='PGRST116'||(!data&&!error)){
+      const ourTrip=trips.find(t=>t.sharedTripId===sid);
+      if(ourTrip)_removeSharedTrip(ourTrip,'✈️ Trip was deleted by the organizer');
+      return;
+    }
+    if(!data)return;
+    if(_polledUpdatedAt&&data.updated_at<=_polledUpdatedAt)return;
+    _polledUpdatedAt=data.updated_at;
+    if(data.data?.lastModifiedBy===_currentUserId)return;
+    const incoming={...data.data,sharedTripId:sid,isShared:true};
+    const idx=trips.findIndex(t=>t.id===incoming.id);
+    if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
+    trips=dedup(trips);
+    saveLocalOnly(trips);
+    renderTrips();
+    if(activeId===tripId) renderChecklist();
+  }catch(_){}
+}
 function startSharedTripPolling(tripId){
   stopSharedTripPolling();
   const trip=trips.find(t=>t.id===tripId);
   if(!trip?.sharedTripId||!_currentUserId)return;
   const sid=trip.sharedTripId;
   _polledUpdatedAt=null;
-  _sharedTripPoller=setInterval(async()=>{
-    try{
-      const{data,error}=await sb.from('shared_trips')
-        .select('data,updated_at').eq('id',sid).single();
-      // Row missing (deleted by owner) — remove trip and stop polling
-      if(error?.code==='PGRST116'||(!data&&!error)){
-        const ourTrip=trips.find(t=>t.sharedTripId===sid);
-        if(ourTrip)_removeSharedTrip(ourTrip,'✈️ Trip was deleted by the organizer');
-        return;
-      }
-      if(!data)return;
-      // Skip if we haven't received anything newer
-      if(_polledUpdatedAt&&data.updated_at<=_polledUpdatedAt)return;
-      _polledUpdatedAt=data.updated_at;
-      // Skip if this is our own last save
-      if(data.data?.lastModifiedBy===_currentUserId)return;
-      const incoming={...data.data,sharedTripId:sid,isShared:true};
-      const idx=trips.findIndex(t=>t.id===incoming.id);
-      if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
-      trips=dedup(trips);
-      saveLocalOnly(trips);
-      renderTrips(); // keep trip card stats (packed count) up to date
-      if(activeId===tripId) renderChecklist();
-    }catch(_){}
-  },2000);
+  _doChecklistPoll(sid,tripId); // immediate first run — don't wait for first tick
+  _sharedTripPoller=setInterval(()=>_doChecklistPoll(sid,tripId),2000);
 }
 function stopSharedTripPolling(){
   if(_sharedTripPoller){clearInterval(_sharedTripPoller);_sharedTripPoller=null;}
@@ -4333,12 +4332,10 @@ function stopSharedTripPolling(){
 // realtime is unavailable (network switch, mobile sleep, etc.)
 let _bgPoller=null;
 const _bgPollSeenAt=new Map(); // sharedTripId → last updated_at we processed
-function startBgSharedPoll(){
-  stopBgSharedPoll();
-  _bgPoller=setInterval(async()=>{
-    if(!_currentUserId)return;
-    const shared=trips.filter(t=>t.sharedTripId);
-    if(!shared.length)return;
+async function _doBgPoll(){
+  if(!_currentUserId)return;
+  const shared=trips.filter(t=>t.sharedTripId);
+  if(!shared.length)return;
     try{
       const ids=shared.map(t=>t.sharedTripId);
       const{data:rows}=await sb.from('shared_trips').select('id,data,updated_at').in('id',ids);
@@ -4368,7 +4365,11 @@ function startBgSharedPoll(){
           renderChecklist();
       }
     }catch(_){}
-  },5000);
+}
+function startBgSharedPoll(){
+  stopBgSharedPoll();
+  _doBgPoll(); // immediate first run — joiner sees fresh data without waiting
+  _bgPoller=setInterval(_doBgPoll,5000);
 }
 function stopBgSharedPoll(){
   if(_bgPoller){clearInterval(_bgPoller);_bgPoller=null;}
