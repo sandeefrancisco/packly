@@ -2783,7 +2783,8 @@ async function onSignedIn(user){
       });
       const shared=await loadSharedTrips();
       const byIdBg=new Map([...bgPersonalById]);
-      shared.forEach(t=>byIdBg.set(t.id,t));
+      const localSharedBg=new Map(trips.filter(t=>t.sharedTripId).map(t=>[t.id,t]));
+      shared.forEach(t=>{const loc=localSharedBg.get(t.id);byIdBg.set(t.id,(!loc||(t._ts||0)>(loc._ts||0))?t:loc);});
       trips=[...byIdBg.values()].filter(t=>!trashedIds.has(t.id));
       saveLocalOnly(trips);
       if(_syncDirty)cloudSync(trips);
@@ -2853,7 +2854,8 @@ async function onSignedIn(user){
   const shared=await loadSharedTrips();
   const byId=new Map();
   personal.filter(t=>!t.sharedTripId).forEach(t=>byId.set(t.id,t));
-  shared.forEach(t=>byId.set(t.id,t));
+  const localSharedB=new Map(loadAll().filter(t=>t.sharedTripId).map(t=>[t.id,t]));
+  shared.forEach(t=>{const loc=localSharedB.get(t.id);byId.set(t.id,(!loc||(t._ts||0)>(loc._ts||0))?t:loc);});
   trips=[...byId.values()];
   saveLocalOnly(trips);
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
@@ -3600,10 +3602,15 @@ async function showChecklist(id){
     const{data}=await sb.from('shared_trips').select('data').eq('id',trip.sharedTripId).single();
     if(data?.data){
       const fresh={...data.data,sharedTripId:trip.sharedTripId,isShared:true};
-      const idx=trips.findIndex(t=>t.id===fresh.id);
-      if(idx!==-1) trips[idx]=fresh; else trips.push(fresh);
-      trips=dedup(trips);
-      saveLocalOnly(trips);
+      const localTrip=trips.find(t=>t.id===fresh.id);
+      // Only replace local with cloud if cloud has strictly newer data — prevents
+      // a stale cloud read from erasing items saved locally but not yet uploaded.
+      if(!localTrip||(fresh._ts||0)>(localTrip._ts||0)){
+        const idx=trips.findIndex(t=>t.id===fresh.id);
+        if(idx!==-1) trips[idx]=fresh; else trips.push(fresh);
+        trips=dedup(trips);
+        saveLocalOnly(trips);
+      }
     }
   }
   renderChecklist();
@@ -4945,7 +4952,8 @@ async function _syncFromCloud(uid){
     if(!e||(t._ts||0)>=(e._ts||0))personalById.set(t.id,t);
   });
   const byId=new Map([...personalById]);
-  sharedTrips.forEach(t=>byId.set(t.id,t));
+  const localSharedMap=new Map(trips.filter(t=>t.sharedTripId).map(t=>[t.id,t]));
+  sharedTrips.forEach(t=>{const loc=localSharedMap.get(t.id);byId.set(t.id,(!loc||(t._ts||0)>(loc._ts||0))?t:loc);});
   const newTrips=[...byId.values()].filter(t=>!trashedIds.has(t.id));
   // Detect shared trips removed since our last sync (owner deleted them)
   const newSharedIds=new Set(newTrips.filter(t=>t.sharedTripId).map(t=>t.id));
