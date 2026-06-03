@@ -4242,7 +4242,32 @@ function subscribeToSharedTrips(){
       showToast(`✈️ ${ourTrip.name} — your co-traveler made changes`);
     }
   });
+  // Also listen for DELETE events — when the owner removes the shared trip
+  _realtimeChannel.on('postgres_changes',{
+    event:'DELETE',schema:'public',table:'shared_trips'
+  },(payload)=>{
+    const sharedId=payload.old?.id;
+    if(!sharedId)return;
+    const ourTrip=trips.find(t=>t.sharedTripId===sharedId);
+    if(!ourTrip)return; // not our trip
+    _removeSharedTrip(ourTrip,'✈️ Trip was deleted by the organizer');
+  });
   _realtimeChannel.subscribe();
+}
+
+/* ── Helper: remove a shared trip that was deleted by its owner ── */
+function _removeSharedTrip(ourTrip, toastMsg){
+  stopSharedTripPolling();
+  trips=trips.filter(t=>t.id!==ourTrip.id);
+  saveLocalOnly(trips);
+  if(activeId===ourTrip.id){
+    // User is currently viewing the deleted trip — navigate back
+    activeId=null;
+    sessionStorage.removeItem('packly-nav');
+    document.getElementById('navStack').classList.remove('pushed');
+  }
+  renderTrips();
+  showToast(toastMsg);
 }
 
 /* ── Poll for shared-trip updates while checklist is open ── */
@@ -4256,8 +4281,14 @@ function startSharedTripPolling(tripId){
   _polledUpdatedAt=null;
   _sharedTripPoller=setInterval(async()=>{
     try{
-      const{data}=await sb.from('shared_trips')
+      const{data,error}=await sb.from('shared_trips')
         .select('data,updated_at').eq('id',sid).single();
+      // Row missing (deleted by owner) — remove trip and stop polling
+      if(error?.code==='PGRST116'||(!data&&!error)){
+        const ourTrip=trips.find(t=>t.sharedTripId===sid);
+        if(ourTrip)_removeSharedTrip(ourTrip,'✈️ Trip was deleted by the organizer');
+        return;
+      }
       if(!data)return;
       // Skip if we haven't received anything newer
       if(_polledUpdatedAt&&data.updated_at<=_polledUpdatedAt)return;
@@ -4868,7 +4899,15 @@ async function _syncFromCloud(uid){
   });
   const byId=new Map([...personalById]);
   sharedTrips.forEach(t=>byId.set(t.id,t));
-  trips=[...byId.values()].filter(t=>!trashedIds.has(t.id));
+  const newTrips=[...byId.values()].filter(t=>!trashedIds.has(t.id));
+  // Detect shared trips removed since our last sync (owner deleted them)
+  const newSharedIds=new Set(newTrips.filter(t=>t.sharedTripId).map(t=>t.id));
+  const removedShared=trips.filter(t=>t.sharedTripId&&!newSharedIds.has(t.id));
+  removedShared.forEach(t=>{
+    if(activeId===t.id){activeId=null;sessionStorage.removeItem('packly-nav');document.getElementById('navStack').classList.remove('pushed');}
+    showToast(`✈️ "${t.name}" was deleted by the organizer`);
+  });
+  trips=newTrips;
   saveLocalOnly(trips);
   // If sync was dirty, push merged local changes to cloud now
   if(_syncDirty)cloudSync(trips);
