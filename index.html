@@ -2657,7 +2657,7 @@ const saveLocalOnly=d=>localStorage.setItem(STORE,JSON.stringify(dedup(d)));
 const saveAll=d=>{
   // Stamp the active trip's modification time so merge can pick the correct version
   if(activeId){const at=d.find(x=>x.id===activeId);if(at)at._ts=Date.now();}
-  saveLocalOnly(d);cloudSync(d);
+  saveLocalOnly(d);cloudSync();
 };
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -2684,19 +2684,21 @@ function updateSyncDot(dirty){
 }
 
 /* ── Cloud sync ── */
-async function cloudSync(data){
+async function cloudSync(){
+  if(_syncInFlight>0){_syncDirty=true;return;}
   _syncInFlight++;
   try{
-    const{data:{user}}=await sb.auth.getUser();
+    const{data:{session}}=await sb.auth.getSession();
+    const user=session?.user;
     if(!user){_syncDirty=true;updateSyncDot(true);return;}
     // Personal trips → user_data blob; never push back trips that are trashed
     const trashedIds=new Set(loadTrash().map(t=>t.id));
-    const personal=data.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
+    const personal=trips.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
     const deleted_trips=loadTrash();
     const{error:uErr}=await sb.from('user_data').upsert({user_id:user.id,trips:personal,deleted_trips,updated_at:new Date().toISOString()});
     if(uErr)throw uErr;
     // Shared trips → update their row in shared_trips (tag with who changed it)
-    const shared=data.filter(t=>t.sharedTripId);
+    const shared=trips.filter(t=>t.sharedTripId);
     for(const trip of shared){
       const tripData={...trip,lastModifiedBy:user.id};
       const{error:sErr}=await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
@@ -2713,10 +2715,6 @@ async function cloudSync(data){
     console.warn('[packly] Sync error — queued for retry',e);
     _syncDirty=true;
     updateSyncDot(true);
-    if(!_syncToastShown){
-      _syncToastShown=true;
-      showToast('Saved locally — will sync when back online');
-    }
   }finally{
     _syncInFlight--;
   }
@@ -2724,7 +2722,8 @@ async function cloudSync(data){
 
 async function syncTrashToCloud(){
   try{
-    const{data:{user}}=await sb.auth.getUser();
+    const{data:{session}}=await sb.auth.getSession();
+    const user=session?.user;
     if(!user)return;
     const trashedIds=new Set(loadTrash().map(t=>t.id));
     const personal=trips.filter(t=>!t.sharedTripId&&!trashedIds.has(t.id));
@@ -3367,7 +3366,8 @@ window.deleteTrip=function(id){
       });
     } else {
       confirmDelete('Leave trip?',`You'll be removed from "${t.name}". The trip continues for your travel partner.`,async()=>{
-        const{data:{user}}=await sb.auth.getUser();
+        const{data:{session}}=await sb.auth.getSession();
+        const user=session?.user;
         if(user)await sb.from('trip_access').delete().eq('trip_id',t.sharedTripId).eq('user_id',user.id);
         trips=trips.filter(x=>x.id!==id);saveLocalOnly(trips);renderTrips();
       });
@@ -3385,7 +3385,8 @@ window.deleteTrip=function(id){
     renderTrips();
     // 2. Persist to cloud — single upsert with filtered trips + updated deleted_trips
     try{
-      const{data:{user}}=await sb.auth.getUser();
+      const{data:{session}}=await sb.auth.getSession();
+      const user=session?.user;
       if(user){
         const personal=trips.filter(x=>!x.sharedTripId);
         const{error}=await sb.from('user_data').upsert({
@@ -4107,7 +4108,7 @@ window.shareTrip=async function(tripId){
   const trip=trips.find(t=>t.id===tripId);if(!trip)return;
   // Only skip if fully synced to Supabase (has both code AND sharedTripId)
   if(trip.shareCode&&trip.sharedTripId){window.showShareModal(trip.shareCode);return;}
-  const{data:{user}}=await sb.auth.getUser();if(!user)return;
+  const{data:{session}}=await sb.auth.getSession();const user=session?.user;if(!user)return;
   // Generate a fresh code (previous attempt may have failed mid-way)
   const code=generateShareCode();
   trip.ownerId=user.id;trip.shareCode=code;trip.sharedTripId=null;
