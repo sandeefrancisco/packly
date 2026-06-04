@@ -1881,8 +1881,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 
 <script type="module">
 /* ── Supabase ── */
-const SUPA_URL='https://ldxvvqrxqcewygdnotpz.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkeHZ2cXJ4cWNld3lnZG5vdHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODE1ODgsImV4cCI6MjA5NTI1NzU4OH0.cdTIO75QLSrufmCzTSAcFAKRZdSy2XYbFVgggcj0qag';
+const SUPA_URL='https://eizhfvieozigsgolckez.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpemhmdmllb3ppZ3Nnb2xja2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxOTEyMDUsImV4cCI6MjA5NTc2NzIwNX0.v-qAHGR-I63RL4Ue0YH5evTwot9riE-nUuw0ACffaYA';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 const APP_VERSION=(window.__PACKLY_VERSION__||document.querySelector('meta[name="packly-version"]')?.content||'1.2.0').trim();
 const VERSION_INFO_URL='version.json';
@@ -2876,7 +2876,7 @@ async function onSignedIn(user){
   saveLocalOnly(trips);
   // Push merged result back to cloud — call AFTER trips is updated so cloudSync
   // reads the complete merged state (personal + shared).
-  if(personal.length>0)cloudSync();
+  cloudSync();
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
   const savedTrip=_restoreTripId&&trips.find(t=>t.id===_restoreTripId);
   if(savedTrip){
