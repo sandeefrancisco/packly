@@ -2663,9 +2663,10 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 /* ── Sync state ── */
-let _syncDirty=false;      // true when a cloudSync failed and data is unsynced
-let _syncToastShown=false; // prevents toast spam per dirty session
-let _syncInFlight=0;       // count of in-flight cloudSync calls
+let _syncDirty=false;       // true when a cloudSync failed and data is unsynced
+let _syncToastShown=false;  // prevents toast spam per dirty session
+let _syncInFlight=0;        // count of in-flight cloudSync calls
+let _syncPending=false;     // a save arrived while sync was in flight — needs retry
 
 // Decide which version of a shared trip to keep when merging cloud vs local.
 // Cloud always wins UNLESS we currently have unsaved/in-flight local changes
@@ -2685,7 +2686,9 @@ function updateSyncDot(dirty){
 
 /* ── Cloud sync ── */
 async function cloudSync(){
-  if(_syncInFlight>0){_syncDirty=true;return;}
+  // Coalesce: if a sync is already running, mark pending so it retries when done.
+  if(_syncInFlight>0){_syncPending=true;return;}
+  _syncPending=false;
   _syncInFlight++;
   try{
     const{data:{session}}=await sb.auth.getSession();
@@ -2704,19 +2707,18 @@ async function cloudSync(){
       const{error:sErr}=await sb.from('shared_trips').update({data:tripData,updated_at:new Date().toISOString()}).eq('id',trip.sharedTripId);
       if(sErr)throw sErr;
     }
-    // Sync succeeded — clear dirty state
-    if(_syncDirty){
-      _syncDirty=false;
-      _syncToastShown=false;
-      updateSyncDot(false);
-    }
+    _syncDirty=false;
+    updateSyncDot(false);
     localStorage.setItem(SYNC_KEY,new Date().toISOString());
   }catch(e){
     console.warn('[packly] Sync error — queued for retry',e);
     _syncDirty=true;
     updateSyncDot(true);
+    _syncPending=false; // don't tight-loop on persistent errors
   }finally{
     _syncInFlight--;
+    // A save arrived while we were in-flight — retry now to upload latest state
+    if(_syncPending)setTimeout(cloudSync,0);
   }
 }
 
@@ -2865,11 +2867,6 @@ async function onSignedIn(user){
   });
   const personal=[...personalById.values()].filter(t=>!trashedIds.has(t.id));
 
-  if(personal.length>0){
-    // Push merged result back to cloud to ensure cloud is up to date
-    cloudSync([...personal]);
-  }
-
   const shared=await loadSharedTrips();
   const byId=new Map();
   personal.filter(t=>!t.sharedTripId).forEach(t=>byId.set(t.id,t));
@@ -2877,6 +2874,9 @@ async function onSignedIn(user){
   shared.forEach(t=>{byId.set(t.id,_pickSharedTrip(t,localSharedB.get(t.id)));});
   trips=[...byId.values()];
   saveLocalOnly(trips);
+  // Push merged result back to cloud — call AFTER trips is updated so cloudSync
+  // reads the complete merged state (personal + shared).
+  if(personal.length>0)cloudSync();
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
   const savedTrip=_restoreTripId&&trips.find(t=>t.id===_restoreTripId);
   if(savedTrip){
