@@ -2464,7 +2464,15 @@ function buildSection(sec){
   const inp=addRow.querySelector('.add-item-input');
   const cfm=addRow.querySelector('.add-item-confirm');
   inp.oninput=()=>cfm.classList.toggle('visible',inp.value.trim().length>0);
-  const doAdd=()=>{const v=inp.value.trim();if(!v)return;sec.items.push({id:uid(),label:v,qty:1,done:false});saveAll(trips);renderChecklist();};
+  const doAdd=()=>{
+    const v=inp.value.trim();if(!v)return;
+    // Re-fetch from live trips — trips may have been replaced by a bg sync since this closure was created
+    const freshTrip=getTrip();
+    const freshSec=freshTrip?.sections.find(s=>s.id===sec.id);
+    if(!freshSec)return;
+    freshSec.items.push({id:uid(),label:v,qty:1,done:false});
+    saveAll(trips);renderChecklist();
+  };
   cfm.onclick=doAdd;
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')doAdd();});
   card.appendChild(addRow);
@@ -2493,34 +2501,49 @@ function buildItemRow(item,sec){
   const cb=document.createElement('div');cb.className='round-cb';
   cb.innerHTML=svgStr('checkSmall');
   cb.onclick=()=>{
-    item.done=!item.done;
-    sec.items.sort((a,b)=>(a.done===b.done)?0:a.done?1:-1);
+    const trip=getTrip();
+    const s=trip?.sections.find(s=>s.id===sec.id);
+    const it=s?.items.find(i=>i.id===item.id);
+    if(!it||!s)return;
+    it.done=!it.done;
+    s.items.sort((a,b)=>(a.done===b.done)?0:a.done?1:-1);
     saveAll(trips);
-    if(item.done){
-      const trip=getTrip();
-      const{total,done}=stats(trip);
-      if(total>0&&done===total)triggerPackingComplete(trip);
-    }
+    if(it.done){const{total,done}=stats(trip);if(total>0&&done===total)triggerPackingComplete(trip);}
     renderChecklist();
   };
 
   const lbl=document.createElement('div');lbl.className='item-label';lbl.textContent=item.label;
   lbl.setAttribute('contenteditable','true');lbl.setAttribute('spellcheck','false');
-  lbl.onblur=()=>{item.label=lbl.textContent.trim()||item.label;saveAll(trips);};
+  lbl.onblur=()=>{
+    const s=getTrip()?.sections.find(s=>s.id===sec.id);
+    const it=s?.items.find(i=>i.id===item.id);
+    if(!it)return;
+    it.label=lbl.textContent.trim()||it.label;saveAll(trips);
+  };
   lbl.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();lbl.blur();}};
 
   const stepper=document.createElement('div');stepper.className='qty-stepper';
   const minus=document.createElement('button');minus.className='qty-btn';minus.innerHTML=svgStr('minus');
   const val=document.createElement('span');val.className='qty-val';val.textContent=item.qty;
   const plus=document.createElement('button');plus.className='qty-btn';plus.innerHTML=svgStr('plus');
-  minus.onclick=()=>{if(item.qty>1){item.qty--;saveAll(trips);val.textContent=item.qty;}};
-  plus.onclick=()=>{item.qty++;saveAll(trips);val.textContent=item.qty;};
+  minus.onclick=()=>{
+    const s=getTrip()?.sections.find(s=>s.id===sec.id);
+    const it=s?.items.find(i=>i.id===item.id);
+    if(!it||it.qty<=1)return;it.qty--;saveAll(trips);val.textContent=it.qty;
+  };
+  plus.onclick=()=>{
+    const s=getTrip()?.sections.find(s=>s.id===sec.id);
+    const it=s?.items.find(i=>i.id===item.id);
+    if(!it)return;it.qty++;saveAll(trips);val.textContent=it.qty;
+  };
   stepper.appendChild(minus);stepper.appendChild(val);stepper.appendChild(plus);
 
   const del=document.createElement('button');del.className='item-del-btn';del.innerHTML=svgStr('x');
   del.onclick=()=>{
     confirmDelete('Remove item?', `"${item.label}" will be removed from this list.`, ()=>{
-      sec.items=sec.items.filter(i=>i.id!==item.id);saveAll(trips);renderChecklist();
+      const s=getTrip()?.sections.find(s=>s.id===sec.id);
+      if(!s)return;
+      s.items=s.items.filter(i=>i.id!==item.id);saveAll(trips);renderChecklist();
     });
   };
 
