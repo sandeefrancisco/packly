@@ -1881,8 +1881,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 
 <script type="module">
 /* ── Supabase ── */
-const SUPA_URL='https://ldxvvqrxqcewygdnotpz.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkeHZ2cXJ4cWNld3lnZG5vdHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODE1ODgsImV4cCI6MjA5NTI1NzU4OH0.cdTIO75QLSrufmCzTSAcFAKRZdSy2XYbFVgggcj0qag';
+const SUPA_URL='https://eizhfvieozigsgolckez.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpemhmdmllb3ppZ3Nnb2xja2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxOTEyMDUsImV4cCI6MjA5NTc2NzIwNX0.v-qAHGR-I63RL4Ue0YH5evTwot9riE-nUuw0ACffaYA';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 const APP_VERSION=(window.__PACKLY_VERSION__||document.querySelector('meta[name="packly-version"]')?.content||'1.2.0').trim();
 const VERSION_INFO_URL='version.json';
@@ -2669,12 +2669,11 @@ let _syncInFlight=0;        // count of in-flight cloudSync calls
 let _syncPending=false;     // a save arrived while sync was in flight — needs retry
 
 // Decide which version of a shared trip to keep when merging cloud vs local.
-// Cloud always wins UNLESS we currently have unsaved/in-flight local changes
-// (i.e. WE are the last cloud modifier but our pending upload hasn't landed yet).
+// Local wins only when it has a strictly newer _ts — meaning we saved locally
+// but the upload hasn't reached the cloud yet (in-flight or page reloaded mid-sync).
 function _pickSharedTrip(cloud, local){
   if(!local) return cloud;
-  const weHavePending=(_syncDirty||_syncInFlight>0)&&cloud.lastModifiedBy===_currentUserId;
-  return weHavePending ? local : cloud;
+  return (local._ts||0)>(cloud._ts||0) ? local : cloud;
 }
 
 function updateSyncDot(dirty){
@@ -2876,7 +2875,7 @@ async function onSignedIn(user){
   saveLocalOnly(trips);
   // Push merged result back to cloud — call AFTER trips is updated so cloudSync
   // reads the complete merged state (personal + shared).
-  if(personal.length>0)cloudSync();
+  cloudSync();
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
   const savedTrip=_restoreTripId&&trips.find(t=>t.id===_restoreTripId);
   if(savedTrip){
@@ -4346,6 +4345,9 @@ async function _doChecklistPoll(sid,tripId){
     if(data.data?.lastModifiedBy===_currentUserId)return;
     const incoming={...data.data,sharedTripId:sid,isShared:true};
     const idx=trips.findIndex(t=>t.id===incoming.id);
+    const existing=idx!==-1?trips[idx]:null;
+    // Skip if local is strictly newer — our save is still in-flight
+    if(existing&&(incoming._ts||0)<(existing._ts||0))return;
     if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
     trips=dedup(trips);
     saveLocalOnly(trips);
@@ -4394,6 +4396,9 @@ async function _doBgPoll(){
         if(r.data.lastModifiedBy===_currentUserId)return; // our own save — local is already correct
         const incoming={...r.data,sharedTripId:r.id,isShared:true};
         const idx=trips.findIndex(t=>t.id===incoming.id);
+        const existing=idx!==-1?trips[idx]:null;
+        // Skip if local is strictly newer — our save is still in-flight
+        if(existing&&(incoming._ts||0)<(existing._ts||0))return;
         if(idx!==-1){trips[idx]=incoming;changed=true;}
         else{trips.push(incoming);changed=true;}
       });
