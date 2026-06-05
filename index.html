@@ -1353,8 +1353,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     </button>
   </nav>
   <div class="hero">
-    <h1 class="hero-title" id="heroTitle">Pack like you're <em>already there.</em></h1>
-    <p class="hero-sub">Create your packing list, sync across devices, and share with your travel partner – ready for any trip.</p>
+    <h1 class="hero-title" id="heroTitle">Your trips, <em>perfectly packed.</em></h1>
+    <p class="hero-sub">Plan every trip, build your packing list, track expenses, and share with your travel crew — all in one place.</p>
     <div class="hero-actions" id="heroActions">
       <button class="btn-primary" onclick="openNewTripModal()">
         <svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1773,7 +1773,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
       </div>
     </div>
     <h2 id="authTitle">Welcome back</h2>
-    <p class="auth-sub">Sign in to sync your packing lists across all your devices.</p>
+    <p class="auth-sub">Sign in to access your trips, packing lists, and expenses across all your devices.</p>
     <div class="field">
       <label>Email</label>
       <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
@@ -2745,7 +2745,7 @@ function updateHeroGreeting(){
   if(_currentUserName){
     el.innerHTML=`Hi, <em>${_currentUserName}!</em>`;
   } else {
-    el.innerHTML=`Pack like you're <em>already there.</em>`;
+    el.innerHTML=`Your trips, <em>perfectly packed.</em>`;
   }
 }
 
@@ -2952,7 +2952,10 @@ window.toggleAuthMode=function(){
   const isSignUp=toggle.dataset.mode==='signup';
   toggle.dataset.mode=isSignUp?'signin':'signup';
   toggle.textContent=isSignUp?'Sign up':'Sign in';
-  document.getElementById('authTitle').textContent=isSignUp?'Welcome back':'Create account';
+  document.getElementById('authTitle').textContent=isSignUp?'Welcome back':'Join Ahoy';
+  document.querySelector('.auth-sub').textContent=isSignUp
+    ?'Sign in to access your trips, packing lists, and expenses across all your devices.'
+    :'Create a free account and start planning your next adventure.';
   const btn=document.getElementById('authSubmitBtn');
   btn.textContent=isSignUp?'Sign in':'Sign up';
   btn.disabled=false; // always re-enable on mode switch (clears any stuck rate-limit disable)
