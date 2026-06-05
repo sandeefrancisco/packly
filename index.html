@@ -1856,19 +1856,19 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
         <div class="exp-pay-row" id="expPayRow"></div>
       </div>
       <div class="field">
-        <label>Notes</label>
-        <textarea id="expNotes" placeholder="Optional note…" maxlength="200" rows="2"></textarea>
-      </div>
-      <div class="field">
         <label>Paid by</label>
         <input id="expPaidBy" placeholder="You (leave empty if you paid)" maxlength="40" autocomplete="off">
       </div>
-      <div class="field" style="flex-direction:row;align-items:center;justify-content:space-between;padding:4px 0">
-        <label style="margin:0;font-size:15px;font-weight:500;color:var(--label)">Already settled</label>
+      <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+        <label style="margin:0">Already settled</label>
         <label class="exp-toggle">
           <input type="checkbox" id="expSettled">
           <span class="exp-toggle-track"></span>
         </label>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="expNotes" placeholder="Optional note…" maxlength="200" rows="2"></textarea>
       </div>
     </div>
     <div class="exp-modal-footer">
