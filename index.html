@@ -326,14 +326,7 @@ svg.lucide-2xl{width:28px;height:28px}
   box-shadow:0 0 0 4px rgba(99,102,241,.22);
   transform:scale(1.06);opacity:1;
 }
-.exp-pay-chip.selected .exp-pay-logo::after{
-  content:'';position:absolute;bottom:4px;right:4px;
-  width:16px;height:16px;border-radius:50%;
-  background:var(--accent);
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
-  background-size:10px 10px;background-repeat:no-repeat;background-position:center;
-}
-.exp-pay-name{font-size:12px;font-weight:600;color:var(--muted);transition:color .15s,font-weight .15s;}
+.exp-pay-name{font-size:12px;font-weight:600;color:var(--muted);transition:color .15s,font-weight .15s;display:flex;align-items:center;justify-content:center;gap:3px;}
 .exp-pay-chip.selected .exp-pay-name{color:var(--accent);font-weight:700;}
 /* Payment badge shown in list */
 .exp-toggle{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;cursor:pointer;}
@@ -4667,11 +4660,14 @@ window.clearExpFilters=function(){
 function renderPayChips(selected){
   _selectedPayment=selected||'cash';
   const row=document.getElementById('expPayRow');if(!row)return;
-  row.innerHTML=EXP_PAYMENTS.map(p=>`
-    <div class="exp-pay-chip${p.id===_selectedPayment?' selected':''}" onclick="selectPayment('${p.id}')">
+  const _chk='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>';
+  row.innerHTML=EXP_PAYMENTS.map(p=>{
+    const sel=p.id===_selectedPayment;
+    return`<div class="exp-pay-chip${sel?' selected':''}" onclick="selectPayment('${p.id}')">
       <div class="exp-pay-logo">${p.logo}</div>
-      <div class="exp-pay-name">${p.name}</div>
-    </div>`).join('');
+      <div class="exp-pay-name">${sel?_chk:''}${p.name}</div>
+    </div>`;
+  }).join('');
 }
 window.selectPayment=function(id){
   _selectedPayment=id;
