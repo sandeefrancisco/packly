@@ -2841,9 +2841,9 @@ async function onSignedIn(user){
 
   // Fetch cloud state
   const{data}=await sb.from('user_data').select('trips,deleted_trips').eq('user_id',user.id).single();
-  // Always MERGE local + cloud trash — never replace local with cloud.
-  // Local deletions may not have synced yet; overwriting would lose them.
-  saveTrash(mergeTrash(loadTrash(), data?.deleted_trips||[]));
+  // On fresh login cloud is the authoritative trash — replace local with cloud so stale
+  // entries from a previous session can never re-delete restored trips.
+  saveTrash(data?.deleted_trips||[]);
 
   // Capture pending deletions now; apply them after the full merge so cloudSync
   // never fires with trips=[] and accidentally wipes cloud data.
@@ -2901,6 +2901,8 @@ function onSignedOut(){
   closeAccountSheet();
   document.getElementById('authOverlay').classList.add('open');
   trips=[];
+  localStorage.removeItem(TRASH_STORE);
+  localStorage.removeItem(PENDING_DEL_KEY);
   stopBgSharedPoll();
   dismissAppLoader();
 }
