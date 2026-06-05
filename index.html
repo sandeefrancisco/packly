@@ -1730,6 +1730,10 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     Edit
   </button>
+  <button class="sheet-action" id="tripActionExport">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export trip data
+  </button>
   <button class="sheet-action danger" id="tripActionDelete"></button>
 </div>
 
@@ -3264,6 +3268,7 @@ window.openTripActions=function(id){
   delBtn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>${delLabel}`;
   shareBtn.onclick=()=>{closeTripActions();shareTrip(id);};
   editBtn.onclick=()=>{closeTripActions();openEditModal(id);};
+  document.getElementById('tripActionExport').onclick=()=>{closeTripActions();exportTrip(id);};
   delBtn.onclick=()=>{closeTripActions();deleteTrip(id);};
   document.getElementById('tripActionsOverlay').classList.add('open');
   document.getElementById('tripActionsSheet').classList.add('open');
@@ -3271,6 +3276,83 @@ window.openTripActions=function(id){
 window.closeTripActions=function(){
   document.getElementById('tripActionsOverlay').classList.remove('open');
   document.getElementById('tripActionsSheet').classList.remove('open');
+};
+
+window.exportTrip=function(id){
+  const t=trips.find(x=>x.id===id);if(!t)return;
+  const lines=[];
+  const sep=str=>str.replace(/./g,'─');
+
+  // ── Header ──────────────────────────────────────────
+  lines.push(t.name);
+  lines.push(sep(t.name));
+  if(t.dates)lines.push('Dates: '+t.dates);
+  lines.push('Exported: '+new Date().toLocaleString());
+  lines.push('');
+
+  // ── Packing list ─────────────────────────────────────
+  lines.push('PACKING LIST');
+  lines.push(sep('PACKING LIST'));
+  const sections=t.sections||[];
+  if(!sections.length){
+    lines.push('  (no items)');
+  } else {
+    sections.forEach(sec=>{
+      lines.push('');
+      lines.push(sec.name+':');
+      const items=sec.items||[];
+      if(!items.length){lines.push('  (empty)');return;}
+      items.forEach(item=>{
+        const check=item.done?'✓':'○';
+        const qty=item.qty>1?' (×'+item.qty+')':'';
+        lines.push('  '+check+' '+item.label+qty);
+      });
+    });
+    // Summary
+    let totalItems=0,doneItems=0;
+    sections.forEach(s=>{totalItems+=s.items.length;doneItems+=s.items.filter(i=>i.done).length;});
+    lines.push('');
+    lines.push('Packed: '+doneItems+'/'+totalItems+' items');
+  }
+
+  // ── Expenses ─────────────────────────────────────────
+  const expenses=t.expenses||[];
+  lines.push('');
+  lines.push('EXPENSES');
+  lines.push(sep('EXPENSES'));
+  if(!expenses.length){
+    lines.push('  (no expenses)');
+  } else {
+    const EXPENSE_CATS={food:'Food & Drink',accommodation:'Accommodation',transport:'Transport',activity:'Activities',shopping:'Shopping',health:'Health',other:'Other'};
+    const byCat={};
+    expenses.forEach(e=>{const c=e.category||'other';(byCat[c]=byCat[c]||[]).push(e);});
+    const totals={};
+    Object.keys(byCat).sort().forEach(cat=>{
+      lines.push('');
+      lines.push((EXPENSE_CATS[cat]||cat)+':');
+      byCat[cat].forEach(e=>{
+        const cur=e.currency||'EUR';
+        const amt=Number(e.amount||0).toFixed(2);
+        const dateStr=e.date?' ('+e.date+')':'';
+        const notes=e.notes?' — '+e.notes:'';
+        lines.push('  '+e.label+dateStr+': '+amt+' '+cur+notes);
+        totals[cur]=(totals[cur]||0)+Number(e.amount||0);
+      });
+    });
+    lines.push('');
+    lines.push('Total:');
+    Object.entries(totals).forEach(([cur,amt])=>lines.push('  '+cur+': '+amt.toFixed(2)));
+  }
+
+  // ── Download ─────────────────────────────────────────
+  const text=lines.join('\n');
+  const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=(t.name.replace(/[^a-z0-9]/gi,'_')||'trip')+'_export.txt';
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
 };
 
 window.deleteTrip=function(id){
