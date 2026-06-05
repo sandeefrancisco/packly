@@ -4539,7 +4539,7 @@ function renderExpenses(){
     const chipStyle=active?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
     const xIcon=active?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`:'';
     const _su='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('payer',${JSON.stringify(name)})">${_su} ${esc(name)}${xIcon}</button>`;
+    return`<button class="exp-filter-chip" style="${chipStyle}" data-payer="${esc(name)}" onclick="toggleExpPayer(this)">${_su} ${esc(name)}${xIcon}</button>`;
   }).join('');
 
   // Settled filter chip — show when there's a mix of settled/unsettled among paidBy-others
@@ -4657,6 +4657,12 @@ window.toggleExpFilter=function(type,value){
   } else {
     if(_expFilterCats.has(value))_expFilterCats.delete(value);else _expFilterCats.add(value);
   }
+  renderExpenses();
+};
+window.toggleExpPayer=function(btn){
+  const name=btn.dataset.payer;
+  if(_expFilterPayers.has(name)){_expFilterPayers.clear();}
+  else{_expFilterPayers.clear();_expFilterPayers.add(name);}
   renderExpenses();
 };
 window.clearExpFilters=function(){
