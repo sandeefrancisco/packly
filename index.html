@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Ahoy — Travel Checklist</title>
+<title>Ahoy — Travel Packing & Trip Planner</title>
 <link rel="icon" type="image/png" href="Logo-colored.png">
 <link rel="apple-touch-icon" href="Logo-colored.png">
 <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
@@ -1343,7 +1343,10 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   <nav class="top-nav">
     <div class="brand-pill">
       <img src="Logo-colored.png" alt="Ahoy" style="width:44px;height:44px;display:block;mix-blend-mode:multiply;">
-      Ahoy
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <span>Ahoy</span>
+        <span style="font-size:10px;font-weight:500;color:var(--muted);letter-spacing:0.01em">Travel Packing & Trip Planner</span>
+      </div>
     </div>
     <button class="burger-btn" onclick="openAccountSheet()" aria-label="Menu">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
@@ -1762,9 +1765,12 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 <!-- AUTH OVERLAY -->
 <div class="overlay open" id="authOverlay">
   <div class="modal auth-modal">
-    <div class="auth-brand" style="flex-direction:column;align-items:center;text-align:center;gap:12px;margin-bottom:28px">
+    <div class="auth-brand" style="flex-direction:column;align-items:center;text-align:center;gap:8px;margin-bottom:28px">
       <img src="Logo-colored.png" alt="Ahoy" style="width:72px;height:72px;display:block;mix-blend-mode:multiply;">
-      Ahoy
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+        <span>Ahoy</span>
+        <span style="font-size:13px;font-weight:500;color:var(--muted)">Travel Packing & Trip Planner</span>
+      </div>
     </div>
     <h2 id="authTitle">Welcome back</h2>
     <p class="auth-sub">Sign in to sync your packing lists across all your devices.</p>
