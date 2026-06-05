@@ -2738,7 +2738,7 @@ async function syncTrashToCloud(){
 
 async function loadSharedTrips(){
   try{
-    const{data:accessRows}=await sb.from('trip_access').select('trip_id');
+    const{data:accessRows}=await sb.from('trip_access').select('trip_id').eq('user_id',_currentUserId);
     if(!accessRows?.length)return[];
     const ids=accessRows.map(r=>r.trip_id);
     const{data:rows}=await sb.from('shared_trips').select('id,data').in('id',ids);
@@ -2845,14 +2845,10 @@ async function onSignedIn(user){
   // Local deletions may not have synced yet; overwriting would lose them.
   saveTrash(mergeTrash(loadTrash(), data?.deleted_trips||[]));
 
-  // Flush any pending deletions that failed to reach the cloud last time
+  // Capture pending deletions now; apply them after the full merge so cloudSync
+  // never fires with trips=[] and accidentally wipes cloud data.
   const pending=loadPendingDel();
-  if(pending.length){
-    savePendingDel([]);
-    pending.forEach(id=>{trips=trips.filter(x=>x.id!==id);});
-    saveLocalOnly(trips);
-    cloudSync(trips);
-  }
+  if(pending.length)savePendingDel([]);
 
   // ── Personal trips: timestamp-based merge (newer _ts wins; local wins for legacy data) ──
   const localPersonal=loadAll().filter(t=>!t.sharedTripId);
@@ -2872,6 +2868,7 @@ async function onSignedIn(user){
   const localSharedB=new Map(loadAll().filter(t=>t.sharedTripId).map(t=>[t.id,t]));
   shared.forEach(t=>{byId.set(t.id,_pickSharedTrip(t,localSharedB.get(t.id)));});
   trips=[...byId.values()];
+  if(pending.length){const ps=new Set(pending);trips=trips.filter(t=>!ps.has(t.id));}
   saveLocalOnly(trips);
   // Push merged result back to cloud — call AFTER trips is updated so cloudSync
   // reads the complete merged state (personal + shared).
