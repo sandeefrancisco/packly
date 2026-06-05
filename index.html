@@ -304,29 +304,36 @@ svg.lucide-2xl{width:28px;height:28px}
 .exp-day-group{margin-bottom:12px;}
 /* Payment method chips */
 .exp-pay-row{
-  display:flex;gap:10px;overflow-x:auto;padding:4px 0 6px;
+  display:flex;gap:12px;overflow-x:auto;padding:10px 4px 6px;
   scrollbar-width:none;-webkit-overflow-scrolling:touch;
 }
 .exp-pay-row::-webkit-scrollbar{display:none}
 .exp-pay-chip{
   display:flex;flex-direction:column;align-items:center;gap:6px;
-  flex-shrink:0;cursor:pointer;min-width:72px;
+  flex-shrink:0;cursor:pointer;min-width:72px;position:relative;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .exp-pay-logo{
   width:72px;height:46px;border-radius:12px;
   border:2px solid var(--border);background:var(--white);
   display:flex;align-items:center;justify-content:center;
-  transition:border-color .15s,box-shadow .15s,transform .15s,opacity .15s;
-  overflow:hidden;position:relative;
+  transition:border-color .15s,box-shadow .15s,opacity .15s;
+  overflow:hidden;
 }
-.exp-pay-chip:not(.selected) .exp-pay-logo{opacity:.5;}
+.exp-pay-chip:not(.selected) .exp-pay-logo{opacity:.45;}
 .exp-pay-chip.selected .exp-pay-logo{
   border-color:var(--accent);border-width:2.5px;
-  box-shadow:0 0 0 4px rgba(99,102,241,.22);
-  transform:scale(1.06);opacity:1;
+  box-shadow:0 0 0 3px rgba(99,102,241,.18);
+  opacity:1;
 }
-.exp-pay-name{font-size:12px;font-weight:600;color:var(--muted);transition:color .15s,font-weight .15s;display:flex;align-items:center;justify-content:center;gap:3px;}
+.exp-pay-chip.selected::before{
+  content:'';position:absolute;top:-8px;right:-6px;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--accent) url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/12px no-repeat;
+  border:2px solid var(--white);
+  z-index:2;
+}
+.exp-pay-name{font-size:12px;font-weight:600;color:var(--muted);transition:color .15s;}
 .exp-pay-chip.selected .exp-pay-name{color:var(--accent);font-weight:700;}
 /* Payment badge shown in list */
 .exp-toggle{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;cursor:pointer;}
@@ -4660,14 +4667,11 @@ window.clearExpFilters=function(){
 function renderPayChips(selected){
   _selectedPayment=selected||'cash';
   const row=document.getElementById('expPayRow');if(!row)return;
-  const _chk='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>';
-  row.innerHTML=EXP_PAYMENTS.map(p=>{
-    const sel=p.id===_selectedPayment;
-    return`<div class="exp-pay-chip${sel?' selected':''}" onclick="selectPayment('${p.id}')">
+  row.innerHTML=EXP_PAYMENTS.map(p=>`
+    <div class="exp-pay-chip${p.id===_selectedPayment?' selected':''}" onclick="selectPayment('${p.id}')">
       <div class="exp-pay-logo">${p.logo}</div>
-      <div class="exp-pay-name">${sel?_chk:''}${p.name}</div>
-    </div>`;
-  }).join('');
+      <div class="exp-pay-name">${p.name}</div>
+    </div>`).join('');
 }
 window.selectPayment=function(id){
   _selectedPayment=id;
