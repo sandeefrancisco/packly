@@ -1773,7 +1773,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
       </div>
     </div>
     <h2 id="authTitle">Welcome back</h2>
-    <p class="auth-sub">Sign in to access your trips, packing lists, and expenses across all your devices.</p>
+    <p class="auth-sub">Log in to access your trips, packing lists, and expenses across all your devices.</p>
     <div class="field">
       <label>Email</label>
       <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
@@ -1785,8 +1785,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
       <p class="field-error" id="authPasswordError"></p>
     </div>
     <p id="authError" class="auth-error"></p>
-    <button class="btn-save" style="width:100%;min-height:50px;font-size:16px;background:#fff;color:#3b5bdb" id="authSubmitBtn" onclick="handleAuthSubmit()">Sign in</button>
-    <p class="auth-switch">Don't have an account? <button id="authToggle" onclick="toggleAuthMode()">Sign up</button></p>
+    <button class="btn-save" style="width:100%;min-height:50px;font-size:16px;background:#fff;color:#3b5bdb" id="authSubmitBtn" onclick="handleAuthSubmit()">Log in</button>
+    <p class="auth-switch">Don't have an account? <button id="authToggle" onclick="toggleAuthMode()">Create an account</button></p>
   </div>
 </div>
 
@@ -2901,7 +2901,7 @@ window.handleAuthSubmit=async function(){
   }finally{
     // Always re-enable unless a rate-limit countdown below will manage it
     if(!error?.message?.match(/after \d+ second/)){
-      btn.disabled=false;btn.textContent=isSignUp?'Sign up':'Sign in';
+      btn.disabled=false;btn.textContent=isSignUp?'Create an account':'Log in';
     }
   }
   if(error){
@@ -2951,13 +2951,13 @@ window.toggleAuthMode=function(){
   const toggle=document.getElementById('authToggle');
   const isSignUp=toggle.dataset.mode==='signup';
   toggle.dataset.mode=isSignUp?'signin':'signup';
-  toggle.textContent=isSignUp?'Sign up':'Sign in';
+  toggle.textContent=isSignUp?'Create an account':'Log in';
   document.getElementById('authTitle').textContent=isSignUp?'Welcome back':'Join Ahoy';
   document.querySelector('.auth-sub').textContent=isSignUp
-    ?'Sign in to access your trips, packing lists, and expenses across all your devices.'
+    ?'Log in to access your trips, packing lists, and expenses across all your devices.'
     :'Create a free account and start planning your next adventure.';
   const btn=document.getElementById('authSubmitBtn');
-  btn.textContent=isSignUp?'Sign in':'Sign up';
+  btn.textContent=isSignUp?'Log in':'Create an account';
   btn.disabled=false; // always re-enable on mode switch (clears any stuck rate-limit disable)
   document.querySelector('.auth-switch').firstChild.textContent=isSignUp?'Don\'t have an account? ':'Already have an account? ';
   document.getElementById('authError').textContent='';
