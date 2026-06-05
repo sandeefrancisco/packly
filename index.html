@@ -4588,8 +4588,10 @@ function renderExpenses(){
     const pm=EXP_PAYMENTS.find(p=>p.id===e.payWith);
     const payBadge=pm?`<span class="exp-pay-badge" title="${pm.name}">${pm.logo}${pm.name}</span>`:'';
     const _svgUser='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    const _svgCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>';
     const paidByBadge=e.paidBy?`<span class="exp-pay-badge" style="background:var(--tint);color:var(--accent)">${_svgUser} ${esc(e.paidBy)}</span>`:'';
-    const metaParts=[e.category,payBadge,paidByBadge].filter(Boolean);
+    const settledBadge=e.settled?`<span class="exp-pay-badge" style="background:#f0fdf4;color:#16a34a">${_svgCheck} Settled</span>`:'';
+    const metaParts=[e.category,payBadge,paidByBadge,settledBadge].filter(Boolean);
     const cat=catIconFor(e);
     return`<div class="exp-item${e.settled?" exp-settled":""}" onclick="editExpense('${e.id}')">
       <div class="exp-cat-icon" style="background:${cat.bg}">
