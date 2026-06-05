@@ -1617,6 +1617,10 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
     Recently deleted<span class="sheet-action-badge" id="trashBadge" style="display:none"></span>
   </button>
+  <button class="sheet-action" onclick="closeAccountSheet();document.getElementById('importTripInput').click()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Import trip from file
+  </button>
   <button class="sheet-action" onclick="openAboutModal()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
     About Master Packer
@@ -1638,6 +1642,8 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
     </div>
   </div>
 </div>
+
+<input type="file" id="importTripInput" accept=".txt" style="display:none">
 
 <!-- TRASH SHEET -->
 <div class="sheet-overlay" id="trashOverlay" onclick="closeTrashSheet()"></div>
@@ -3354,6 +3360,96 @@ window.exportTrip=function(id){
   document.body.appendChild(a);a.click();
   document.body.removeChild(a);URL.revokeObjectURL(url);
 };
+
+/* ── Import trip from exported .txt file ── */
+document.getElementById('importTripInput').addEventListener('change',function(){
+  const file=this.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const trip=_parseExportedTrip(e.target.result);
+      trips=dedup([...trips,trip]);
+      saveAll(trips);
+      renderTrips();
+      showToast('✓ "'+trip.name+'" imported');
+    }catch(err){
+      showToast('Could not read that file');
+      console.error('[packly] import error',err);
+    }
+    document.getElementById('importTripInput').value='';
+  };
+  reader.readAsText(file);
+});
+
+function _parseDateStr(s){
+  const M={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  const m=s.trim().match(/(\d+)\s+(\w+)\s+(\d{4})/);
+  if(!m)return'';
+  const mon=M[m[2].slice(0,3).toLowerCase()];
+  if(mon===undefined)return'';
+  return m[3]+'-'+String(mon+1).padStart(2,'0')+'-'+String(Number(m[1])).padStart(2,'0');
+}
+
+function _parseExportedTrip(text){
+  const lines=text.split('\n');
+  let i=0;
+  while(i<lines.length&&!lines[i].trim())i++;
+  const name=lines[i++]?.trim()||'Imported Trip';
+  if(i<lines.length&&/^─+$/.test(lines[i].trim()))i++;
+
+  let dateFrom='',dateTo='',dates='';
+  while(i<lines.length&&!lines[i].trim().startsWith('PACKING LIST')){
+    const ln=lines[i].trim();
+    if(ln.startsWith('Dates: ')){
+      dates=ln.slice(7);
+      const rng=dates.match(/(\d+\s+\w+\s+\d{4})\s*[–\-]\s*(\d+\s+\w+\s+\d{4})/);
+      if(rng){dateFrom=_parseDateStr(rng[1]);dateTo=_parseDateStr(rng[2]);}
+      else{const sg=dates.match(/(\d+\s+\w+\s+\d{4})/);if(sg){dateFrom=dateTo=_parseDateStr(sg[1]);}}
+    }
+    i++;
+  }
+  i++; // skip 'PACKING LIST'
+  if(i<lines.length&&/^─+$/.test(lines[i].trim()))i++;
+
+  const CAT_MAP={'Food & Drink':'food','Accommodation':'accommodation','Transport':'transport',
+    'Activities':'activity','Shopping':'shopping','Health':'health','Other':'other'};
+  const sections=[],expenses=[];
+  let curSec=null,inExp=false,curCat='other';
+
+  while(i<lines.length){
+    const raw=lines[i++];
+    const ln=raw.trim();
+    if(!ln)continue;
+    if(ln==='EXPENSES'){
+      inExp=true;
+      if(i<lines.length&&/^─+$/.test(lines[i].trim()))i++;
+      continue;
+    }
+    if(ln.startsWith('Packed:')||ln.startsWith('Total:'))continue;
+    const indented=raw[0]===' '||raw[0]==='\t';
+    if(inExp){
+      if(!indented&&ln.endsWith(':')){curCat=CAT_MAP[ln.slice(0,-1)]||'other';continue;}
+      if(indented&&/^[A-Z]{3}:\s+[\d.]+$/.test(ln))continue; // total sub-line
+      if(indented){
+        const m=ln.match(/^(.+?)(?:\s+\((\d{4}-\d{2}-\d{2})\))?\s*:\s*([\d.]+)\s+([A-Z]{3})(?:\s*[—\-]\s*(.+))?$/);
+        if(m)expenses.push({id:uid(),label:m[1].trim(),date:m[2]||'',amount:parseFloat(m[3])||0,
+          currency:m[4]||'EUR',category:curCat,notes:m[5]||'',payWith:''});
+      }
+    } else {
+      if(!indented&&ln.endsWith(':')){
+        curSec={id:uid(),iconKey:'list',name:ln.slice(0,-1),items:[]};
+        sections.push(curSec);
+      } else if(indented&&curSec&&(ln[0]==='✓'||ln[0]==='○')){
+        const m=ln.match(/^([✓○])\s+(.+?)(?:\s+\(×(\d+)\))?$/);
+        if(m)curSec.items.push({id:uid(),label:m[2].trim(),qty:m[3]?parseInt(m[3]):1,done:m[1]==='✓'});
+      }
+    }
+  }
+
+  const trip={id:uid(),name,dates,dateFrom,dateTo,iconKey:'globe',sections,travelers:[],_ts:Date.now()};
+  if(expenses.length)trip.expenses=expenses;
+  return trip;
+}
 
 window.deleteTrip=function(id){
   const t=trips.find(x=>x.id===id);if(!t)return;
