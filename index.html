@@ -4520,7 +4520,8 @@ function renderExpenses(){
     const active=_expFilterPayers.has(name);
     const chipStyle=active?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
     const xIcon=active?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`:'';
-    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('payer',${JSON.stringify(name)})">👤 ${esc(name)}${xIcon}</button>`;
+    const _su='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('payer',${JSON.stringify(name)})">${_su} ${esc(name)}${xIcon}</button>`;
   }).join('');
 
   // Settled filter chip — show when there's a mix of settled/unsettled among paidBy-others
@@ -4530,7 +4531,10 @@ function renderExpenses(){
     const rActive=_expFilterSettled===true;
     const sStyle=sActive?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
     const rStyle=rActive?`border-color:#34c759;background:#f0fdf4;color:#16a34a`:'';
-    settledChips=`<button class="exp-filter-chip" style="${sStyle}" onclick="toggleExpFilter('settled','false')">Unpaid${sActive?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7;margin-left:2px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>':''}</button><button class="exp-filter-chip" style="${rStyle}" onclick="toggleExpFilter('settled','true')">✓ Settled${rActive?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7;margin-left:2px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>':''}</button>`;
+    const _xSvg='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7;margin-left:2px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    const _clockSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    const _checkSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>';
+    settledChips=`<button class="exp-filter-chip" style="${sStyle}" onclick="toggleExpFilter('settled','false')">${_clockSvg} Unpaid${sActive?_xSvg:''}</button><button class="exp-filter-chip" style="${rStyle}" onclick="toggleExpFilter('settled','true')">${_checkSvg} Settled${rActive?_xSvg:''}</button>`;
   }
 
   const extraChipsBar=(payerChips||settledChips)?`<div class="exp-pay-filter-bar">${payerChips}${settledChips}</div>`:'';
@@ -4567,8 +4571,11 @@ function renderExpenses(){
   function expItemHtml(e){
     const pm=EXP_PAYMENTS.find(p=>p.id===e.payWith);
     const payBadge=pm?`<span class="exp-pay-badge" title="${pm.name}">${pm.logo}${pm.name}</span>`:'';
-    const paidByBadge=e.paidBy?`<span class="exp-pay-badge" style="background:var(--tint);color:var(--accent)">👤 ${esc(e.paidBy)}</span>`:'';
-    const settledBadge=e.settled?`<span class="exp-pay-badge" style="background:#f0fdf4;color:#16a34a">✓ Settled</span>`:(e.paidBy&&!e.settled?`<span class="exp-pay-badge" style="background:#fff7ed;color:#c2410c">Unpaid</span>`:'');
+    const _svgUser='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    const _svgCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>';
+    const _svgClock='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    const paidByBadge=e.paidBy?`<span class="exp-pay-badge" style="background:var(--tint);color:var(--accent)">${_svgUser} ${esc(e.paidBy)}</span>`:'';
+    const settledBadge=e.settled?`<span class="exp-pay-badge" style="background:#f0fdf4;color:#16a34a">${_svgCheck} Settled</span>`:(e.paidBy&&!e.settled?`<span class="exp-pay-badge" style="background:#fff7ed;color:#c2410c">${_svgClock} Unpaid</span>`:'');
     const metaParts=[e.category,payBadge,paidByBadge,settledBadge].filter(Boolean);
     const cat=catIconFor(e);
     return`<div class="exp-item" onclick="editExpense('${e.id}')">
