@@ -4576,14 +4576,14 @@ function renderExpenses(){
     settledChips=`<button class="exp-filter-chip" style="${sStyle}" onclick="toggleExpFilter('settled','false')">${_clockSvg} Unpaid${sActive?_xSvg:''}</button><button class="exp-filter-chip" style="${rStyle}" onclick="toggleExpFilter('settled','true')">${_checkSvg} Settled${rActive?_xSvg:''}</button>`;
   }
 
-  // Row 1: dropdowns; Row 2: chips
-  const dropdowns=[catSelect,payerChips].filter(Boolean);
-  const chips=[payChips,settledChips].filter(Boolean);
+  // Row 1: dropdowns; Row 2: pay chips; Row 3: settled chips
   const sep='<span class="exp-filter-sep"></span>';
+  const dropdowns=[catSelect,payerChips].filter(Boolean);
   const dropRow=dropdowns.length?`<div class="exp-filter-scroll">${dropdowns.join(sep)}</div>`:'';
-  const chipRow=chips.length?`<div class="exp-filter-scroll" style="margin-top:8px">${chips.join(sep)}</div>`:'';
-  const filterBarHtml=(dropRow||chipRow)
-    ?`<div class="exp-filter-area">${dropRow}${chipRow}</div>`
+  const payRow=payChips?`<div class="exp-filter-scroll" style="margin-top:8px">${payChips}</div>`:'';
+  const settledRow=settledChips?`<div class="exp-filter-scroll" style="margin-top:8px">${settledChips}</div>`:'';
+  const filterBarHtml=(dropRow||payRow||settledRow)
+    ?`<div class="exp-filter-area">${dropRow}${payRow}${settledRow}</div>`
     :'';
 
   // Group expenses by date (undated go last)
