@@ -3760,7 +3760,7 @@ async function showChecklist(id){
   const trip=trips.find(t=>t.id===id);
   const defaultTab=resuming
     ?(sessionStorage.getItem('packly-cl-tab')||'packing')
-    :(tripTabOf(trip)==='ongoing'?'expenses':'packing');
+    :(['ongoing','past'].includes(tripTabOf(trip))?'expenses':'packing');
   setTripTab(defaultTab);
   _clOpen();
   history.pushState({packly:'checklist',tripId:id},'','#checklist');
