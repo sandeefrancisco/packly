@@ -493,9 +493,19 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   transition:border-color .14s,color .14s;
   -webkit-tap-highlight-color:transparent;
 }
+button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;}
 .exp-cat-select.active{border-color:var(--accent);color:var(--accent);}
 .exp-cat-chevron{position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);width:14px;height:14px;}
 .exp-cat-select-wrap:has(.exp-cat-select.active) .exp-cat-chevron{color:var(--accent);}
+/* Filter sheet radio options */
+.fopt{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.fopt:last-child{border-bottom:none;}
+.fopt-label{font-size:16px;font-weight:500;color:var(--ink);}
+.fopt.fopt-active .fopt-label{color:var(--accent);font-weight:600;}
+.fopt-radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .14s;}
+.fopt.fopt-active .fopt-radio{border-color:var(--accent);background:var(--accent);}
+.fopt-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--white);display:none;}
+.fopt.fopt-active .fopt-radio::after{display:block;}
 /* Filter chips */
 .exp-filter-chip{
   display:inline-flex;align-items:center;gap:7px;
@@ -4531,14 +4541,19 @@ function renderExpenses(){
   const hasAnyUnsettledPaidByOther=allExpenses.some(e=>e.paidBy&&!e.settled);
 
   const activeCat=[..._expFilterCats][0]||'';
-  const catOptions=usedCats.map(k=>`<option value="${k}"${k===activeCat?' selected':''}>${k}</option>`).join('');
+  const activePayer=[..._expFilterPayers][0]||'';
+
+  // Store options for the filter bottom sheet
+  window._expSheetOpts={
+    cat:[{v:'',l:'All categories'},...usedCats.map(k=>({v:k,l:k}))],
+    payer:[{v:'',l:'All payers'},...usedPaidBy.map(n=>({v:n,l:n}))]
+  };
+
+  const _chevron=`<svg class="exp-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
   const catSelect=usedCats.length>1
     ?`<div class="exp-cat-select-wrap">
-        <select class="exp-cat-select${activeCat?' active':''}" onchange="onExpCatFilter(this.value)">
-          <option value="">All categories</option>
-          ${catOptions}
-        </select>
-        <svg class="exp-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <button class="exp-cat-select${activeCat?' active':''}" onclick="openExpFilterSheet('cat','Category')">${esc(activeCat||'All categories')}</button>
+        ${_chevron}
       </div>`
     :'';
 
@@ -4550,16 +4565,10 @@ function renderExpenses(){
     return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('pay','${payId}')"><span class="chip-pay-logo">${pm.logo}</span>${pm.name}${xIcon}</button>`;
   }).join('');
 
-  // Paid-by filter dropdown
-  const activePayer=[..._expFilterPayers][0]||'';
-  const payerOptions=usedPaidBy.map(n=>`<option value="${esc(n)}"${n===activePayer?' selected':''}>${esc(n)}</option>`).join('');
   const payerChips=usedPaidBy.length>0
     ?`<div class="exp-cat-select-wrap">
-        <select class="exp-cat-select${activePayer?' active':''}" onchange="onExpPayerFilter(this.value)">
-          <option value="">Paid by</option>
-          ${payerOptions}
-        </select>
-        <svg class="exp-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <button class="exp-cat-select${activePayer?' active':''}" onclick="openExpFilterSheet('payer','Paid by')">${esc(activePayer||'Paid by')}</button>
+        ${_chevron}
       </div>`
     :'';
 
@@ -4676,6 +4685,26 @@ window.onExpPayerFilter=function(value){
   _expFilterPayers.clear();
   if(value)_expFilterPayers.add(value);
   renderExpenses();
+};
+window.openExpFilterSheet=function(type,title){
+  const opts=(window._expSheetOpts||{})[type]||[];
+  const active=type==='cat'?([..._expFilterCats][0]||''):([..._expFilterPayers][0]||'');
+  document.getElementById('expFltTitle').textContent=title;
+  document.getElementById('expFltOptions').innerHTML=opts.map(o=>
+    `<div class="fopt${o.v===active?' fopt-active':''}" onclick="selectExpFilter('${type}',${JSON.stringify(o.v)})">
+      <span class="fopt-label">${esc(o.l)}</span>
+      <span class="fopt-radio"></span>
+    </div>`
+  ).join('');
+  document.getElementById('expFltOverlay').classList.add('open');
+};
+window.closeExpFilterSheet=function(){
+  document.getElementById('expFltOverlay').classList.remove('open');
+};
+window.selectExpFilter=function(type,value){
+  closeExpFilterSheet();
+  if(type==='cat')onExpCatFilter(value);
+  else if(type==='payer')onExpPayerFilter(value);
 };
 window.toggleExpFilter=function(type,value){
   if(type==='pay'){
@@ -5341,6 +5370,15 @@ window.addEventListener('pageshow',(ev)=>{
       <input type="search" id="curSearchInput" placeholder="Search currency…" oninput="filterCurrencies(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
     <div class="cur-list" id="curList"></div>
+  </div>
+</div>
+
+<!-- Expense filter bottom sheet -->
+<div class="overlay" id="expFltOverlay" onclick="closeExpFilterSheet()">
+  <div class="modal" onclick="event.stopPropagation()" style="padding-top:24px">
+    <button class="sheet-close-btn" onclick="closeExpFilterSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div id="expFltTitle" style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px"></div>
+    <div id="expFltOptions"></div>
   </div>
 </div>
 
