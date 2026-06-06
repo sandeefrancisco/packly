@@ -498,7 +498,7 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
 .exp-cat-chevron{position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);width:14px;height:14px;}
 .exp-cat-select-wrap:has(.exp-cat-select.active) .exp-cat-chevron{color:var(--accent);}
 /* Filter sheet radio options */
-.fopt{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.fopt{display:flex;align-items:center;justify-content:space-between;padding:17px 0;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .fopt:last-child{border-bottom:none;}
 .fopt-label{font-size:16px;font-weight:500;color:var(--ink);}
 .fopt.fopt-active .fopt-label{color:var(--accent);font-weight:600;}
@@ -4691,7 +4691,7 @@ window.openExpFilterSheet=function(type,title){
   const active=type==='cat'?([..._expFilterCats][0]||''):([..._expFilterPayers][0]||'');
   document.getElementById('expFltTitle').textContent=title;
   document.getElementById('expFltOptions').innerHTML=opts.map(o=>
-    `<div class="fopt${o.v===active?' fopt-active':''}" onclick="selectExpFilter('${type}',${JSON.stringify(o.v)})">
+    `<div class="fopt${o.v===active?' fopt-active':''}" data-ftype="${type}" data-fval="${esc(o.v)}" onclick="selectExpFilter(this)">
       <span class="fopt-label">${esc(o.l)}</span>
       <span class="fopt-radio"></span>
     </div>`
@@ -4701,7 +4701,9 @@ window.openExpFilterSheet=function(type,title){
 window.closeExpFilterSheet=function(){
   document.getElementById('expFltOverlay').classList.remove('open');
 };
-window.selectExpFilter=function(type,value){
+window.selectExpFilter=function(el){
+  const type=el.dataset.ftype;
+  const value=el.dataset.fval;
   closeExpFilterSheet();
   if(type==='cat')onExpCatFilter(value);
   else if(type==='payer')onExpPayerFilter(value);
