@@ -4550,14 +4550,18 @@ function renderExpenses(){
     return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('pay','${payId}')"><span class="chip-pay-logo">${pm.logo}</span>${pm.name}${xIcon}</button>`;
   }).join('');
 
-  // Paid-by filter chips
-  const payerChips=usedPaidBy.map(name=>{
-    const active=_expFilterPayers.has(name);
-    const chipStyle=active?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
-    const xIcon=active?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`:'';
-    const _su='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-    return`<button class="exp-filter-chip" style="${chipStyle}" data-payer="${esc(name)}" onclick="toggleExpPayer(this)">${_su} ${esc(name)}${xIcon}</button>`;
-  }).join('');
+  // Paid-by filter dropdown
+  const activePayer=[..._expFilterPayers][0]||'';
+  const payerOptions=usedPaidBy.map(n=>`<option value="${esc(n)}"${n===activePayer?' selected':''}>${esc(n)}</option>`).join('');
+  const payerChips=usedPaidBy.length>0
+    ?`<div class="exp-cat-select-wrap">
+        <select class="exp-cat-select${activePayer?' active':''}" onchange="onExpPayerFilter(this.value)">
+          <option value="">Paid by</option>
+          ${payerOptions}
+        </select>
+        <svg class="exp-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>`
+    :'';
 
   // Settled filter chip
   let settledChips='';
@@ -4665,6 +4669,11 @@ window.onExpCatFilter=function(value){
   if(value)_expFilterCats.add(value);
   renderExpenses();
 };
+window.onExpPayerFilter=function(value){
+  _expFilterPayers.clear();
+  if(value)_expFilterPayers.add(value);
+  renderExpenses();
+};
 window.toggleExpFilter=function(type,value){
   if(type==='pay'){
     if(_expFilterPays.has(value)){_expFilterPays.clear();}
@@ -4680,12 +4689,7 @@ window.toggleExpFilter=function(type,value){
   }
   renderExpenses();
 };
-window.toggleExpPayer=function(btn){
-  const name=btn.dataset.payer;
-  if(_expFilterPayers.has(name)){_expFilterPayers.clear();}
-  else{_expFilterPayers.clear();_expFilterPayers.add(name);}
-  renderExpenses();
-};
+
 window.clearExpFilters=function(){
   _expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;
   renderExpenses();
