@@ -289,10 +289,14 @@ svg.lucide-2xl{width:28px;height:28px}
 .exp-cat-icon svg{width:17px;height:17px;stroke-width:2;stroke:var(--ink);}
 .exp-item-info{flex:1;min-width:0;}
 .exp-item-label{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.exp-item-cat{font-size:12px;color:var(--muted);margin-top:2px;}
-.exp-item-amount{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;}
-.exp-item-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.exp-item-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px;}
 .exp-item-notes{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.exp-pay-icon{display:inline-flex;align-items:center;flex-shrink:0;}
+.exp-pay-icon svg{width:22px;height:14px;}
+.exp-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.exp-item-amount{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;}
+.exp-item-sub{font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;display:flex;align-items:center;gap:4px;}
+.exp-settled-tag{color:#16a34a;font-weight:600;}
 .exp-item{cursor:pointer;}
 .exp-item:active{background:var(--tint);}
 .exp-item.exp-settled{box-shadow:inset 3px 0 0 #16a34a;}
@@ -4600,13 +4604,14 @@ function renderExpenses(){
 
   function expItemHtml(e){
     const pm=EXP_PAYMENTS.find(p=>p.id===e.payWith);
-    const payBadge=pm?`<span class="exp-pay-badge" title="${pm.name}">${pm.logo}${pm.name}</span>`:'';
-    const _svgUser='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-    const _svgCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>';
-    const paidByBadge=e.paidBy?`<span class="exp-pay-badge" style="background:var(--tint);color:var(--accent)">${_svgUser} ${esc(e.paidBy)}</span>`:'';
-    const settledBadge=e.settled?`<span class="exp-pay-badge" style="background:#f0fdf4;color:#16a34a">${_svgCheck} Settled</span>`:'';
-    const metaParts=[e.category,payBadge,paidByBadge,settledBadge].filter(Boolean);
+    const payIcon=pm?`<span class="exp-pay-icon" title="${pm.name}">${pm.logo}</span>`:'';
     const cat=catIconFor(e);
+    const metaParts=[e.category,payIcon].filter(Boolean);
+    // Right-column subtitle: "by KR · Settled"
+    const subParts=[];
+    if(e.paidBy) subParts.push(`<span>by ${esc(e.paidBy)}</span>`);
+    if(e.settled) subParts.push(`<span class="exp-settled-tag">Settled</span>`);
+    const rightSub=subParts.join('<span style="opacity:.3">·</span>');
     return`<div class="exp-item${e.settled?" exp-settled":""}" onclick="editExpense('${e.id}')">
       <div class="exp-cat-icon" style="background:${cat.bg}">
         <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
@@ -4616,7 +4621,10 @@ function renderExpenses(){
         <div class="exp-item-meta">${metaParts.join('<span style="opacity:.35">·</span>')}</div>
         ${e.notes?`<div class="exp-item-notes">${esc(e.notes)}</div>`:''}
       </div>
-      <div class="exp-item-amount">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <div class="exp-item-right">
+        <div class="exp-item-amount">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        ${rightSub?`<div class="exp-item-sub">${rightSub}</div>`:''}
+      </div>
     </div>`;
   }
 
