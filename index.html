@@ -29,7 +29,7 @@ input,textarea,select{font-size:16px!important;touch-action:manipulation}
   --accent:#1A1A2E;
   --accent-h:#2D2D4A;
   --tint:#F3F3F8;
-  --green:#22C55E;
+  --green:#16a34a;
   --red:#EF4444;
   --r-card:20px;
   --r-btn:99px;
@@ -295,7 +295,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .exp-item-notes{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .exp-item{cursor:pointer;}
 .exp-item:active{background:var(--tint);}
-.exp-item.exp-settled{box-shadow:inset 3px 0 0 #34c759;}
+.exp-item.exp-settled{box-shadow:inset 3px 0 0 #16a34a;}
 .exp-day-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:10px 4px 6px;
@@ -377,7 +377,7 @@ svg.lucide-2xl{width:28px;height:28px}
   align-items:center;justify-content:center;gap:8px;
   opacity:0;pointer-events:none;
   transform:scale(.8);
-  box-shadow:0 4px 16px rgba(99,102,241,.45),0 2px 6px rgba(0,0,0,.18);
+  box-shadow:0 4px 12px rgba(99,102,241,.18),0 2px 4px rgba(0,0,0,.10);
   z-index:150; /* above page content, below overlays (z-index:200) */
   transition:opacity .18s cubic-bezier(.32,.72,0,1),
              transform .18s cubic-bezier(.32,.72,0,1);
@@ -387,7 +387,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 /* Revealed when expenses tab is active */
 body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);}
-.exp-fab:hover{box-shadow:0 6px 24px rgba(99,102,241,.55),0 3px 8px rgba(0,0,0,.22);}
+.exp-fab:hover{box-shadow:0 4px 16px rgba(99,102,241,.25),0 2px 6px rgba(0,0,0,.12);}
 .exp-fab:active{transform:scale(.91)!important;}
 .exp-fab:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
 .exp-fab svg{width:22px;height:22px;stroke-width:2.5;pointer-events:none;flex-shrink:0;}
@@ -4560,7 +4560,7 @@ function renderExpenses(){
     const sActive=_expFilterSettled===false;
     const rActive=_expFilterSettled===true;
     const sStyle=sActive?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
-    const rStyle=rActive?`border-color:#34c759;background:#f0fdf4;color:#16a34a`:'';
+    const rStyle=rActive?`border-color:#16a34a;background:#f0fdf4;color:#16a34a`:'';
     const _xSvg='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7;margin-left:2px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     const _clockSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
     const _checkSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>';
