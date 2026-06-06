@@ -4576,11 +4576,14 @@ function renderExpenses(){
     settledChips=`<button class="exp-filter-chip" style="${sStyle}" onclick="toggleExpFilter('settled','false')">${_clockSvg} Unpaid${sActive?_xSvg:''}</button><button class="exp-filter-chip" style="${rStyle}" onclick="toggleExpFilter('settled','true')">${_checkSvg} Settled${rActive?_xSvg:''}</button>`;
   }
 
-  // Build single scrollable chip bar with group separators
+  // Row 1: dropdowns; Row 2: chips
+  const dropdowns=[catSelect,payerChips].filter(Boolean);
+  const chips=[payChips,settledChips].filter(Boolean);
   const sep='<span class="exp-filter-sep"></span>';
-  const groups=[catSelect,payChips,payerChips,settledChips].filter(Boolean);
-  const filterBarHtml=groups.length
-    ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${groups.join(sep)}</div></div>`
+  const dropRow=dropdowns.length?`<div class="exp-filter-scroll">${dropdowns.join(sep)}</div>`:'';
+  const chipRow=chips.length?`<div class="exp-filter-scroll" style="margin-top:8px">${chips.join(sep)}</div>`:'';
+  const filterBarHtml=(dropRow||chipRow)
+    ?`<div class="exp-filter-area">${dropRow}${chipRow}</div>`
     :'';
 
   // Group expenses by date (undated go last)
