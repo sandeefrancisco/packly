@@ -466,49 +466,51 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 #expDateTrigger{background:var(--tint);border-radius:12px;border:1.5px solid var(--border);transition:border-color .12s;}
 #expDateTrigger:hover,#expDateTrigger:focus-within{border-color:var(--accent);background:var(--white);}
 /* Expense filter bar */
-.exp-filter-row{
-  display:flex;flex-direction:column;gap:8px;
+/* Expense filter — single scrollable chip bar */
+.exp-filter-area{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;-ms-overflow-style:none;
   margin-bottom:12px;
 }
+.exp-filter-area::-webkit-scrollbar{display:none}
+.exp-filter-scroll{
+  display:flex;align-items:center;gap:8px;
+  padding:2px 0 6px;
+  width:max-content;
+}
+.exp-filter-sep{width:1px;height:22px;background:var(--border);flex-shrink:0;margin:0 2px;}
 /* Category dropdown */
-.exp-cat-select-wrap{position:relative;flex-shrink:0;align-self:flex-start;}
+.exp-cat-select-wrap{position:relative;flex-shrink:0;}
 .exp-cat-select{
   appearance:none;-webkit-appearance:none;
-  padding:9px 34px 9px 14px;
-  min-height:40px;
+  padding:0 36px 0 16px;
+  height:44px;
   border-radius:99px;
   border:1.5px solid var(--border);background:var(--white);
-  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;color:var(--muted);
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;color:var(--muted);
   cursor:pointer;
   transition:border-color .14s,color .14s;
   -webkit-tap-highlight-color:transparent;
 }
 .exp-cat-select.active{border-color:var(--accent);color:var(--accent);}
-.exp-cat-select-wrap::after{display:none;}
-.exp-cat-chevron{position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);width:14px;height:14px;}
+.exp-cat-chevron{position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);width:14px;height:14px;}
 .exp-cat-select-wrap:has(.exp-cat-select.active) .exp-cat-chevron{color:var(--accent);}
-/* Payment chips */
-.exp-pay-filter-bar{
-  display:flex;gap:6px;overflow-x:auto;
-  padding:2px 0 4px;
-  scrollbar-width:none;-ms-overflow-style:none;
-  -webkit-overflow-scrolling:touch;
-}
-.exp-pay-filter-bar::-webkit-scrollbar{display:none}
+/* Filter chips */
 .exp-filter-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:8px 14px 8px 8px;
-  min-height:40px;
+  display:inline-flex;align-items:center;gap:7px;
+  padding:0 16px 0 12px;
+  height:44px;
   border-radius:99px;
   border:1.5px solid var(--border);background:var(--white);
-  font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;color:var(--muted);
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;color:var(--muted);
   white-space:nowrap;cursor:pointer;flex-shrink:0;
   transition:all .14s;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .exp-filter-chip:active{opacity:.75;}
 .chip-pay-logo{display:inline-flex;align-items:center;}
-.chip-pay-logo svg{width:26px;height:17px;border-radius:4px;overflow:hidden;}
+.chip-pay-logo svg{width:28px;height:18px;border-radius:4px;overflow:hidden;}
 
 /* luggage compact bar */
 .luggage-bar{
@@ -4547,7 +4549,6 @@ function renderExpenses(){
     const xIcon=active?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`:'';
     return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('pay','${payId}')"><span class="chip-pay-logo">${pm.logo}</span>${pm.name}${xIcon}</button>`;
   }).join('');
-  const payBar=usedPays.length>1?`<div class="exp-pay-filter-bar">${payChips}</div>`:'';
 
   // Paid-by filter chips
   const payerChips=usedPaidBy.map(name=>{
@@ -4571,10 +4572,11 @@ function renderExpenses(){
     settledChips=`<button class="exp-filter-chip" style="${sStyle}" onclick="toggleExpFilter('settled','false')">${_clockSvg} Unpaid${sActive?_xSvg:''}</button><button class="exp-filter-chip" style="${rStyle}" onclick="toggleExpFilter('settled','true')">${_checkSvg} Settled${rActive?_xSvg:''}</button>`;
   }
 
-  const extraChipsBar=(payerChips||settledChips)?`<div class="exp-pay-filter-bar">${payerChips}${settledChips}</div>`:'';
-
-  const filterBarHtml=(catSelect||payBar||extraChipsBar)
-    ?`<div class="exp-filter-row">${catSelect}${payBar}</div>${extraChipsBar?`<div class="exp-filter-row" style="margin-top:-4px">${extraChipsBar}</div>`:''}`
+  // Build single scrollable chip bar with group separators
+  const sep='<span class="exp-filter-sep"></span>';
+  const groups=[catSelect,payChips,payerChips,settledChips].filter(Boolean);
+  const filterBarHtml=groups.length
+    ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${groups.join(sep)}</div></div>`
     :'';
 
   // Group expenses by date (undated go last)
