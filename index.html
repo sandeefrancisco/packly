@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="packly-version" content="1.3.0">
+<meta name="packly-version" content="1.4.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -132,38 +132,71 @@ svg.lucide-2xl{width:28px;height:28px}
   .trip-card:hover{box-shadow:0 8px 28px rgba(26,26,46,.14),0 2px 6px rgba(26,26,46,.07);transform:translateY(-3px)}
 }
 .trip-card-hero{
-  height:168px;position:relative;display:flex;align-items:center;justify-content:center;
+  height:190px;position:relative;display:flex;align-items:center;justify-content:center;
   overflow:hidden;
 }
+/* real photo layer — fades in once image loads */
+.trip-card-hero-photo{
+  position:absolute;inset:0;z-index:0;
+  background-size:cover;background-position:center;
+  opacity:0;transition:opacity .6s ease;
+}
+.trip-card-hero-photo.loaded{opacity:1;}
+/* dark vignette shown only when photo is present */
+.trip-card-hero-darken{
+  position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(0,0,0,.08) 0%,rgba(0,0,0,.52) 100%);
+  opacity:0;transition:opacity .5s;pointer-events:none;
+}
+.trip-card-hero.has-photo .trip-card-hero-darken{opacity:1;}
 .trip-card-hero-icon{
-  position:relative;z-index:1;
+  position:relative;z-index:2;
   display:flex;align-items:center;justify-content:center;
   width:72px;height:72px;border-radius:50%;
-  background:rgba(255,255,255,.18);backdrop-filter:blur(4px);
+  background:rgba(255,255,255,.18);backdrop-filter:blur(6px);
+  transition:opacity .3s;
 }
+.trip-card-hero.has-photo .trip-card-hero-icon{opacity:0;pointer-events:none;}
 .trip-card-hero-icon img{width:52px;height:52px;border-radius:50%;object-fit:cover;}
 .trip-card-hero-icon svg,.trip-card-hero-icon svg.lucide-hero{
   width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;color:#fff;
 }
 svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;}
+/* destination name overlay appears on top of photo */
+.trip-card-hero-label{
+  position:absolute;bottom:14px;left:16px;right:52px;z-index:3;
+  opacity:0;transition:opacity .4s;pointer-events:none;
+}
+.trip-card-hero.has-photo .trip-card-hero-label{opacity:1;}
+.trip-card-hero-label-name{
+  font-size:18px;font-weight:800;color:#fff;line-height:1.2;
+  text-shadow:0 1px 6px rgba(0,0,0,.4);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.trip-card-hero-label-date{
+  font-size:12px;color:rgba(255,255,255,.82);margin-top:3px;
+  text-shadow:0 1px 4px rgba(0,0,0,.35);
+}
 .trip-card-overlay-badges{
-  position:absolute;top:14px;left:14px;right:14px;
-  display:flex;align-items:center;justify-content:space-between;z-index:2;
+  position:absolute;top:12px;left:12px;right:48px;
+  display:flex;align-items:center;gap:6px;z-index:4;flex-wrap:wrap;
 }
 .trip-card-dots{
-  position:absolute;top:10px;right:10px;z-index:3;
-  width:32px;height:32px;border-radius:50%;border:none;
+  position:absolute;top:10px;right:10px;z-index:4;
+  width:34px;height:34px;border-radius:50%;border:none;
   background:rgba(0,0,0,.28);backdrop-filter:blur(6px);
   color:#fff;display:flex;align-items:center;justify-content:center;
   cursor:pointer;transition:background .12s;flex-shrink:0;
 }
 .trip-card-dots:hover{background:rgba(0,0,0,.44);}
 .trip-card-dots svg{width:18px;height:18px;stroke-width:2;pointer-events:none}
-.trip-card-body{padding:16px 18px 18px;}
+.trip-card-body{padding:14px 18px 16px;}
 .trip-card-name{
   font-size:17px;font-weight:700;color:var(--ink);line-height:1.3;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;
 }
+/* hide name/date in body once photo takes over the hero */
+.trip-card.has-photo-card .trip-card-name-row{display:none;}
 .trip-card-date{font-size:13px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:5px;}
 .trip-card-date svg{opacity:.55;}
 /* keep legacy names used elsewhere */
@@ -3250,6 +3283,48 @@ window.switchTab=function(tab){
   renderTrips();
 };
 
+/* ── Trip hero photo fetching ── */
+const _tripImageCache={};
+async function loadTripHeroImage(tripId,tripName){
+  const cached=_tripImageCache[tripName];
+  if(cached!==undefined){if(cached)applyTripPhoto(tripId,cached);return;}
+  // Use the first part of the destination name for a cleaner search
+  const query=tripName.replace(/[,|/]/g,' ').trim().split(/\s+/).slice(0,4).join(' ');
+  // Try Wikipedia REST API first — free, no key, gives landmark photos
+  try{
+    const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(5000)});
+    if(r.ok){
+      const d=await r.json();
+      const img=d.originalimage?.source||d.thumbnail?.source||null;
+      if(img){_tripImageCache[tripName]=img;applyTripPhoto(tripId,img);return;}
+    }
+  }catch{}
+  // Fallback: Unsplash source (free, no key, searches by destination keyword)
+  try{
+    const src=`https://source.unsplash.com/800x600/?${encodeURIComponent(query)},travel,destination`;
+    // Probe the redirect to get the actual image URL
+    const r=await fetch(src,{signal:AbortSignal.timeout(6000)});
+    if(r.ok&&r.url&&r.url!==src){
+      _tripImageCache[tripName]=r.url;applyTripPhoto(tripId,r.url);return;
+    }
+  }catch{}
+  _tripImageCache[tripName]=null;
+}
+function applyTripPhoto(tripId,imgUrl){
+  const photoEl=document.getElementById(`hero-photo-${tripId}`);
+  const heroEl=document.getElementById(`hero-${tripId}`);
+  const card=heroEl?.closest('.trip-card');
+  if(!photoEl||!heroEl)return;
+  const img=new Image();
+  img.onload=()=>{
+    photoEl.style.backgroundImage=`url(${imgUrl})`;
+    photoEl.classList.add('loaded');
+    heroEl.classList.add('has-photo');
+    card?.classList.add('has-photo-card');
+  };
+  img.src=imgUrl;
+}
+
 const TRIP_HERO_GRADIENTS={
   globe:     'linear-gradient(145deg,#0ea5e9,#0369a1)',
   sun:       'linear-gradient(145deg,#f59e0b,#ef4444)',
@@ -3321,20 +3396,28 @@ function renderTrips(){
     const cd=tripCountdown(t.dateFrom,t.dateTo);
     const packAgainHtml=_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:'';
     const heroIconHtml=getTripFlagOrIcon(t,'lucide-hero','globe',52);
-    const cdBadge=cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:'<span></span>';
-    const sharedBadge=t.isShared?`<span class="trip-shared-tag-hero">${svgStr('users')} Shared</span>`:'<span></span>';
+    const cdBadge=cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:'';
+    const sharedBadge=t.isShared?`<span class="trip-shared-tag-hero">${svgStr('users')} Shared</span>`:'';
     const calIcon=`<svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
     card.innerHTML=`
-      <div class="trip-card-hero" style="background:${tripHeroGradient(t.iconKey)}">
+      <div class="trip-card-hero" id="hero-${t.id}" style="background:${tripHeroGradient(t.iconKey)}">
+        <div class="trip-card-hero-photo" id="hero-photo-${t.id}"></div>
+        <div class="trip-card-hero-darken"></div>
         <div class="trip-card-overlay-badges">${sharedBadge}${cdBadge}</div>
         <div class="trip-card-hero-icon">${heroIconHtml}</div>
+        <div class="trip-card-hero-label">
+          <div class="trip-card-hero-label-name">${esc(t.name)}</div>
+          ${t.dates?`<div class="trip-card-hero-label-date">${esc(t.dates)}</div>`:''}
+        </div>
         <button class="trip-card-dots" id="dots-${t.id}" aria-label="More options">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
         </button>
       </div>
       <div class="trip-card-body">
-        <div class="trip-card-name">${esc(t.name)}</div>
-        <div class="trip-card-date">${calIcon} ${esc(t.dates||'No dates set')}</div>
+        <div class="trip-card-name-row">
+          <div class="trip-card-name">${esc(t.name)}</div>
+          <div class="trip-card-date">${calIcon} ${esc(t.dates||'No dates set')}</div>
+        </div>
         ${_tripsTab==='upcoming'?`<div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div><div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} All packed`:`${pct}%`}</span></div>`:''}
         ${packAgainHtml}
       </div>`;
@@ -3346,6 +3429,7 @@ function renderTrips(){
     const dupBtn=card.querySelector(`#dup-${t.id}`);
     if(dupBtn)dupBtn.onclick=e=>{e.stopPropagation();duplicateTrip(t.id);};
     grid.appendChild(card);
+    loadTripHeroImage(t.id, t.name);
   });
 }
 
