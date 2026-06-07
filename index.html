@@ -503,8 +503,12 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   display:flex;flex-direction:column;align-items:center;
 }
 .itin-tl-dow{
-  font-size:12px;font-weight:700;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;line-height:1;
+  font-size:12px;font-weight:800;color:var(--ink);
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;line-height:1;
+}
+.itin-tl-subdate{
+  font-size:11px;font-weight:500;color:var(--muted);
+  margin-bottom:5px;line-height:1;
 }
 .itin-tl-bubble{
   width:38px;height:38px;border-radius:50%;
@@ -5532,20 +5536,25 @@ function renderItinerary(){
   byDay.forEach((items,key)=>{
     const isLast=key===dayKeys[dayKeys.length-1];
     // Build axis labels
-    let dow='',bubble='?';
+    let dayLabel='',dowDate='',bubble='?';
     if(key.startsWith('day:')){
       const parts=key.split(':');
+      const dayNum=parseInt(parts[1],10);
       const dateStr=parts[2];
       const d=new Date(dateStr+'T00:00:00');
-      dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+      const dowStr=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+      dayLabel=`Day ${dayNum}`;
+      dowDate=`${dowStr} ${d.getDate()}`;
       bubble=d.getDate();
     } else if(key.startsWith('date:')){
       const dateStr=key.slice(5);
       const d=new Date(dateStr+'T00:00:00');
-      dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+      const dowStr=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+      dayLabel=dowStr;
+      dowDate='';
       bubble=d.getDate();
     } else {
-      dow='–';bubble='?';
+      dayLabel='—';dowDate='';bubble='?';
     }
     // extract day number for the "add to this day" button
     const dayNumForAdd=key.startsWith('day:')?parseInt(key.split(':')[1],10):null;
@@ -5569,7 +5578,8 @@ function renderItinerary(){
     }).join('');
     html+=`<div class="itin-day-row">
       <div class="itin-tl-axis">
-        <div class="itin-tl-dow">${dow}</div>
+        <div class="itin-tl-dow">${dayLabel}</div>
+        ${dowDate?`<div class="itin-tl-subdate">${dowDate}</div>`:''}
         <div class="itin-tl-bubble">${bubble}</div>
         ${isLast?'':'<div class="itin-tl-line"></div>'}
       </div>
