@@ -1086,6 +1086,7 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
 #calOverlay{z-index:400;}
 #currencyPickerOverlay{z-index:300;}
+#confirmOverlay{z-index:600;}
 .amount-cur-row{display:flex;border:1.5px solid var(--border);border-radius:12px;background:var(--tint);overflow:hidden;transition:border-color .12s;}
 .amount-cur-row:focus-within{border-color:var(--accent);background:var(--white);}
 .cur-inline-btn{flex-shrink:0;display:flex;align-items:center;gap:4px;padding:13px 14px;background:none;border:none;border-right:1.5px solid var(--border);font-family:'Figtree',sans-serif;font-size:15px;font-weight:700;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;}
@@ -5706,10 +5707,12 @@ window.deleteEditingItinerary=function(){
   if(!_editingItinId)return;
   const trip=getTrip();
   const e=(trip?.itinerary||[]).find(x=>x.id===_editingItinId);
-  confirmDelete('Delete item?',`"${esc(e?.title||'This item')}" will be removed.`,()=>{
-    trip.itinerary=(trip.itinerary||[]).filter(x=>x.id!==_editingItinId);
+  const idToDelete=_editingItinId;
+  closeItineraryModal();
+  confirmDelete('Delete item?',`"${e?.title||'This item'}" will be removed.`,()=>{
+    const t=getTrip();
+    if(t)t.itinerary=(t.itinerary||[]).filter(x=>x.id!==idToDelete);
     saveAll(trips);
-    closeItineraryModal();
     renderItinerary();
   });
 };
@@ -5796,6 +5799,7 @@ window.addEventListener('popstate',(ev)=>{
   if(ev.state?.packly==='checklist'){
     document.getElementById('expenseOverlay').classList.remove('open');
     document.getElementById('itineraryOverlay').classList.remove('open');
+    document.getElementById('confirmOverlay').classList.remove('open');
     return;
   }
   if(document.getElementById('navStack').classList.contains('pushed')){
