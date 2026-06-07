@@ -2009,6 +2009,10 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Export trip data
   </button>
+  <button class="sheet-action" id="tripActionPackAgain" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    Pack this list again
+  </button>
   <button class="sheet-action danger" id="tripActionDelete"></button>
 </div>
 
@@ -3506,7 +3510,6 @@ function renderTrips(){
     card.className='trip-card';
     card.style.animationDelay=i*40+'ms';
     const cd=tripCountdown(t.dateFrom,t.dateTo);
-    const packAgainHtml=_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:'';
     // Status badge text
     const badgeText=cd?cd.label:'';
     const badgeCls=cd?` ${cd.type}`:'';
@@ -3530,15 +3533,12 @@ function renderTrips(){
         </div>
         <div class="trip-card-date">${esc(dateStr)}${statsStr?`<span class="trip-card-dot-sep">·</span>${statsStr}`:''}</div>
         ${_tripsTab==='upcoming'?`<div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>`:''}
-        ${packAgainHtml}
       </div>`;
     card.onclick=e=>{
       if(e.target.closest('.trip-card-dots'))return;
       showChecklist(t.id);
     };
     card.querySelector(`#dots-${t.id}`).onclick=e=>{e.stopPropagation();openTripActions(t.id);};
-    const dupBtn=card.querySelector(`#dup-${t.id}`);
-    if(dupBtn)dupBtn.onclick=e=>{e.stopPropagation();duplicateTrip(t.id);};
     grid.appendChild(card);
     loadTripHeroImage(t.id, t.name);
   });
@@ -3660,6 +3660,9 @@ window.openTripActions=function(id){
   shareBtn.onclick=()=>{closeTripActions();shareTrip(id);};
   editBtn.onclick=()=>{closeTripActions();openEditModal(id);};
   document.getElementById('tripActionExport').onclick=()=>{closeTripActions();exportTrip(id);};
+  const packAgainBtn=document.getElementById('tripActionPackAgain');
+  packAgainBtn.style.display=_tripsTab==='past'?'':'none';
+  packAgainBtn.onclick=()=>{closeTripActions();duplicateTrip(id);};
   delBtn.onclick=()=>{closeTripActions();deleteTrip(id);};
   document.getElementById('tripActionsOverlay').classList.add('open');
   document.getElementById('tripActionsSheet').classList.add('open');
