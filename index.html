@@ -536,6 +536,15 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   transition:box-shadow .15s;
 }
 .itin-entry-card:active{box-shadow:0 2px 12px rgba(26,26,46,.1);}
+.itin-entry-card.dragging{opacity:.15;}
+.itin-drag-grip{
+  display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;flex-shrink:0;
+  color:#c0c2cc;cursor:grab;touch-action:none;
+  border-radius:8px;transition:color .12s;margin-right:-4px;
+}
+.itin-drag-grip:active{cursor:grabbing;color:var(--ink);}
+.itin-drag-grip svg{width:16px;height:16px;pointer-events:none;}
 .itin-entry-icon{
   width:48px;height:48px;border-radius:14px;
   display:flex;align-items:center;justify-content:center;
@@ -5505,12 +5514,79 @@ window.selectItinDay=function(n){
   renderDayPickerGrid(getTrip(),n);
 };
 
+window.startItinDrag=function(e,card){
+  e.preventDefault();e.stopPropagation();
+  const container=card.closest('.itin-tl-cards');if(!container)return;
+  const rect=card.getBoundingClientRect();
+
+  const ghost=card.cloneNode(true);
+  ghost.className='section-reorder-ghost';
+  ghost.style.width=rect.width+'px';
+  ghost.style.left=rect.left+'px';
+  ghost.style.top=rect.top+'px';
+  document.body.appendChild(ghost);
+
+  const ph=document.createElement('div');
+  ph.className='section-reorder-ph';
+  ph.style.height=rect.height+'px';
+  container.insertBefore(ph,card);
+  card.classList.add('dragging');
+
+  const offsetY=e.clientY-rect.top;
+
+  function getCards(){return[...container.querySelectorAll('.itin-entry-card')].filter(c=>c!==card);}
+
+  function onMove(ev){
+    ev.preventDefault();
+    ghost.style.top=(ev.clientY-offsetY)+'px';
+    const siblings=getCards();
+    let target=null,above=true;
+    for(const sib of siblings){
+      const sr=sib.getBoundingClientRect();
+      if(ev.clientY<sr.top+sr.height/2){target=sib;above=true;break;}
+      target=sib;above=false;
+    }
+    ph.remove();
+    if(!target){
+      const addBtn=container.querySelector('.itin-day-add');
+      if(addBtn)container.insertBefore(ph,addBtn);else container.appendChild(ph);
+    }else if(above){
+      container.insertBefore(ph,target);
+    }else{
+      target.nextSibling?container.insertBefore(ph,target.nextSibling):container.appendChild(ph);
+    }
+  }
+
+  function onEnd(){
+    ghost.remove();
+    card.classList.remove('dragging');
+    ph.parentNode.insertBefore(card,ph);
+    ph.remove();
+    document.removeEventListener('pointermove',onMove);
+    document.removeEventListener('pointerup',onEnd);
+    document.removeEventListener('pointercancel',onEnd);
+    const orderedCards=[...container.querySelectorAll('.itin-entry-card')];
+    const trip=getTrip();if(!trip)return;
+    orderedCards.forEach((c,i)=>{
+      const item=(trip.itinerary||[]).find(x=>x.id===c.dataset.id);
+      if(item)item.order=i;
+    });
+    saveAll(trips);
+    renderItinerary();
+  }
+
+  document.addEventListener('pointermove',onMove,{passive:false});
+  document.addEventListener('pointerup',onEnd);
+  document.addEventListener('pointercancel',onEnd);
+};
+
 function renderItinerary(){
   const trip=getTrip();if(!trip)return;
   const hasDates=!!(trip.dateFrom&&trip.dateTo);
+  // Sort by date for grouping; within-day order applied per-group below
   const entries=(trip.itinerary||[]).slice().sort((a,b)=>{
-    const da=(a.date||'9999-12-31')+(a.time||'00:00');
-    const db=(b.date||'9999-12-31')+(b.time||'00:00');
+    const da=(a.date||'9999-12-31');
+    const db=(b.date||'9999-12-31');
     return da.localeCompare(db);
   });
   const el=document.getElementById('itineraryContainer');if(!el)return;
@@ -5532,6 +5608,14 @@ function renderItinerary(){
     if(!byDay.has(key))byDay.set(key,[]);
     byDay.get(key).push(e);
   });
+
+  // Sort each day group: manual order first, then time
+  byDay.forEach(items=>items.sort((a,b)=>{
+    const ao=typeof a.order==='number'?a.order:Infinity;
+    const bo=typeof b.order==='number'?b.order:Infinity;
+    if(ao!==bo)return ao-bo;
+    return(a.time||'').localeCompare(b.time||'');
+  }));
 
   const dayKeys=[...byDay.keys()];
   let html='<div class="itin-timeline">';
@@ -5568,7 +5652,7 @@ function renderItinerary(){
       const timePart=e.time?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(formatItinTime(e.time))}</span>`:'';
       const locPart=e.location?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(e.location)}</span>`:'';
       const notesPart=e.notes?`<span class="itin-meta-chip">${esc(e.notes.length>50?e.notes.slice(0,50)+'…':e.notes)}</span>`:'';
-      return`<div class="itin-entry-card" onclick="openEditItinerary('${e.id}')">
+      return`<div class="itin-entry-card" data-id="${e.id}" onclick="openEditItinerary('${e.id}')">
         <div class="itin-entry-icon" style="background:${t.bg}">
           <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
         </div>
@@ -5576,6 +5660,7 @@ function renderItinerary(){
           <div class="itin-entry-title">${esc(e.title)}</div>
           ${(timePart||locPart||notesPart)?`<div class="itin-entry-meta">${timePart}${locPart}${notesPart}</div>`:''}
         </div>
+        <div class="itin-drag-grip" onpointerdown="startItinDrag(event,this.closest('.itin-entry-card'))">${svgStr('grip','lucide')}</div>
       </div>`;
     }).join('');
     html+=`<div class="itin-day-row">
