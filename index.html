@@ -172,17 +172,18 @@ svg.lucide-2xl{width:28px;height:28px}
   white-space:nowrap;
 }
 .trip-card-shared svg{width:11px;height:11px;}
-/* collaborator avatar stack */
-.trip-collab-stack{position:absolute;top:10px;right:48px;z-index:3;display:flex;align-items:center;}
+/* collaborator avatar stack — inline with trip title */
+.trip-card-name-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.trip-collab-stack{display:flex;align-items:center;flex-shrink:0;}
 .collab-avatar{
-  width:30px;height:30px;border-radius:50%;
-  font-family:'Figtree',sans-serif;font-size:11px;font-weight:800;letter-spacing:-.3px;
+  width:26px;height:26px;border-radius:50%;
+  font-family:'Figtree',sans-serif;font-size:10px;font-weight:800;letter-spacing:-.3px;
   color:#fff;display:flex;align-items:center;justify-content:center;
-  border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.22);
-  margin-left:-8px;flex-shrink:0;
+  border:2px solid var(--white);box-shadow:0 1px 4px rgba(0,0,0,.18);
+  margin-left:-6px;flex-shrink:0;
 }
 .trip-collab-stack .collab-avatar:first-child{margin-left:0;}
-.collab-avatar-more{background:rgba(0,0,0,.38);font-size:10px;}
+.collab-avatar-more{background:rgba(0,0,0,.35);font-size:9px;}
 /* ⋯ menu button */
 .trip-card-dots{
   position:absolute;top:10px;right:10px;z-index:4;
@@ -3522,13 +3523,15 @@ function renderTrips(){
         <div class="trip-card-hero-bg" style="background:${tripHeroGradient(t.iconKey)}"></div>
         <div class="trip-card-hero-photo" id="hero-photo-${t.id}"></div>
         ${badgeText?`<span class="trip-card-badge${badgeCls}">${badgeText}</span>`:''}
-        ${sharedHtml}
         <button class="trip-card-dots" id="dots-${t.id}" aria-label="More options">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
         </button>
       </div>
       <div class="trip-card-body">
-        <div class="trip-card-name">${esc(t.name)}</div>
+        <div class="trip-card-name-row">
+          <div class="trip-card-name">${esc(t.name)}</div>
+          ${sharedHtml}
+        </div>
         <div class="trip-card-date">${esc(dateStr)}${statsStr?`<span class="trip-card-dot-sep">·</span>${statsStr}`:''}</div>
         ${_tripsTab==='upcoming'?`<div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>`:''}
         ${packAgainHtml}
