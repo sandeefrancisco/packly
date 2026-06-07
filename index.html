@@ -499,16 +499,16 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .itin-timeline{display:flex;flex-direction:column;}
 .itin-day-row{display:flex;gap:16px;position:relative;}
 .itin-tl-axis{
-  width:52px;flex-shrink:0;
+  width:60px;flex-shrink:0;
   display:flex;flex-direction:column;align-items:center;
 }
-.itin-tl-dow{
-  font-size:12px;font-weight:800;color:var(--ink);
-  text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;line-height:1;
+.itin-tl-date-line{
+  font-size:11px;font-weight:600;color:var(--ink);
+  text-align:center;line-height:1.3;margin-bottom:2px;
 }
-.itin-tl-subdate{
+.itin-tl-day-label{
   font-size:11px;font-weight:500;color:var(--muted);
-  margin-bottom:5px;line-height:1;
+  text-align:center;margin-bottom:5px;line-height:1;
 }
 .itin-tl-bubble{
   width:38px;height:38px;border-radius:50%;
@@ -5536,30 +5536,30 @@ function renderItinerary(){
   byDay.forEach((items,key)=>{
     const isLast=key===dayKeys[dayKeys.length-1];
     // Build axis labels
-    let dayLabel='',dowDate='',bubble='?';
+    let dateLine='',dayWord='',dayNum=null,bubble='?';
     if(key.startsWith('day:')){
       const parts=key.split(':');
-      const dayNum=parseInt(parts[1],10);
+      dayNum=parseInt(parts[1],10);
       const dateStr=parts[2];
       const d=new Date(dateStr+'T00:00:00');
       const dowStr=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-      dayLabel=`Day ${dayNum}`;
-      dowDate=`${dowStr} ${d.getDate()}`;
-      bubble=d.getDate();
+      const monStr=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+      dateLine=`${d.getDate()} ${monStr}, ${dowStr}`;
+      dayWord='Day';
+      bubble=dayNum;
     } else if(key.startsWith('date:')){
       const dateStr=key.slice(5);
       const d=new Date(dateStr+'T00:00:00');
       const dowStr=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-      dayLabel=dowStr;
-      dowDate='';
+      const monStr=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+      dateLine=`${d.getDate()} ${monStr}, ${dowStr}`;
+      dayWord='';
       bubble=d.getDate();
     } else {
-      dayLabel='—';dowDate='';bubble='?';
+      dateLine='Unscheduled';dayWord='';bubble='?';
     }
-    // extract day number for the "add to this day" button
-    const dayNumForAdd=key.startsWith('day:')?parseInt(key.split(':')[1],10):null;
-    const addBtn=dayNumForAdd!=null
-      ?`<button class="itin-day-add" onclick="openAddItinerary(${dayNumForAdd})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add</button>`
+    const addBtn=dayNum!=null
+      ?`<button class="itin-day-add" onclick="openAddItinerary(${dayNum})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add</button>`
       :'';
     const entryCards=items.map(e=>{
       const t=itinTypeInfo(e.type);
@@ -5578,8 +5578,8 @@ function renderItinerary(){
     }).join('');
     html+=`<div class="itin-day-row">
       <div class="itin-tl-axis">
-        <div class="itin-tl-dow">${dayLabel}</div>
-        ${dowDate?`<div class="itin-tl-subdate">${dowDate}</div>`:''}
+        <div class="itin-tl-date-line">${dateLine}</div>
+        ${dayWord?`<div class="itin-tl-day-label">${dayWord}</div>`:''}
         <div class="itin-tl-bubble">${bubble}</div>
         ${isLast?'':'<div class="itin-tl-line"></div>'}
       </div>
