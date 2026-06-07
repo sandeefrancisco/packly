@@ -1696,20 +1696,16 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
       <label>Dates (optional)</label>
       <div class="cal-trigger" onclick="openCalendar()">
         <div class="cal-trigger-half">
-          <span class="cal-trigger-lbl">Check-in</span>
+          <span class="cal-trigger-lbl">Departure</span>
           <span class="cal-trigger-val empty" id="calStartDisplay">Add date</span>
         </div>
         <div class="cal-trigger-half">
-          <span class="cal-trigger-lbl">Check-out</span>
+          <span class="cal-trigger-lbl">Return</span>
           <span class="cal-trigger-val empty" id="calEndDisplay">Add date</span>
         </div>
       </div>
       <input type="date" id="mDateFrom" style="display:none">
       <input type="date" id="mDateTo" style="display:none">
-    </div>
-    <div class="field">
-      <label>Icon</label>
-      <div class="icon-picker-grid" id="iconPickerGrid"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-save" id="tripSaveBtn" onclick="saveTrip()">Create trip</button>
@@ -1724,12 +1720,12 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
     <h2 style="margin-bottom:20px">Select dates</h2>
     <div class="cal-phase-bar">
       <div class="cal-phase-item active" id="calPhaseStart" onclick="setCalPhase('start')">
-        <div class="cal-phase-lbl">Check-in</div>
+        <div class="cal-phase-lbl">Departure</div>
         <div class="cal-phase-val empty" id="calPhaseStartVal">Select date</div>
       </div>
       <svg class="cal-phase-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       <div class="cal-phase-item" id="calPhaseEnd" onclick="setCalPhase('end')">
-        <div class="cal-phase-lbl">Check-out</div>
+        <div class="cal-phase-lbl">Return</div>
         <div class="cal-phase-val empty" id="calPhaseEndVal">Select date</div>
       </div>
     </div>
