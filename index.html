@@ -572,16 +572,49 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
   display:flex;gap:10px;align-items:center;
 }
 .itin-modal-footer .btn-save{flex:1;}
-/* Type grid — 3 equal columns, never overflows */
+/* Itinerary — big title input */
+.itin-title-input{
+  width:100%;padding:14px 16px;
+  border:1.5px solid var(--border);border-radius:14px;
+  font-family:'Figtree',sans-serif;font-size:17px;font-weight:600;
+  color:var(--ink);background:var(--white);
+  transition:border-color .15s;
+}
+.itin-title-input::placeholder{color:var(--muted);font-weight:400;}
+.itin-title-input:focus{outline:none;border-color:var(--accent);}
+/* Type grid — 3 columns, tall colorful buttons */
 .itin-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .itin-type-btn{
-  width:100%;display:flex;align-items:center;justify-content:center;gap:6px;
-  padding:9px 6px;border-radius:10px;border:1.5px solid var(--border);
-  background:var(--white);font-family:'Figtree',sans-serif;font-size:13px;font-weight:600;
-  color:var(--muted);cursor:pointer;transition:all .15s;
+  width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  padding:14px 8px;border-radius:12px;border:1.5px solid var(--border);
+  background:var(--white);font-family:'Figtree',sans-serif;font-size:12px;font-weight:700;
+  color:var(--muted);cursor:pointer;transition:all .15s;letter-spacing:.2px;
 }
-.itin-type-btn.selected{color:var(--ink);border-color:var(--ink);background:var(--tint);}
-.itin-type-btn svg{width:14px;height:14px;flex-shrink:0;}
+.itin-type-btn.selected{border-width:2px;}
+.itin-type-btn svg{width:20px;height:20px;flex-shrink:0;}
+/* Day picker — horizontal scroll pills */
+.itin-day-picker-row{
+  display:flex;gap:8px;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:4px;scrollbar-width:none;
+}
+.itin-day-picker-row::-webkit-scrollbar{display:none;}
+.itin-day-picker-btn{
+  flex-shrink:0;padding:10px 16px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--white);font-family:'Figtree',sans-serif;
+  color:var(--muted);cursor:pointer;transition:all .15s;text-align:center;white-space:nowrap;
+}
+.itin-day-picker-btn.selected{color:var(--ink);border-color:var(--ink);background:var(--tint);}
+/* Collapsible optional details */
+.itin-details-toggle{
+  width:100%;display:flex;align-items:center;gap:8px;
+  padding:14px 0 10px;border:none;background:none;
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;
+  color:var(--accent);cursor:pointer;border-top:1px solid var(--border);margin-top:4px;
+}
+.itin-details-toggle svg{width:16px;height:16px;transition:transform .2s;flex-shrink:0;}
+.itin-details-toggle.open svg{transform:rotate(180deg);}
+.itin-details-section{padding-top:4px;}
 .btn-del-itin{
   width:48px;height:48px;border-radius:12px;border:1.5px solid var(--border);
   background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -5347,16 +5380,30 @@ function formatItinTime(timeStr){
 
 function renderItineraryTypeGrid(selectedId){
   const grid=document.getElementById('itinTypeGrid');if(!grid)return;
-  grid.innerHTML=ITIN_TYPES.map(t=>`
-    <button type="button" class="itin-type-btn${t.id===selectedId?' selected':''}" onclick="selectItinType('${t.id}')">
+  grid.innerHTML=ITIN_TYPES.map(t=>{
+    const sel=t.id===selectedId;
+    const style=sel?`style="background:${t.bg};border-color:${t.color};color:${t.color}"`:''
+    return`<button type="button" class="itin-type-btn${sel?' selected':''}" onclick="selectItinType('${t.id}')" ${style}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
       ${t.label}
-    </button>`).join('');
+    </button>`;
+  }).join('');
 }
 window.selectItinType=function(typeId){
   document.getElementById('itinType').value=typeId;
   renderItineraryTypeGrid(typeId);
 };
+window.toggleItinDetails=function(){
+  const sec=document.getElementById('itinDetailsSection');
+  const btn=document.getElementById('itinDetailsToggle');
+  const open=sec.style.display==='none';
+  sec.style.display=open?'':'none';
+  btn.classList.toggle('open',open);
+};
+function _setItinDetailsOpen(open){
+  document.getElementById('itinDetailsSection').style.display=open?'':'none';
+  document.getElementById('itinDetailsToggle').classList.toggle('open',open);
+}
 
 function renderDayPickerGrid(trip,selectedDay){
   const grid=document.getElementById('itinDayPickerGrid');if(!grid)return;
@@ -5366,10 +5413,13 @@ function renderDayPickerGrid(trip,selectedDay){
     const dateStr=itinDayToDate(trip.dateFrom,n);
     const short=dateStr?formatShortDate(dateStr):'';
     return`<button type="button" class="itin-day-picker-btn${n===selectedDay?' selected':''}" onclick="selectItinDay(${n})">
-      <div style="font-size:13px;font-weight:700;">Day ${n}</div>
-      ${short?`<div style="font-size:11px;font-weight:400;opacity:.65;margin-top:1px;">${short}</div>`:''}
+      <div style="font-size:14px;font-weight:800;">Day ${n}</div>
+      ${short?`<div style="font-size:11px;font-weight:500;opacity:.6;margin-top:2px;">${short}</div>`:''}
     </button>`;
   }).join('');
+  // Scroll selected pill into view
+  const sel=grid.querySelector('.itin-day-picker-btn.selected');
+  if(sel)setTimeout(()=>sel.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'}),50);
 }
 window.selectItinDay=function(n){
   document.getElementById('itinDayNum').value=n;
@@ -5463,6 +5513,7 @@ window.openAddItinerary=function(presetDay){
   document.getElementById('itinType').value='activity';
   document.getElementById('itinDelBtn').style.display='none';
   document.getElementById('itinSaveBtn').textContent='Add';
+  _setItinDetailsOpen(false);
   renderItineraryTypeGrid('activity');
   const hasDates=!!(trip.dateFrom&&trip.dateTo);
   const dayField=document.getElementById('itinDayField');
@@ -5493,6 +5544,7 @@ window.openEditItinerary=function(id){
   document.getElementById('itinType').value=e.type||'activity';
   document.getElementById('itinDelBtn').style.display='flex';
   document.getElementById('itinSaveBtn').textContent='Save';
+  _setItinDetailsOpen(!!(e.time||e.location||e.notes));
   renderItineraryTypeGrid(e.type||'activity');
   const hasDates=!!(trip.dateFrom&&trip.dateTo);
   const dayField=document.getElementById('itinDayField');
@@ -5957,9 +6009,8 @@ window.addEventListener('pageshow',(ev)=>{
     <button class="sheet-close-btn" onclick="closeItineraryModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2 id="itinModalTitle">Add Item</h2>
     <div class="itin-modal-body" data-scroll-inner>
-      <div class="field">
-        <label>Title</label>
-        <input id="itinTitle" placeholder="e.g. Visit Eiffel Tower, Hotel check-in" maxlength="80">
+      <div class="field" style="margin-bottom:16px">
+        <input id="itinTitle" class="itin-title-input" placeholder="What's happening?" maxlength="80" autocomplete="off">
         <p class="field-error" id="itinTitleError"></p>
       </div>
       <div class="field">
@@ -5970,25 +6021,32 @@ window.addEventListener('pageshow',(ev)=>{
       <!-- Day picker (shown when trip has dates) -->
       <div class="field" id="itinDayField">
         <label>Day</label>
-        <div class="itin-day-picker-grid" id="itinDayPickerGrid"></div>
+        <div class="itin-day-picker-row" id="itinDayPickerGrid"></div>
         <input type="hidden" id="itinDayNum" value="1">
       </div>
       <!-- Raw date fallback (shown when trip has no dates) -->
       <div class="field" id="itinDateField" style="display:none">
-        <label>Date <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <label>Date</label>
         <input type="date" id="itinDate" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:Figtree,sans-serif;font-size:15px;background:var(--white);color:var(--ink);">
       </div>
-      <div class="field">
-        <label>Time <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-        <input type="time" id="itinTime" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:Figtree,sans-serif;font-size:15px;background:var(--white);color:var(--ink);">
-      </div>
-      <div class="field">
-        <label>Location <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-        <input id="itinLocation" placeholder="e.g. Eiffel Tower, Paris" maxlength="80">
-      </div>
-      <div class="field">
-        <label>Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-        <textarea id="itinNotes" placeholder="Any details…" maxlength="300" rows="2"></textarea>
+      <!-- Optional details — collapsed by default -->
+      <button type="button" class="itin-details-toggle" id="itinDetailsToggle" onclick="toggleItinDetails()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        Time, location &amp; notes
+      </button>
+      <div class="itin-details-section" id="itinDetailsSection" style="display:none">
+        <div class="field">
+          <label>Time</label>
+          <input type="time" id="itinTime" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:Figtree,sans-serif;font-size:15px;background:var(--white);color:var(--ink);">
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input id="itinLocation" placeholder="e.g. Eiffel Tower, Paris" maxlength="80">
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <textarea id="itinNotes" placeholder="Any details…" maxlength="300" rows="2"></textarea>
+        </div>
       </div>
     </div>
     <div class="itin-modal-footer">
