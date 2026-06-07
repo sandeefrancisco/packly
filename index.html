@@ -4688,7 +4688,6 @@ window.duplicateTrip=function(id){
   document.getElementById('mDateFrom').value='';
   document.getElementById('mDateTo').value='';
   _calStart=null;_calEnd=null;_updateCalTrigger();
-  renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,null);
   document.getElementById('tripOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('calTrigger')?.click(),50);
 };
