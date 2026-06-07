@@ -162,7 +162,7 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .trip-card-badge.today{background:#D1FAE5;color:#065f46;}
 .trip-card-badge.past{background:rgba(255,255,255,.88);}
-/* shared tag on photo */
+/* shared badge — fallback for trips without collaborator data */
 .trip-card-shared{
   position:absolute;top:12px;right:48px;z-index:3;
   background:rgba(124,58,237,.82);color:#fff;
@@ -172,6 +172,17 @@ svg.lucide-2xl{width:28px;height:28px}
   white-space:nowrap;
 }
 .trip-card-shared svg{width:11px;height:11px;}
+/* collaborator avatar stack */
+.trip-collab-stack{position:absolute;top:10px;right:48px;z-index:3;display:flex;align-items:center;}
+.collab-avatar{
+  width:30px;height:30px;border-radius:50%;
+  font-family:'Figtree',sans-serif;font-size:11px;font-weight:800;letter-spacing:-.3px;
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.22);
+  margin-left:-8px;flex-shrink:0;
+}
+.trip-collab-stack .collab-avatar:first-child{margin-left:0;}
+.collab-avatar-more{background:rgba(0,0,0,.38);font-size:10px;}
 /* ⋯ menu button */
 .trip-card-dots{
   position:absolute;top:10px;right:10px;z-index:4;
@@ -3081,7 +3092,17 @@ async function onSignedIn(user){
   shared.forEach(t=>byId.set(t.id,t));
   trips=[...byId.values()];
   if(pending.length){const ps=new Set(pending);trips=trips.filter(t=>!ps.has(t.id));}
+  // Ensure current user appears in every shared trip's collaborators (hydrates old trips)
+  let _collabDirty=false;
+  trips.forEach(t=>{
+    if(!t.isShared||!_currentUserId)return;
+    if(!(t.collaborators||[]).some(c=>c.userId===_currentUserId)){
+      t.collaborators=[...(t.collaborators||[]),{userId:_currentUserId,name:_currentUserName||'?'}];
+      _collabDirty=true;
+    }
+  });
   saveLocalOnly(trips);
+  if(_collabDirty)cloudSync(trips);
   localStorage.setItem(SYNC_KEY,new Date().toISOString());
   const savedTrip=_restoreTripId&&trips.find(t=>t.id===_restoreTripId);
   if(savedTrip){
@@ -3419,6 +3440,26 @@ const TRIP_HERO_GRADIENTS={
 };
 function tripHeroGradient(iconKey){return TRIP_HERO_GRADIENTS[iconKey]||'linear-gradient(145deg,#6366f1,#4f46e5)';}
 
+const _AVATAR_PALETTE=['#7c3aed','#2563eb','#0891b2','#16a34a','#ca8a04','#ea580c','#e11d48'];
+function _avatarColor(userId){
+  let h=0;for(let i=0;i<(userId||'').length;i++)h=(h*31+userId.charCodeAt(i))|0;
+  return _AVATAR_PALETTE[Math.abs(h)%_AVATAR_PALETTE.length];
+}
+function _initials(name){
+  const p=(name||'?').trim().split(/\s+/);
+  return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():(name||'?').slice(0,2).toUpperCase();
+}
+function _collabBadgeHtml(trip){
+  if(!trip.isShared)return'';
+  const list=trip.collaborators||[];
+  if(!list.length)return`<span class="trip-card-shared">${svgStr('users')} Shared</span>`;
+  const visible=list.slice(0,3);
+  const rest=list.length-3;
+  const circles=visible.map(c=>`<div class="collab-avatar" style="background:${_avatarColor(c.userId)}" title="${c.name}">${_initials(c.name)}</div>`).join('');
+  const overflow=rest>0?`<div class="collab-avatar collab-avatar-more">+${rest}</div>`:'';
+  return`<div class="trip-collab-stack">${circles}${overflow}</div>`;
+}
+
 function renderTrips(){
   const grid=document.getElementById('tripsGrid');
   grid.innerHTML='';
@@ -3473,7 +3514,7 @@ function renderTrips(){
     // Status badge text
     const badgeText=cd?cd.label:'';
     const badgeCls=cd?` ${cd.type}`:'';
-    const sharedHtml=t.isShared?`<span class="trip-card-shared">${svgStr('users')} Shared</span>`:'';
+    const sharedHtml=_collabBadgeHtml(t);
     // Date line: "1 Jul – 5 Jul · 8/23 items"
     const dateStr=t.dates||'No dates set';
     const statsStr=total?`${done}/${total} packed`:'';
@@ -4528,6 +4569,7 @@ window.shareTrip=async function(tripId){
   // Generate a fresh code (previous attempt may have failed mid-way)
   const code=generateShareCode();
   trip.ownerId=user.id;trip.shareCode=code;trip.sharedTripId=null;
+  trip.collaborators=[{userId:user.id,name:_currentUserName||'?'}];
   const{data,error}=await sb.from('shared_trips').insert({
     share_code:code,data:trip,owner_id:user.id
   }).select('id').single();
@@ -4588,8 +4630,11 @@ window.handleJoinSubmit=async function(){
   // data = { id: uuid, data: trip object }
   const exists=trips.find(t=>t.sharedTripId===data.id);
   if(!exists){
-    trips.push({...data.data,sharedTripId:data.id,isShared:true});
-    saveLocalOnly(trips);
+    const newTrip={...data.data,sharedTripId:data.id,isShared:true};
+    const me={userId:_currentUserId,name:_currentUserName||'?'};
+    newTrip.collaborators=[...(newTrip.collaborators||[]).filter(c=>c.userId!==_currentUserId),me];
+    trips.push(newTrip);
+    saveAll(trips); // sync collaborator info to cloud immediately
   }
   subscribeToSharedTrips(); // pick up realtime for newly joined trip
   closeJoinModal();showTrips();
