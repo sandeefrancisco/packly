@@ -3895,7 +3895,6 @@ window.openNewTripModal=function(){
   document.getElementById('mDateFrom').value='';
   document.getElementById('mDateTo').value='';
   _calStart=null;_calEnd=null;_updateCalTrigger();
-  renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,()=>renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,null));
   document.getElementById('tripOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('mDest').focus(),50);
 };
@@ -3909,7 +3908,6 @@ window.openEditModal=function(id){
   document.getElementById('mDateFrom').value=t.dateFrom||'';
   document.getElementById('mDateTo').value=t.dateTo||'';
   _calStart=t.dateFrom||null;_calEnd=t.dateTo||null;_updateCalTrigger();
-  renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>{selTripIcon=v;},()=>renderIconPicker('iconPickerGrid',TRIP_ICONS,()=>selTripIcon,v=>selTripIcon=v,null));
   document.getElementById('tripOverlay').classList.add('open');
 };
 
