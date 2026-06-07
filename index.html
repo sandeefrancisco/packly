@@ -3630,7 +3630,7 @@ function tripCountdown(dateFrom, dateTo){
   // Use end date if available — trip is only "passed" once it fully ends
   const endDate=dateTo?new Date(dateTo):new Date(dateFrom);
   endDate.setHours(0,0,0,0);
-  if(endDate<today) return{label:'Trip passed',type:'past'};
+  if(endDate<today) return{label:'Trip done',type:'past'};
   // Countdown badge is based on start date
   const start=new Date(dateFrom);start.setHours(0,0,0,0);
   const diff=Math.round((start-today)/(1000*60*60*24));
