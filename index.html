@@ -528,14 +528,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .itin-entry-meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px;}
 .itin-meta-chip{display:inline-flex;align-items:center;gap:4px;}
 .itin-meta-chip svg{opacity:.65;width:13px;height:13px;}
-/* Day picker in modal — 3-column grid, no horizontal overflow */
-.itin-day-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.itin-day-picker-btn{
-  width:100%;padding:10px 6px;border-radius:10px;border:1.5px solid var(--border);
-  background:var(--white);font-family:'Figtree',sans-serif;
-  color:var(--muted);cursor:pointer;transition:all .15s;text-align:center;
-}
-.itin-day-picker-btn.selected{color:var(--ink);border-color:var(--ink);background:var(--tint);}
+
 .itin-fab{
   position:fixed;
   right:max(20px, env(safe-area-inset-right) + 16px);
