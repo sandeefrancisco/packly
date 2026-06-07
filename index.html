@@ -503,12 +503,13 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   display:flex;flex-direction:column;align-items:center;
 }
 .itin-tl-date-line{
-  font-size:11px;font-weight:600;color:var(--ink);
-  text-align:center;line-height:1.3;margin-bottom:2px;
+  font-size:10px;font-weight:500;color:var(--muted);
+  text-align:center;line-height:1.3;margin-bottom:4px;
 }
 .itin-tl-day-label{
-  font-size:11px;font-weight:500;color:var(--muted);
-  text-align:center;margin-bottom:5px;line-height:1;
+  font-size:13px;font-weight:800;color:var(--ink);
+  text-align:center;margin-bottom:4px;line-height:1;
+  letter-spacing:-.2px;
 }
 .itin-tl-bubble{
   width:38px;height:38px;border-radius:50%;
@@ -5580,7 +5581,7 @@ function renderItinerary(){
       <div class="itin-tl-axis">
         <div class="itin-tl-date-line">${dateLine}</div>
         ${dayWord?`<div class="itin-tl-day-label">${dayWord}</div>`:''}
-        <div class="itin-tl-bubble">${bubble}</div>
+        <div class="itin-tl-bubble" style="font-size:18px;font-weight:900;">${bubble}</div>
         ${isLast?'':'<div class="itin-tl-line"></div>'}
       </div>
       <div class="itin-tl-cards">
