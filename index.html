@@ -1053,6 +1053,15 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
 .al-tab.t1{width:110px;}
 .al-tab.t2{width:80px;}
 .al-cards{display:flex;flex-direction:column;gap:16px;}
+/* checklist variant of the app loader */
+#appLoader.cl-mode{padding:0;}
+.al-cl-nav{display:flex;align-items:center;gap:16px;padding:14px 20px 10px;margin-bottom:8px;}
+.al-cl-back{width:72px;height:32px;border-radius:99px;}
+.al-cl-title{height:18px;width:40%;border-radius:8px;}
+.al-cl-tabs{display:flex;gap:0;margin:0 20px 20px;border-radius:12px;overflow:hidden;background:#e2e4ea;height:38px;}
+.al-cl-tab{flex:1;height:100%;}
+.al-cl-tab:not(:last-child){border-right:2px solid var(--bg);}
+.al-cl-content{padding:0 20px;display:flex;flex-direction:column;gap:20px;}
 
 /* ── MODAL → Bottom Sheet ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
@@ -1585,6 +1594,20 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
     <div class="skel-trip-card"><div class="skel-trip-hero skel"></div><div class="skel-trip-body"><div class="skel skel-line w60" style="height:16px;border-radius:8px;"></div><div class="skel skel-line w40" style="height:12px;border-radius:8px;"></div><div class="skel skel-bar"></div></div></div>
   </div>
 </div>
+<script>
+(function(){
+  if(!sessionStorage.getItem('packly-nav'))return;
+  const loader=document.getElementById('appLoader');
+  if(!loader)return;
+  loader.classList.add('cl-mode');
+  const itemRow=()=>`<div class="skel-item-row"><div class="skel skel-item-cb"></div><div class="skel skel-item-label"></div><div class="skel skel-item-qty"></div></div>`;
+  const section=()=>`<div><div class="skel skel-section-header" style="margin-bottom:10px"></div><div class="skel-items-card">${itemRow()}${itemRow()}${itemRow()}</div></div>`;
+  loader.innerHTML=`
+    <div class="al-cl-nav"><div class="skel al-cl-back"></div><div class="skel al-cl-title"></div></div>
+    <div class="al-cl-tabs"><div class="skel al-cl-tab"></div><div class="skel al-cl-tab"></div><div class="skel al-cl-tab"></div></div>
+    <div class="al-cl-content">${section()}${section()}</div>`;
+})();
+</script>
 
 <div id="navStack">
 <!-- TRIPS VIEW -->
