@@ -3285,30 +3285,38 @@ window.switchTab=function(tab){
 
 /* ── Trip hero photo fetching ── */
 const _tripImageCache={};
+
+// Deterministic hash → consistent photo per destination
+function _destHash(s){let h=5381;for(let i=0;i<s.length;i++)h=(Math.imul(33,h)^s.charCodeAt(i))>>>0;return h%1000;}
+
 async function loadTripHeroImage(tripId,tripName){
   const cached=_tripImageCache[tripName];
   if(cached!==undefined){if(cached)applyTripPhoto(tripId,cached);return;}
-  // Use the first part of the destination name for a cleaner search
-  const query=tripName.replace(/[,|/]/g,' ').trim().split(/\s+/).slice(0,4).join(' ');
-  // Try Wikipedia REST API first — free, no key, gives landmark photos
+
+  // Normalise query: first 3 meaningful words (drop "visa", "trip", etc.)
+  const query=tripName.replace(/[,|\/]/g,' ').trim().split(/\s+/).slice(0,3).join(' ');
+
+  // 1. Wikipedia REST API — real landmark photos, no key needed
   try{
-    const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(5000)});
+    const ctrl=new AbortController();
+    const tid=setTimeout(()=>ctrl.abort(),5000);
+    const r=await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`,
+      {signal:ctrl.signal}
+    );
+    clearTimeout(tid);
     if(r.ok){
       const d=await r.json();
       const img=d.originalimage?.source||d.thumbnail?.source||null;
       if(img){_tripImageCache[tripName]=img;applyTripPhoto(tripId,img);return;}
     }
   }catch{}
-  // Fallback: Unsplash source (free, no key, searches by destination keyword)
-  try{
-    const src=`https://source.unsplash.com/800x600/?${encodeURIComponent(query)},travel,destination`;
-    // Probe the redirect to get the actual image URL
-    const r=await fetch(src,{signal:AbortSignal.timeout(6000)});
-    if(r.ok&&r.url&&r.url!==src){
-      _tripImageCache[tripName]=r.url;applyTripPhoto(tripId,r.url);return;
-    }
-  }catch{}
-  _tripImageCache[tripName]=null;
+
+  // 2. loremflickr — Flickr Creative Commons photos by keyword, always reliable
+  const lock=_destHash(tripName);
+  const flickrUrl=`https://loremflickr.com/800/500/${encodeURIComponent(query)}?lock=${lock}`;
+  _tripImageCache[tripName]=flickrUrl;
+  applyTripPhoto(tripId,flickrUrl);
 }
 function applyTripPhoto(tripId,imgUrl){
   const photoEl=document.getElementById(`hero-photo-${tripId}`);
