@@ -117,41 +117,93 @@ svg.lucide-2xl{width:28px;height:28px}
 }
 .trips-tab-btn.sel .trips-tab-badge{background:#E4E4EE;color:var(--ink)}
 
-.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;padding:4px 2px 8px;overflow:clip}
+.trips-grid{display:grid;grid-template-columns:1fr;gap:14px;padding:4px 0 8px;overflow:clip}
+@media(min-width:601px){.trips-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));}}
 
+/* ── Airbnb-style trip card ── */
 .trip-card{
-  background:var(--white);border-radius:var(--r-card);
-  border:1px solid rgba(26,26,46,.07);padding:16px;
-  box-shadow:0 1px 6px rgba(26,26,46,.06);
-  cursor:pointer;transition:box-shadow .18s,transform .18s,border-color .18s;
+  background:var(--white);border-radius:20px;overflow:hidden;
+  box-shadow:0 2px 12px rgba(26,26,46,.09),0 1px 3px rgba(26,26,46,.05);
+  border:none;cursor:pointer;
+  transition:box-shadow .2s,transform .2s;
   animation:fadeUp .22s ease both;
 }
 @media(pointer:fine){
-  .trip-card:hover{box-shadow:0 6px 24px rgba(26,26,46,.11),0 1px 4px rgba(26,26,46,.05);transform:translateY(-2px);border-color:rgba(26,26,46,.11)}
+  .trip-card:hover{box-shadow:0 8px 28px rgba(26,26,46,.14),0 2px 6px rgba(26,26,46,.07);transform:translateY(-3px)}
 }
-
-/* card layout */
-.card-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;min-height:28px}
+.trip-card-hero{
+  height:168px;position:relative;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.trip-card-hero-icon{
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:center;
+  width:72px;height:72px;border-radius:50%;
+  background:rgba(255,255,255,.18);backdrop-filter:blur(4px);
+}
+.trip-card-hero-icon img{width:52px;height:52px;border-radius:50%;object-fit:cover;}
+.trip-card-hero-icon svg,.trip-card-hero-icon svg.lucide-hero{
+  width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;color:#fff;
+}
+svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;}
+.trip-card-overlay-badges{
+  position:absolute;top:14px;left:14px;right:14px;
+  display:flex;align-items:center;justify-content:space-between;z-index:2;
+}
+.trip-card-dots{
+  position:absolute;top:10px;right:10px;z-index:3;
+  width:32px;height:32px;border-radius:50%;border:none;
+  background:rgba(0,0,0,.28);backdrop-filter:blur(6px);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .12s;flex-shrink:0;
+}
+.trip-card-dots:hover{background:rgba(0,0,0,.44);}
+.trip-card-dots svg{width:18px;height:18px;stroke-width:2;pointer-events:none}
+.trip-card-body{padding:16px 18px 18px;}
+.trip-card-name{
+  font-size:17px;font-weight:700;color:var(--ink);line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;
+}
+.trip-card-date{font-size:13px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:5px;}
+.trip-card-date svg{opacity:.55;}
+/* keep legacy names used elsewhere */
+.card-top-row{display:none}
 .card-badges{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.trip-header-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.trip-header-row{display:none}
 .trip-header-text{flex:1;min-width:0}
 .trip-name{font-size:17px;font-weight:700;line-height:1.3;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
 .lucide-trip-icon{width:36px;height:36px;flex-shrink:0;opacity:.65}
 .trip-date-row{font-size:14px;color:var(--muted);display:flex;align-items:center;
   gap:6px;flex-wrap:wrap;row-gap:4px;margin-bottom:0}
-.trip-cd-pill{font-size:13px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
-.trip-cd-pill.future{background:#EEF2FF;color:#4F46E5}
-.trip-cd-pill.soon{background:#FEF3C7;color:#D97706}
-.trip-cd-pill.today{background:#D1FAE5;color:#059669}
-.trip-cd-pill.past{background:var(--border);color:var(--muted)}
-.card-dots-btn{
-  width:32px;height:32px;border-radius:50%;border:none;flex-shrink:0;
-  background:none;color:var(--muted);
+.trip-cd-pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap;}
+.trip-cd-pill.future{background:rgba(79,70,229,.15);color:#4F46E5;}
+.trip-cd-pill.soon{background:rgba(217,119,6,.18);color:#b45309;}
+.trip-cd-pill.today{background:rgba(5,150,105,.18);color:#047857;}
+.trip-cd-pill.past{background:rgba(255,255,255,.22);color:rgba(255,255,255,.85);}
+.trip-shared-tag-hero{font-size:12px;font-weight:700;color:#fff;background:rgba(124,58,237,.6);backdrop-filter:blur(4px);
+  border-radius:99px;padding:3px 10px;display:inline-flex;align-items:center;gap:4px;}
+.trip-shared-tag-hero svg{width:11px;height:11px}
+.card-dots-btn{display:none}
+/* keep for checklist view */
+.ic-btn{
+  width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+  background:var(--white);color:var(--muted);
   display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:background .12s,color .12s;
+  cursor:pointer;transition:all .12s;min-width:44px;min-height:44px;
 }
-.card-dots-btn svg{width:18px;height:18px;stroke-width:2;pointer-events:none}
+.trip-shared-tag{font-size:13px;font-weight:700;color:#7C3AED;background:#F3EEFF;
+  border-radius:99px;padding:2px 9px;display:inline-flex;align-items:center;gap:4px}
+.trip-shared-tag svg{width:12px;height:12px}
+.trip-prog-bar{height:5px;background:rgba(26,26,46,.1);border-radius:99px;overflow:hidden;margin-bottom:8px}
+.trip-prog-fill{height:100%;border-radius:99px;background:var(--green);transition:width .4s}
+.trip-prog-text{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;width:100%}
+.trip-prog-pct{margin-left:auto;font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:3px}
+.trip-prog-pct.complete{color:var(--green)}
+.empty-state{grid-column:1/-1;text-align:center;padding:32px 20px}
+.empty-icon-wrap{width:72px;height:72px;border-radius:20px;background:#E8E6F0;border:1.5px solid #D0CEDF;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;color:#4A4870}
+.empty-state h3{font-size:21px;font-weight:700;margin-bottom:8px}
+.empty-state p{font-size:16px;color:var(--muted);line-height:1.6}
 
 /* keep ic-btn for checklist view */
 .ic-btn{
@@ -250,7 +302,7 @@ svg.lucide-2xl{width:28px;height:28px}
 .cl-tab.active{color:var(--ink);}
 .cl-tab-pill{
   position:absolute;top:3px;left:3px;
-  width:calc(33.333% - 3px);height:calc(100% - 6px);
+  width:calc(33.333% - 2px);height:calc(100% - 6px);
   background:var(--white);border-radius:9px;
   box-shadow:0 1px 4px rgba(26,26,46,.12);
   transition:transform .22s cubic-bezier(.4,0,.2,1);
@@ -838,10 +890,12 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
   border-radius:8px;
 }
 .skel-trip-card{
-  background:var(--white);border-radius:var(--r-card);
-  padding:18px 20px;display:flex;flex-direction:column;gap:14px;
-  box-shadow:0 2px 12px rgba(26,26,46,.07);
+  background:var(--white);border-radius:20px;overflow:hidden;
+  display:flex;flex-direction:column;
+  box-shadow:0 2px 12px rgba(26,26,46,.09);
 }
+.skel-trip-hero{height:168px;background:#e2e4ea;}
+.skel-trip-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:10px;}
 .skel-trip-header{display:flex;align-items:center;gap:12px}
 .skel-trip-icon{width:40px;height:40px;border-radius:12px;flex-shrink:0}
 .skel-trip-lines{flex:1;display:flex;flex-direction:column;gap:8px}
@@ -1413,9 +1467,9 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
     <div class="skel al-tab t2"></div>
   </div>
   <div class="al-cards">
-    <div class="skel-trip-card"><div class="skel-trip-header"><div class="skel skel-trip-icon"></div><div class="skel-trip-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div><div class="skel skel-bar"></div><div class="skel-prog"><div class="skel skel-line w80"></div><div class="skel skel-line w40"></div></div></div>
-    <div class="skel-trip-card"><div class="skel-trip-header"><div class="skel skel-trip-icon"></div><div class="skel-trip-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div><div class="skel skel-bar"></div><div class="skel-prog"><div class="skel skel-line w80"></div><div class="skel skel-line w40"></div></div></div>
-    <div class="skel-trip-card"><div class="skel-trip-header"><div class="skel skel-trip-icon"></div><div class="skel-trip-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div><div class="skel skel-bar"></div><div class="skel-prog"><div class="skel skel-line w80"></div><div class="skel skel-line w40"></div></div></div>
+    <div class="skel-trip-card"><div class="skel-trip-hero skel"></div><div class="skel-trip-body"><div class="skel skel-line w60" style="height:16px;border-radius:8px;"></div><div class="skel skel-line w40" style="height:12px;border-radius:8px;"></div><div class="skel skel-bar"></div></div></div>
+    <div class="skel-trip-card"><div class="skel-trip-hero skel"></div><div class="skel-trip-body"><div class="skel skel-line w60" style="height:16px;border-radius:8px;"></div><div class="skel skel-line w40" style="height:12px;border-radius:8px;"></div><div class="skel skel-bar"></div></div></div>
+    <div class="skel-trip-card"><div class="skel-trip-hero skel"></div><div class="skel-trip-body"><div class="skel skel-line w60" style="height:16px;border-radius:8px;"></div><div class="skel skel-line w40" style="height:12px;border-radius:8px;"></div><div class="skel skel-bar"></div></div></div>
   </div>
 </div>
 
@@ -3150,17 +3204,11 @@ function showTripsSkeleton(n=3){
   const grid=document.getElementById('tripsGrid');
   grid.innerHTML=Array.from({length:n},()=>`
     <div class="skel-trip-card">
-      <div class="skel-trip-header">
-        <div class="skel skel-trip-icon"></div>
-        <div class="skel-trip-lines">
-          <div class="skel skel-line w60"></div>
-          <div class="skel skel-line w40"></div>
-        </div>
-      </div>
-      <div class="skel skel-bar"></div>
-      <div class="skel-prog">
-        <div class="skel skel-line w80"></div>
-        <div class="skel skel-line w40"></div>
+      <div class="skel-trip-hero skel"></div>
+      <div class="skel-trip-body">
+        <div class="skel skel-line w60" style="height:16px;border-radius:8px;"></div>
+        <div class="skel skel-line w40" style="height:12px;border-radius:8px;"></div>
+        <div class="skel skel-bar"></div>
       </div>
     </div>`).join('');
 }
@@ -3201,6 +3249,25 @@ window.switchTab=function(tab){
   document.getElementById('tabPast').classList.toggle('sel',tab==='past');
   renderTrips();
 };
+
+const TRIP_HERO_GRADIENTS={
+  globe:     'linear-gradient(145deg,#0ea5e9,#0369a1)',
+  sun:       'linear-gradient(145deg,#f59e0b,#ef4444)',
+  mountain:  'linear-gradient(145deg,#22c55e,#0d9488)',
+  camera:    'linear-gradient(145deg,#a855f7,#ec4899)',
+  map:       'linear-gradient(145deg,#3b82f6,#6366f1)',
+  train:     'linear-gradient(145deg,#64748b,#334155)',
+  ship:      'linear-gradient(145deg,#06b6d4,#2563eb)',
+  tent:      'linear-gradient(145deg,#84cc16,#15803d)',
+  tree:      'linear-gradient(145deg,#4ade80,#15803d)',
+  star:      'linear-gradient(145deg,#fbbf24,#d97706)',
+  car:       'linear-gradient(145deg,#fb923c,#dc2626)',
+  luggage:   'linear-gradient(145deg,#818cf8,#4f46e5)',
+  briefcase: 'linear-gradient(145deg,#94a3b8,#334155)',
+  music:     'linear-gradient(145deg,#f472b6,#9333ea)',
+  snowflake: 'linear-gradient(145deg,#7dd3fc,#818cf8)',
+};
+function tripHeroGradient(iconKey){return TRIP_HERO_GRADIENTS[iconKey]||'linear-gradient(145deg,#6366f1,#4f46e5)';}
 
 function renderTrips(){
   const grid=document.getElementById('tripsGrid');
@@ -3252,29 +3319,27 @@ function renderTrips(){
     card.className='trip-card';
     card.style.animationDelay=i*40+'ms';
     const cd=tripCountdown(t.dateFrom,t.dateTo);
-    const delTitle=t.isShared&&t.ownerId!==_currentUserId?'Leave':'Delete';
     const packAgainHtml=_tripsTab==='past'?`<div class="trip-pack-again-row"><button class="btn-pack-again" id="dup-${t.id}">${svgStr('copy')} Pack this list again</button></div>`:'';
+    const heroIconHtml=getTripFlagOrIcon(t,'lucide-hero','globe',52);
+    const cdBadge=cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:'<span></span>';
+    const sharedBadge=t.isShared?`<span class="trip-shared-tag-hero">${svgStr('users')} Shared</span>`:'<span></span>';
+    const calIcon=`<svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
     card.innerHTML=`
-      <div class="card-top-row">
-        <div class="card-badges">
-          ${cd?`<span class="trip-cd-pill ${cd.type}">${cd.label}</span>`:''}
-          ${t.isShared?`<span class="trip-shared-tag">${svgStr('users')} Shared</span>`:''}
-        </div>
-        <button class="card-dots-btn" id="dots-${t.id}" aria-label="More options">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
+      <div class="trip-card-hero" style="background:${tripHeroGradient(t.iconKey)}">
+        <div class="trip-card-overlay-badges">${sharedBadge}${cdBadge}</div>
+        <div class="trip-card-hero-icon">${heroIconHtml}</div>
+        <button class="trip-card-dots" id="dots-${t.id}" aria-label="More options">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
         </button>
       </div>
-      <div class="trip-header-row">
-        ${getTripFlagOrIcon(t,'lucide lucide-trip-icon')}
-        <div class="trip-header-text">
-          <div class="trip-name">${esc(t.name)}</div>
-          <div class="trip-date-row">${esc(t.dates||'No dates set')}</div>
-        </div>
-      </div>
-      ${_tripsTab==='upcoming'?`<div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div><div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} All packed`:`${pct}%`}</span></div>`:''}
-      ${packAgainHtml}`;
+      <div class="trip-card-body">
+        <div class="trip-card-name">${esc(t.name)}</div>
+        <div class="trip-card-date">${calIcon} ${esc(t.dates||'No dates set')}</div>
+        ${_tripsTab==='upcoming'?`<div class="trip-prog-bar"><div class="trip-prog-fill${allDone?' complete':''}" style="width:${pct}%"></div></div><div class="trip-prog-text">${svgStr('luggage')} ${done}/${total} items<span class="trip-prog-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall','lucide lucide-sm')} All packed`:`${pct}%`}</span></div>`:''}
+        ${packAgainHtml}
+      </div>`;
     card.onclick=e=>{
-      if(e.target.closest('.card-dots-btn'))return;
+      if(e.target.closest('.trip-card-dots'))return;
       showChecklist(t.id);
     };
     card.querySelector(`#dots-${t.id}`).onclick=e=>{e.stopPropagation();openTripActions(t.id);};
