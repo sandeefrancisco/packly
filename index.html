@@ -3516,7 +3516,7 @@ function renderTrips(){
     const sharedHtml=_collabBadgeHtml(t);
     // Date line: "1 Jul – 5 Jul · 8/23 items"
     const dateStr=t.dates||'No dates set';
-    const statsStr=total?`${done}/${total} packed`:'';
+    const statsStr=total?`${done}/${total} complete`:'';
     card.innerHTML=`
       <div class="trip-card-hero" id="hero-${t.id}">
         <div class="trip-card-hero-bg" style="background:${tripHeroGradient(t.iconKey)}"></div>
@@ -4135,7 +4135,7 @@ function renderChecklist(){
   const pct=total?Math.round(done/total*100):0;
   const allDone=total>0&&done===total;
   document.getElementById('clProgressStrip').innerHTML=`
-    <span class="cl-prog-text"><strong>${done}</strong> of <strong>${total}</strong> packed</span>
+    <span class="cl-prog-text"><strong>${done}</strong> of <strong>${total}</strong> complete</span>
     <div class="cl-prog-bar-wrap"><div class="cl-prog-bar-fill${allDone?' complete':''}" style="width:${pct}%"></div></div>
     <span class="cl-pct${allDone?' complete':''}">${allDone?`${svgStr('checkSmall')} 100%`:`${pct}%`}</span>`;
 
