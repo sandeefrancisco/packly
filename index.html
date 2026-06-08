@@ -6117,19 +6117,29 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
 
 /* ── Native back button / browser history ── */
 window.addEventListener('popstate',(ev)=>{
-  // Landing on 'itinerary' state — always stay on trip page
-  // (happens when back-navigating from itinPreview, or native back from itinerary modal)
-  if(ev.state?.packly==='itinerary'){
+  const state=ev.state?.packly;
+  // Landing on 'itinerary' — close preview if open, always stay on trip
+  if(state==='itinerary'){
     const ov=document.getElementById('itinPreviewOverlay');
     if(ov.classList.contains('open')){
       ov.classList.remove('open');
       document.getElementById('itinPreviewImg').src='';
       document.getElementById('itinPreviewPdf').src='';
     }
-    return; // Always stay — don't fall through to _doShowTrips
+    return;
   }
-  // Popping an overlay entry lands us on checklist state — close modals, stay in trip
-  if(ev.state?.packly==='checklist'){
+  // Landing on 'checklist' or any overlay-close state — close all modals, stay in trip
+  if(state==='checklist'||state==='expense'||state==='itinPreview'){
+    document.getElementById('expenseOverlay').classList.remove('open');
+    document.getElementById('itineraryOverlay').classList.remove('open');
+    document.getElementById('itinPreviewOverlay').classList.remove('open');
+    document.getElementById('confirmOverlay').classList.remove('open');
+    return;
+  }
+  // Safety: never navigate home while any overlay is visible
+  const overlayOpen=['expenseOverlay','itineraryOverlay','itinPreviewOverlay','confirmOverlay']
+    .some(id=>document.getElementById(id).classList.contains('open'));
+  if(overlayOpen){
     document.getElementById('expenseOverlay').classList.remove('open');
     document.getElementById('itineraryOverlay').classList.remove('open');
     document.getElementById('itinPreviewOverlay').classList.remove('open');
