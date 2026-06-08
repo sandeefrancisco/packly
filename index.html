@@ -537,7 +537,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
 }
 .itin-entry-card.itin-pressing{transform:scale(0.98);box-shadow:0 1px 6px rgba(26,26,46,.07);}
-.itin-entry-card.itin-held{opacity:0;pointer-events:none;}
+.itin-entry-card.itin-held{display:none;}
 .itin-card-main{display:flex;gap:14px;align-items:center;padding:16px;}
 .itin-card-main.itin-main-top{align-items:flex-start;}
 .itin-dragging-ghost{
@@ -562,11 +562,10 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .itin-entry-title{font-size:16px;font-weight:700;color:var(--ink);line-height:1.35;word-break:break-word;}
 .itin-entry-time{
   display:inline-flex;align-items:center;gap:4px;
-  font-size:11px;font-weight:600;color:var(--muted);
-  background:var(--tint);padding:4px 9px;border-radius:99px;
-  white-space:nowrap;line-height:1;margin-top:5px;
+  font-size:12px;font-weight:600;color:var(--muted);
+  white-space:nowrap;line-height:1;margin-top:3px;
 }
-.itin-entry-time svg{width:11px;height:11px;opacity:.7;flex-shrink:0;}
+.itin-entry-time svg{width:12px;height:12px;opacity:.6;flex-shrink:0;}
 .itin-entry-meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:0;margin-top:4px;}
 .itin-meta-chip{display:inline-flex;align-items:center;gap:4px;}
 .itin-meta-chip+.itin-meta-chip::before{content:'·';margin:0 6px;opacity:.4;}
