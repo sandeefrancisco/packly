@@ -533,18 +533,23 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   padding:14px 16px;
   display:flex;gap:14px;align-items:center;
   cursor:pointer;
-  transition:box-shadow .15s;
+  transition:box-shadow .15s, transform .12s;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
 }
-.itin-entry-card:active{box-shadow:0 2px 12px rgba(26,26,46,.1);}
-.itin-entry-card.dragging{opacity:.15;}
-.itin-drag-grip{
-  display:flex;align-items:center;justify-content:center;
-  width:32px;height:32px;flex-shrink:0;
-  color:#c0c2cc;cursor:grab;touch-action:none;
-  border-radius:8px;transition:color .12s;margin-right:-4px;
+.itin-entry-card.itin-pressing{transform:scale(0.97);box-shadow:none;}
+.itin-entry-card.itin-held{opacity:0;pointer-events:none;}
+.itin-dragging-ghost{
+  position:fixed;pointer-events:none;z-index:9999;
+  border-radius:16px;border:1px solid var(--border);background:var(--white);
+  box-shadow:0 20px 60px rgba(26,26,46,.28),0 4px 16px rgba(0,0,0,.1);
+  transform:scale(1.04) rotate(1.2deg);
+  opacity:.97;
 }
-.itin-drag-grip:active{cursor:grabbing;color:var(--ink);}
-.itin-drag-grip svg{width:16px;height:16px;pointer-events:none;}
+.itin-drop-ph{
+  border-radius:16px;border:2px dashed var(--accent);
+  background:rgba(74,144,226,.06);
+  transition:height .12s;flex-shrink:0;
+}
 .itin-entry-icon{
   width:48px;height:48px;border-radius:14px;
   display:flex;align-items:center;justify-content:center;
@@ -5514,71 +5519,111 @@ window.selectItinDay=function(n){
   renderDayPickerGrid(getTrip(),n);
 };
 
-window.startItinDrag=function(e,card){
-  e.preventDefault();e.stopPropagation();
+function _attachItinDrag(card){
+  const LONG_MS=380, THRESH=8;
+  let timer=null, dragging=false, startX, startY;
+
+  card.addEventListener('pointerdown',e=>{
+    if(e.button&&e.button!==0)return;
+    startX=e.clientX; startY=e.clientY; dragging=false;
+    card.classList.add('itin-pressing');
+    timer=setTimeout(()=>{
+      timer=null; dragging=true;
+      card.classList.remove('itin-pressing');
+      navigator.vibrate?.(10);
+      _itinDragBegin(e,card);
+    },LONG_MS);
+  },{passive:true});
+
+  card.addEventListener('pointermove',e=>{
+    if(!timer)return;
+    if(Math.abs(e.clientX-startX)>THRESH||Math.abs(e.clientY-startY)>THRESH){
+      clearTimeout(timer);timer=null;
+      card.classList.remove('itin-pressing');
+    }
+  },{passive:true});
+
+  const cancel=()=>{
+    if(timer){clearTimeout(timer);timer=null;}
+    card.classList.remove('itin-pressing');
+  };
+  card.addEventListener('pointerup',e=>{
+    if(timer){cancel();if(!dragging)openEditItinerary(card.dataset.id);}
+  });
+  card.addEventListener('pointercancel',cancel);
+}
+
+function _itinDragBegin(startEv,card){
   const container=card.closest('.itin-tl-cards');if(!container)return;
   const rect=card.getBoundingClientRect();
 
   const ghost=card.cloneNode(true);
-  ghost.className='section-reorder-ghost';
+  ghost.className='itin-dragging-ghost';
   ghost.style.width=rect.width+'px';
   ghost.style.left=rect.left+'px';
   ghost.style.top=rect.top+'px';
   document.body.appendChild(ghost);
 
   const ph=document.createElement('div');
-  ph.className='section-reorder-ph';
+  ph.className='itin-drop-ph';
   ph.style.height=rect.height+'px';
   container.insertBefore(ph,card);
-  card.classList.add('dragging');
+  card.classList.add('itin-held');
 
-  const offsetY=e.clientY-rect.top;
+  const offsetY=startEv.clientY-rect.top;
+  const scrollEl=document.getElementById('checklistView');
+  let scrollRaf=null;
+  let lastTarget=null,lastAbove=true;
 
-  function getCards(){return[...container.querySelectorAll('.itin-entry-card')].filter(c=>c!==card);}
+  function autoScroll(cy){
+    if(scrollRaf)cancelAnimationFrame(scrollRaf);
+    const zone=80;
+    if(cy<zone)scrollRaf=requestAnimationFrame(()=>{scrollEl.scrollBy(0,-8);autoScroll(cy);});
+    else if(cy>window.innerHeight-zone)scrollRaf=requestAnimationFrame(()=>{scrollEl.scrollBy(0,8);autoScroll(cy);});
+  }
+
+  function siblings(){return[...container.querySelectorAll('.itin-entry-card')].filter(c=>c!==card);}
 
   function onMove(ev){
     ev.preventDefault();
     ghost.style.top=(ev.clientY-offsetY)+'px';
-    const siblings=getCards();
+    autoScroll(ev.clientY);
     let target=null,above=true;
-    for(const sib of siblings){
+    for(const sib of siblings()){
       const sr=sib.getBoundingClientRect();
       if(ev.clientY<sr.top+sr.height/2){target=sib;above=true;break;}
       target=sib;above=false;
     }
+    if(target===lastTarget&&above===lastAbove)return;
+    lastTarget=target;lastAbove=above;
     ph.remove();
-    if(!target){
-      const addBtn=container.querySelector('.itin-day-add');
-      if(addBtn)container.insertBefore(ph,addBtn);else container.appendChild(ph);
-    }else if(above){
-      container.insertBefore(ph,target);
-    }else{
-      target.nextSibling?container.insertBefore(ph,target.nextSibling):container.appendChild(ph);
-    }
+    if(!target){const btn=container.querySelector('.itin-day-add');btn?container.insertBefore(ph,btn):container.appendChild(ph);}
+    else if(above)container.insertBefore(ph,target);
+    else target.nextSibling?container.insertBefore(ph,target.nextSibling):container.appendChild(ph);
   }
 
   function onEnd(){
+    if(scrollRaf)cancelAnimationFrame(scrollRaf);
     ghost.remove();
-    card.classList.remove('dragging');
+    card.classList.remove('itin-held');
     ph.parentNode.insertBefore(card,ph);
     ph.remove();
     document.removeEventListener('pointermove',onMove);
     document.removeEventListener('pointerup',onEnd);
     document.removeEventListener('pointercancel',onEnd);
-    const orderedCards=[...container.querySelectorAll('.itin-entry-card')];
-    const trip=getTrip();if(!trip)return;
-    orderedCards.forEach((c,i)=>{
+    const ordered=[...container.querySelectorAll('.itin-entry-card')];
+    const trip=getTrip();if(!trip){renderItinerary();return;}
+    ordered.forEach((c,i)=>{
       const item=(trip.itinerary||[]).find(x=>x.id===c.dataset.id);
       if(item)item.order=i;
     });
-    saveAll(trips);
-    renderItinerary();
+    saveAll(trips);renderItinerary();
   }
 
   document.addEventListener('pointermove',onMove,{passive:false});
   document.addEventListener('pointerup',onEnd);
   document.addEventListener('pointercancel',onEnd);
-};
+}
 
 function renderItinerary(){
   const trip=getTrip();if(!trip)return;
@@ -5652,7 +5697,7 @@ function renderItinerary(){
       const timePart=e.time?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(formatItinTime(e.time))}</span>`:'';
       const locPart=e.location?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(e.location)}</span>`:'';
       const notesPart=e.notes?`<span class="itin-meta-chip">${esc(e.notes.length>50?e.notes.slice(0,50)+'…':e.notes)}</span>`:'';
-      return`<div class="itin-entry-card" data-id="${e.id}" onclick="openEditItinerary('${e.id}')">
+      return`<div class="itin-entry-card" data-id="${e.id}">
         <div class="itin-entry-icon" style="background:${t.bg}">
           <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
         </div>
@@ -5660,7 +5705,6 @@ function renderItinerary(){
           <div class="itin-entry-title">${esc(e.title)}</div>
           ${(timePart||locPart||notesPart)?`<div class="itin-entry-meta">${timePart}${locPart}${notesPart}</div>`:''}
         </div>
-        <div class="itin-drag-grip" onpointerdown="startItinDrag(event,this.closest('.itin-entry-card'))">${svgStr('grip','lucide')}</div>
       </div>`;
     }).join('');
     html+=`<div class="itin-day-row">
@@ -5678,6 +5722,7 @@ function renderItinerary(){
   });
   html+='</div>';
   el.innerHTML=html;
+  el.querySelectorAll('.itin-entry-card').forEach(_attachItinDrag);
 }
 
 window.openAddItinerary=function(presetDay){
