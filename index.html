@@ -539,6 +539,7 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .itin-entry-card.itin-pressing{transform:scale(0.98);box-shadow:0 1px 6px rgba(26,26,46,.07);}
 .itin-entry-card.itin-held{opacity:0;pointer-events:none;}
 .itin-card-main{display:flex;gap:14px;align-items:center;padding:16px;}
+.itin-card-main.itin-main-top{align-items:flex-start;}
 .itin-dragging-ghost{
   position:fixed;pointer-events:none;z-index:9999;
   border-radius:20px;border:none;background:var(--white);overflow:hidden;
@@ -5782,14 +5783,15 @@ function renderItinerary(){
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         ${e.attachment.mimeType.startsWith('image/')?'View photo':'View PDF'}
       </button>`:'';
+      const topAlign=!!(timeStr&&(locPart||notesPart));
       return`<div class="itin-entry-card" data-id="${e.id}">
-        <div class="itin-card-main">
+        <div class="itin-card-main${topAlign?' itin-main-top':''}">
           <div class="itin-entry-icon" style="background:${t.bg}">
             <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
           </div>
           <div class="itin-entry-body">
-            <div class="itin-entry-title">${esc(e.title)}</div>
             ${timeStr?`<div class="itin-entry-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>${timeStr}</div>`:''}
+            <div class="itin-entry-title">${esc(e.title)}</div>
             ${(locPart||notesPart)?`<div class="itin-entry-meta">${locPart}${notesPart}</div>`:''}
           </div>
         </div>
