@@ -649,11 +649,13 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
 .itin-attach-remove svg{width:14px;height:14px;stroke-width:2.5;}
 /* Card attachment badge */
 .itin-card-attach-badge{
-  display:flex;align-items:center;gap:4px;
-  font-size:11px;font-weight:600;color:var(--accent);
-  margin-top:4px;
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;color:var(--accent);
+  margin-top:6px;padding:4px 8px;border-radius:6px;
+  background:rgba(74,144,226,.1);border:1px solid rgba(74,144,226,.25);
+  cursor:pointer;border:none;font-family:'Figtree',sans-serif;
 }
-.itin-card-attach-badge svg{width:12px;height:12px;stroke-width:2.5;}
+.itin-card-attach-badge svg{width:11px;height:11px;stroke-width:2.5;}
 /* Full-screen preview overlay */
 #itinPreviewOverlay{
   position:fixed;inset:0;z-index:9000;
@@ -5762,10 +5764,10 @@ function renderItinerary(){
       const timePart=e.time?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(formatItinTime(e.time))}</span>`:'';
       const locPart=e.location?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(e.location)}</span>`:'';
       const notesPart=e.notes?`<span class="itin-meta-chip">${esc(e.notes.length>50?e.notes.slice(0,50)+'…':e.notes)}</span>`:'';
-      const attachBadge=e.attachment?`<div class="itin-card-attach-badge">
+      const attachBadge=e.attachment?`<button type="button" class="itin-card-attach-badge" onclick="event.stopPropagation();previewAttachmentById('${e.id}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-        ${e.attachment.mimeType.startsWith('image/')?'Photo':'PDF'}
-      </div>`:'';
+        ${e.attachment.mimeType.startsWith('image/')?'View photo':'View PDF'}
+      </button>`:'';
       return`<div class="itin-entry-card" data-id="${e.id}">
         <div class="itin-entry-icon" style="background:${t.bg}">
           <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
@@ -5930,20 +5932,25 @@ window.clearItinAttachment=function(){
   renderItinAttachUI();
 };
 
-window.openAttachmentPreview=function(){
-  if(!_itinAttachment)return;
-  const isImg=_itinAttachment.mimeType.startsWith('image/');
+window.previewAttachmentById=function(id){
+  const trip=getTrip();if(!trip)return;
+  const entry=(trip.itinerary||[]).find(x=>x.id===id);
+  if(!entry?.attachment)return;
+  _previewAttachment(entry.attachment);
+};
+
+function _previewAttachment(att){
+  const isImg=att.mimeType.startsWith('image/');
   if(isImg){
     const ov=document.getElementById('itinPreviewOverlay');
     const img=document.getElementById('itinPreviewImg');
     const pdf=document.getElementById('itinPreviewPdf');
-    img.src=_itinAttachment.dataUrl;img.style.display='';
+    img.src=att.dataUrl;img.style.display='';
     pdf.src='';pdf.style.display='none';
     ov.classList.add('open');
     history.pushState({packly:'itinPreview'},'','#checklist');
   } else {
-    // PDF: convert base64 to blob and open in new tab — works on all platforms
-    const b64=_itinAttachment.dataUrl.split(',')[1];
+    const b64=att.dataUrl.split(',')[1];
     const bytes=atob(b64);
     const arr=new Uint8Array(bytes.length);
     for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
@@ -5952,6 +5959,11 @@ window.openAttachmentPreview=function(){
     window.open(url,'_blank');
     setTimeout(()=>URL.revokeObjectURL(url),10000);
   }
+}
+
+window.openAttachmentPreview=function(){
+  if(!_itinAttachment)return;
+  _previewAttachment(_itinAttachment);
 };
 
 window.closeAttachmentPreview=function(){
