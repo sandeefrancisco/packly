@@ -6117,16 +6117,16 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
 
 /* ── Native back button / browser history ── */
 window.addEventListener('popstate',(ev)=>{
-  // Preview overlay (on top of itinerary modal)
+  // Landing on 'itinerary' state — always stay on trip page
+  // (happens when back-navigating from itinPreview, or native back from itinerary modal)
   if(ev.state?.packly==='itinerary'){
     const ov=document.getElementById('itinPreviewOverlay');
     if(ov.classList.contains('open')){
       ov.classList.remove('open');
-      const img=document.getElementById('itinPreviewImg');
-      const pdf=document.getElementById('itinPreviewPdf');
-      img.src='';pdf.src='';
-      return;
+      document.getElementById('itinPreviewImg').src='';
+      document.getElementById('itinPreviewPdf').src='';
     }
+    return; // Always stay — don't fall through to _doShowTrips
   }
   // Popping an overlay entry lands us on checklist state — close modals, stay in trip
   if(ev.state?.packly==='checklist'){
