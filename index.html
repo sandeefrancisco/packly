@@ -536,10 +536,12 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   transition:box-shadow .2s, transform .15s;
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
 }
-.itin-entry-card.itin-pressing{transform:scale(0.98);box-shadow:0 1px 6px rgba(26,26,46,.07);}
+.itin-entry-card.itin-pressing{transform:scale(0.97);box-shadow:0 6px 24px rgba(26,26,46,.16);transition:transform .2s ease,box-shadow .2s ease;}
 .itin-entry-card.itin-held{display:none;}
 .itin-card-main{display:flex;gap:14px;align-items:center;padding:16px;}
 .itin-card-main.itin-main-top{align-items:flex-start;}
+.itin-drag-dots{flex-shrink:0;color:var(--muted);opacity:.3;pointer-events:none;display:flex;align-items:center;}
+.itin-drag-dots svg{width:10px;height:18px;}
 .itin-dragging-ghost{
   position:fixed;pointer-events:none;z-index:9999;
   border-radius:20px;border:none;background:var(--white);overflow:hidden;
@@ -5601,22 +5603,25 @@ window.selectItinDay=function(n){
 };
 
 function _attachItinDrag(card){
-  const LONG_MS=300, THRESH=12;
-  let timer=null, dragging=false, startX, startY;
+  const LONG_MS=200, THRESH=16;
+  let timer=null, dragging=false, startX, startY, curX, curY;
 
   card.addEventListener('pointerdown',e=>{
     if(e.button&&e.button!==0)return;
-    startX=e.clientX; startY=e.clientY; dragging=false;
+    startX=e.clientX; startY=e.clientY;
+    curX=e.clientX; curY=e.clientY;
+    dragging=false;
     card.classList.add('itin-pressing');
     timer=setTimeout(()=>{
       timer=null; dragging=true;
       card.classList.remove('itin-pressing');
-      navigator.vibrate?.(10);
-      _itinDragBegin(e,card);
+      navigator.vibrate?.(18);
+      _itinDragBegin({clientX:curX,clientY:curY},card);
     },LONG_MS);
   },{passive:true});
 
   card.addEventListener('pointermove',e=>{
+    curX=e.clientX; curY=e.clientY;
     if(!timer)return;
     if(Math.abs(e.clientX-startX)>THRESH||Math.abs(e.clientY-startY)>THRESH){
       clearTimeout(timer);timer=null;
@@ -5793,6 +5798,7 @@ function renderItinerary(){
             <div class="itin-entry-title">${esc(e.title)}</div>
             ${(locPart||notesPart)?`<div class="itin-entry-meta">${locPart}${notesPart}</div>`:''}
           </div>
+          <div class="itin-drag-dots" aria-hidden="true"><svg viewBox="0 0 10 18" fill="currentColor"><circle cx="3" cy="3" r="1.5"/><circle cx="7" cy="3" r="1.5"/><circle cx="3" cy="9" r="1.5"/><circle cx="7" cy="9" r="1.5"/><circle cx="3" cy="15" r="1.5"/><circle cx="7" cy="15" r="1.5"/></svg></div>
         </div>
         ${attachBadge?`<div class="itin-card-footer">${attachBadge}</div>`:''}
       </div>`;
