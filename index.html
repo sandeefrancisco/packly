@@ -530,9 +530,10 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 .itin-entry-card{
   background:var(--white);border-radius:16px;
   border:1px solid var(--border);
-  padding:14px 16px;
-  display:flex;gap:14px;align-items:center;
+  padding:12px 14px 12px 12px;
+  display:flex;gap:12px;align-items:flex-start;
   cursor:pointer;
+  box-shadow:0 1px 4px rgba(26,26,46,.06);
   transition:box-shadow .15s, transform .12s;
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
 }
@@ -551,16 +552,21 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   transition:height .12s;flex-shrink:0;
 }
 .itin-entry-icon{
-  width:48px;height:48px;border-radius:14px;
+  width:42px;height:42px;border-radius:12px;
   display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
+  flex-shrink:0;margin-top:1px;
 }
-.itin-entry-icon svg{width:22px;height:22px;}
+.itin-entry-icon svg{width:20px;height:20px;}
 .itin-entry-body{flex:1;min-width:0;}
-.itin-entry-title{font-size:16px;font-weight:700;color:var(--ink);line-height:1.3;margin-bottom:3px;word-break:break-word;}
-.itin-entry-meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px 12px;}
-.itin-meta-chip{display:inline-flex;align-items:center;gap:4px;}
-.itin-meta-chip svg{opacity:.65;width:13px;height:13px;}
+.itin-entry-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px;}
+.itin-entry-title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.35;word-break:break-word;}
+.itin-entry-time{
+  font-size:12px;font-weight:600;color:var(--muted);
+  white-space:nowrap;flex-shrink:0;margin-top:2px;line-height:1.35;
+}
+.itin-entry-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 10px;margin-bottom:1px;}
+.itin-meta-chip{display:inline-flex;align-items:center;gap:3px;}
+.itin-meta-chip svg{opacity:.6;width:12px;height:12px;}
 .itin-day-add{
   align-self:flex-start;
   display:flex;align-items:center;gap:8px;
@@ -649,12 +655,14 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
 .itin-attach-remove svg{width:14px;height:14px;stroke-width:2.5;}
 /* Card attachment badge */
 .itin-card-attach-badge{
-  display:inline-flex;align-items:center;gap:4px;
+  display:inline-flex;align-items:center;gap:5px;
   font-size:11px;font-weight:700;color:var(--accent);
-  margin-top:6px;padding:4px 8px;border-radius:6px;
-  background:rgba(74,144,226,.1);border:1px solid rgba(74,144,226,.25);
-  cursor:pointer;border:none;font-family:'Figtree',sans-serif;
+  margin-top:7px;padding:5px 10px;border-radius:7px;
+  background:rgba(74,144,226,.1);border:1.5px solid rgba(74,144,226,.2);
+  cursor:pointer;font-family:'Figtree',sans-serif;
+  transition:background .12s;
 }
+.itin-card-attach-badge:active{background:rgba(74,144,226,.2);}
 .itin-card-attach-badge svg{width:11px;height:11px;stroke-width:2.5;}
 /* Full-screen preview overlay */
 #itinPreviewOverlay{
@@ -5761,9 +5769,9 @@ function renderItinerary(){
       :'';
     const entryCards=items.map(e=>{
       const t=itinTypeInfo(e.type);
-      const timePart=e.time?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(formatItinTime(e.time))}</span>`:'';
+      const timeStr=e.time?esc(formatItinTime(e.time)):'';
       const locPart=e.location?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(e.location)}</span>`:'';
-      const notesPart=e.notes?`<span class="itin-meta-chip">${esc(e.notes.length>50?e.notes.slice(0,50)+'…':e.notes)}</span>`:'';
+      const notesPart=e.notes?`<span class="itin-meta-chip">${esc(e.notes.length>40?e.notes.slice(0,40)+'…':e.notes)}</span>`:'';
       const attachBadge=e.attachment?`<button type="button" class="itin-card-attach-badge" onpointerdown="event.stopPropagation()" onclick="previewAttachmentById('${e.id}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         ${e.attachment.mimeType.startsWith('image/')?'View photo':'View PDF'}
@@ -5773,8 +5781,11 @@ function renderItinerary(){
           <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
         </div>
         <div class="itin-entry-body">
-          <div class="itin-entry-title">${esc(e.title)}</div>
-          ${(timePart||locPart||notesPart)?`<div class="itin-entry-meta">${timePart}${locPart}${notesPart}</div>`:''}
+          <div class="itin-entry-header">
+            <div class="itin-entry-title">${esc(e.title)}</div>
+            ${timeStr?`<div class="itin-entry-time">${timeStr}</div>`:''}
+          </div>
+          ${(locPart||notesPart)?`<div class="itin-entry-meta">${locPart}${notesPart}</div>`:''}
           ${attachBadge}
         </div>
       </div>`;
