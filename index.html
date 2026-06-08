@@ -557,17 +557,16 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
   flex-shrink:0;
 }
 .itin-entry-icon svg{width:22px;height:22px;}
-.itin-entry-body{flex:1;min-width:0;}
-.itin-entry-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:5px;}
+.itin-entry-body{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;}
 .itin-entry-title{font-size:16px;font-weight:700;color:var(--ink);line-height:1.35;word-break:break-word;}
 .itin-entry-time{
   display:inline-flex;align-items:center;gap:4px;
   font-size:11px;font-weight:600;color:var(--muted);
   background:var(--tint);padding:4px 9px;border-radius:99px;
-  white-space:nowrap;flex-shrink:0;line-height:1;
+  white-space:nowrap;line-height:1;margin-top:5px;
 }
 .itin-entry-time svg{width:11px;height:11px;opacity:.7;flex-shrink:0;}
-.itin-entry-meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:0;margin-bottom:2px;}
+.itin-entry-meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:0;margin-top:4px;}
 .itin-meta-chip{display:inline-flex;align-items:center;gap:4px;}
 .itin-meta-chip+.itin-meta-chip::before{content:'·';margin:0 6px;opacity:.4;}
 .itin-meta-chip svg{opacity:.55;width:13px;height:13px;}
@@ -5785,10 +5784,8 @@ function renderItinerary(){
           <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
         </div>
         <div class="itin-entry-body">
-          <div class="itin-entry-header">
-            <div class="itin-entry-title">${esc(e.title)}</div>
-            ${timeStr?`<div class="itin-entry-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>${timeStr}</div>`:''}
-          </div>
+          <div class="itin-entry-title">${esc(e.title)}</div>
+          ${timeStr?`<div class="itin-entry-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>${timeStr}</div>`:''}
           ${(locPart||notesPart)?`<div class="itin-entry-meta">${locPart}${notesPart}</div>`:''}
           ${attachBadge}
         </div>
