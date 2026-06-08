@@ -529,19 +529,19 @@ body.show-expense-fab .exp-fab{opacity:1;pointer-events:auto;transform:scale(1);
 }
 .itin-entry-card{
   background:var(--white);border-radius:20px;
-  border:none;
-  padding:16px;
-  display:flex;gap:14px;align-items:center;
-  cursor:pointer;
+  border:none;padding:0;
+  display:flex;flex-direction:column;align-items:stretch;
+  cursor:pointer;overflow:hidden;
   box-shadow:0 2px 16px rgba(26,26,46,.08),0 1px 3px rgba(26,26,46,.05);
   transition:box-shadow .2s, transform .15s;
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
 }
 .itin-entry-card.itin-pressing{transform:scale(0.98);box-shadow:0 1px 6px rgba(26,26,46,.07);}
 .itin-entry-card.itin-held{opacity:0;pointer-events:none;}
+.itin-card-main{display:flex;gap:14px;align-items:center;padding:16px;}
 .itin-dragging-ghost{
   position:fixed;pointer-events:none;z-index:9999;
-  border-radius:20px;border:none;background:var(--white);
+  border-radius:20px;border:none;background:var(--white);overflow:hidden;
   box-shadow:0 24px 64px rgba(26,26,46,.22),0 6px 20px rgba(0,0,0,.1);
   transform:scale(1.04) rotate(1.2deg);
   opacity:.97;
@@ -657,16 +657,19 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
 }
 .itin-attach-remove svg{width:14px;height:14px;stroke-width:2.5;}
 /* Card attachment badge */
-.itin-card-attach-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:600;color:var(--accent);
-  margin-top:10px;padding:7px 14px;border-radius:99px;
-  background:rgba(74,144,226,.09);border:none;
-  cursor:pointer;font-family:'Figtree',sans-serif;
-  transition:background .15s;
+.itin-card-footer{
+  border-top:1px solid var(--border);
 }
-.itin-card-attach-badge:active{background:rgba(74,144,226,.18);}
-.itin-card-attach-badge svg{width:12px;height:12px;stroke-width:2.5;}
+.itin-card-attach-badge{
+  display:flex;align-items:center;gap:8px;
+  width:100%;padding:12px 16px;
+  font-size:14px;font-weight:600;color:var(--accent);
+  background:none;border:none;
+  cursor:pointer;font-family:'Figtree',sans-serif;
+  transition:background .15s;text-align:left;
+}
+.itin-card-attach-badge:active{background:rgba(74,144,226,.07);}
+.itin-card-attach-badge svg{width:14px;height:14px;stroke-width:2.5;flex-shrink:0;}
 /* Full-screen preview overlay */
 #itinPreviewOverlay{
   position:fixed;inset:0;z-index:9000;
@@ -5780,15 +5783,17 @@ function renderItinerary(){
         ${e.attachment.mimeType.startsWith('image/')?'View photo':'View PDF'}
       </button>`:'';
       return`<div class="itin-entry-card" data-id="${e.id}">
-        <div class="itin-entry-icon" style="background:${t.bg}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
+        <div class="itin-card-main">
+          <div class="itin-entry-icon" style="background:${t.bg}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
+          </div>
+          <div class="itin-entry-body">
+            <div class="itin-entry-title">${esc(e.title)}</div>
+            ${timeStr?`<div class="itin-entry-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>${timeStr}</div>`:''}
+            ${(locPart||notesPart)?`<div class="itin-entry-meta">${locPart}${notesPart}</div>`:''}
+          </div>
         </div>
-        <div class="itin-entry-body">
-          <div class="itin-entry-title">${esc(e.title)}</div>
-          ${timeStr?`<div class="itin-entry-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>${timeStr}</div>`:''}
-          ${(locPart||notesPart)?`<div class="itin-entry-meta">${locPart}${notesPart}</div>`:''}
-          ${attachBadge}
-        </div>
+        ${attachBadge?`<div class="itin-card-footer">${attachBadge}</div>`:''}
       </div>`;
     }).join('');
     html+=`<div class="itin-day-row">
