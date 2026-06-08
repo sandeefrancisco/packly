@@ -610,6 +610,66 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
   display:flex;gap:10px;align-items:center;
 }
 .itin-modal-footer .btn-save{flex:1;}
+/* Attachment UI */
+.itin-attach-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:11px 16px;border-radius:12px;
+  border:1.5px dashed var(--border);background:var(--tint);
+  font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;color:var(--muted);
+  cursor:pointer;width:100%;transition:border-color .12s,color .12s;
+}
+.itin-attach-btn:hover{border-color:var(--accent);color:var(--accent);}
+.itin-attach-btn svg{width:16px;height:16px;stroke-width:2;flex-shrink:0;}
+.itin-attach-preview{
+  position:relative;display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--tint);
+}
+.itin-attach-thumb{
+  width:48px;height:48px;border-radius:8px;object-fit:cover;
+  border:1px solid var(--border);cursor:pointer;flex-shrink:0;
+}
+.itin-attach-pdf-icon{
+  width:48px;height:48px;border-radius:8px;
+  background:#fee2e2;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;cursor:pointer;
+}
+.itin-attach-pdf-icon svg{width:22px;height:22px;color:#ef4444;}
+.itin-attach-info{flex:1;min-width:0;}
+.itin-attach-name{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.itin-attach-size{font-size:11px;color:var(--muted);}
+.itin-attach-remove{
+  width:28px;height:28px;border-radius:50%;border:none;
+  background:rgba(0,0,0,.07);color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.itin-attach-remove svg{width:14px;height:14px;stroke-width:2.5;}
+/* Card attachment badge */
+.itin-card-attach-badge{
+  display:flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:600;color:var(--accent);
+  margin-top:4px;
+}
+.itin-card-attach-badge svg{width:12px;height:12px;stroke-width:2.5;}
+/* Full-screen preview overlay */
+#itinPreviewOverlay{
+  position:fixed;inset:0;z-index:9000;
+  background:rgba(0,0,0,.92);
+  display:none;flex-direction:column;
+}
+#itinPreviewOverlay.open{display:flex;}
+#itinPreviewClose{
+  position:absolute;top:max(16px,env(safe-area-inset-top)+12px);right:16px;
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.15);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;z-index:1;
+}
+#itinPreviewClose svg{width:18px;height:18px;stroke-width:2.5;}
+#itinPreviewImg{
+  flex:1;object-fit:contain;width:100%;padding:60px 16px 32px;box-sizing:border-box;
+}
+#itinPreviewPdf{
+  flex:1;width:100%;border:none;padding-top:60px;box-sizing:border-box;
+}
 /* Itinerary — big title input */
 .itin-title-input{
   width:100%;padding:14px 16px;
@@ -5432,6 +5492,7 @@ const ITIN_TYPES=[
     icon:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'},
 ];
 let _editingItinId=null;
+let _itinAttachment=null;
 
 function itinTypeInfo(typeId){return ITIN_TYPES.find(t=>t.id===typeId)||ITIN_TYPES[2];}
 
@@ -5697,6 +5758,10 @@ function renderItinerary(){
       const timePart=e.time?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(formatItinTime(e.time))}</span>`:'';
       const locPart=e.location?`<span class="itin-meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(e.location)}</span>`:'';
       const notesPart=e.notes?`<span class="itin-meta-chip">${esc(e.notes.length>50?e.notes.slice(0,50)+'…':e.notes)}</span>`:'';
+      const attachBadge=e.attachment?`<div class="itin-card-attach-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        ${e.attachment.mimeType.startsWith('image/')?'Photo':'PDF'}
+      </div>`:'';
       return`<div class="itin-entry-card" data-id="${e.id}">
         <div class="itin-entry-icon" style="background:${t.bg}">
           <svg viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
@@ -5704,6 +5769,7 @@ function renderItinerary(){
         <div class="itin-entry-body">
           <div class="itin-entry-title">${esc(e.title)}</div>
           ${(timePart||locPart||notesPart)?`<div class="itin-entry-meta">${timePart}${locPart}${notesPart}</div>`:''}
+          ${attachBadge}
         </div>
       </div>`;
     }).join('');
@@ -5728,6 +5794,8 @@ function renderItinerary(){
 window.openAddItinerary=function(presetDay){
   const trip=getTrip();if(!trip)return;
   _editingItinId=null;
+  _itinAttachment=null;
+  renderItinAttachUI();
   document.getElementById('itinModalTitle').textContent='Add Item';
   document.getElementById('itinTitle').value='';
   document.getElementById('itinTitleError').textContent='';
@@ -5760,6 +5828,8 @@ window.openEditItinerary=function(id){
   const trip=getTrip();if(!trip)return;
   const e=(trip.itinerary||[]).find(x=>x.id===id);if(!e)return;
   _editingItinId=id;
+  _itinAttachment=e.attachment||null;
+  renderItinAttachUI();
   document.getElementById('itinModalTitle').textContent='Edit Item';
   document.getElementById('itinTitle').value=e.title||'';
   document.getElementById('itinTitleError').textContent='';
@@ -5798,6 +5868,85 @@ window.handleItineraryOverlay=function(e){
   if(e.target===document.getElementById('itineraryOverlay'))closeItineraryModal();
 };
 
+window.handleItinFile=function(event){
+  const file=event.target.files&&event.target.files[0];
+  event.target.value='';
+  if(!file)return;
+  if(file.size>8*1024*1024){alert('File too large. Max 8 MB.');return;}
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    _itinAttachment={name:file.name,mimeType:file.type,dataUrl:ev.target.result};
+    renderItinAttachUI();
+  };
+  reader.readAsDataURL(file);
+};
+
+function renderItinAttachUI(){
+  const btn=document.getElementById('itinAttachBtn');
+  const preview=document.getElementById('itinAttachPreview');
+  if(!_itinAttachment){
+    btn.style.display='';preview.style.display='none';preview.innerHTML='';return;
+  }
+  btn.style.display='none';
+  const isImg=_itinAttachment.mimeType.startsWith('image/');
+  const kb=_itinAttachment.dataUrl?Math.round(_itinAttachment.dataUrl.length*0.75/1024):0;
+  const sizeStr=kb>1024?`${(kb/1024).toFixed(1)} MB`:`${kb} KB`;
+  let thumbHtml='';
+  if(isImg){
+    thumbHtml=`<img class="itin-attach-thumb" src="${_itinAttachment.dataUrl}" alt="" onclick="openAttachmentPreview()">`;
+  } else {
+    thumbHtml=`<div class="itin-attach-pdf-icon" onclick="openAttachmentPreview()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>`;
+  }
+  preview.innerHTML=`<div class="itin-attach-preview">
+    ${thumbHtml}
+    <div class="itin-attach-info">
+      <div class="itin-attach-name">${_itinAttachment.name}</div>
+      <div class="itin-attach-size">${sizeStr}</div>
+    </div>
+    <button type="button" class="itin-attach-remove" onclick="clearItinAttachment()" title="Remove">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>`;
+  preview.style.display='';
+}
+
+window.clearItinAttachment=function(){
+  _itinAttachment=null;
+  renderItinAttachUI();
+};
+
+window.openAttachmentPreview=function(){
+  if(!_itinAttachment)return;
+  const ov=document.getElementById('itinPreviewOverlay');
+  const img=document.getElementById('itinPreviewImg');
+  const pdf=document.getElementById('itinPreviewPdf');
+  const isImg=_itinAttachment.mimeType.startsWith('image/');
+  if(isImg){
+    img.src=_itinAttachment.dataUrl;img.style.display='';
+    pdf.src='';pdf.style.display='none';
+  } else {
+    pdf.src=_itinAttachment.dataUrl;pdf.style.display='';
+    img.src='';img.style.display='none';
+  }
+  ov.classList.add('open');
+  history.pushState({packly:'itinPreview'},'','#checklist');
+};
+
+window.closeAttachmentPreview=function(){
+  const ov=document.getElementById('itinPreviewOverlay');
+  if(!ov.classList.contains('open'))return;
+  ov.classList.remove('open');
+  const img=document.getElementById('itinPreviewImg');
+  const pdf=document.getElementById('itinPreviewPdf');
+  img.src='';pdf.src='';
+  if(history.state?.packly==='itinPreview')history.back();
+};
+
 window.saveItineraryEntry=function(){
   const title=document.getElementById('itinTitle').value.trim();
   const errEl=document.getElementById('itinTitleError');
@@ -5813,6 +5962,7 @@ window.saveItineraryEntry=function(){
   } else {
     date=document.getElementById('itinDate').value||'';
   }
+  const existing=_editingItinId?(trip.itinerary.find(x=>x.id===_editingItinId)||null):null;
   const entry={
     id:_editingItinId||uid(),
     title,
@@ -5822,6 +5972,8 @@ window.saveItineraryEntry=function(){
     location:document.getElementById('itinLocation').value.trim(),
     notes:document.getElementById('itinNotes').value.trim(),
   };
+  if(typeof existing?.order==='number')entry.order=existing.order;
+  if(_itinAttachment)entry.attachment=_itinAttachment;
   if(_editingItinId){
     const idx=trip.itinerary.findIndex(x=>x.id===_editingItinId);
     if(idx>=0)trip.itinerary[idx]=entry;else trip.itinerary.push(entry);
@@ -5925,10 +6077,22 @@ document.getElementById('authEmail').addEventListener('keydown',e=>{if(e.key==='
 
 /* ── Native back button / browser history ── */
 window.addEventListener('popstate',(ev)=>{
+  // Preview overlay (on top of itinerary modal)
+  if(ev.state?.packly==='itinerary'){
+    const ov=document.getElementById('itinPreviewOverlay');
+    if(ov.classList.contains('open')){
+      ov.classList.remove('open');
+      const img=document.getElementById('itinPreviewImg');
+      const pdf=document.getElementById('itinPreviewPdf');
+      img.src='';pdf.src='';
+      return;
+    }
+  }
   // Popping an overlay entry lands us on checklist state — close modals, stay in trip
   if(ev.state?.packly==='checklist'){
     document.getElementById('expenseOverlay').classList.remove('open');
     document.getElementById('itineraryOverlay').classList.remove('open');
+    document.getElementById('itinPreviewOverlay').classList.remove('open');
     document.getElementById('confirmOverlay').classList.remove('open');
     return;
   }
@@ -6276,6 +6440,18 @@ window.addEventListener('pageshow',(ev)=>{
           <textarea id="itinNotes" placeholder="Any details…" maxlength="300" rows="2"></textarea>
         </div>
       </div>
+      <!-- Attachment -->
+      <div class="field" style="margin-top:4px">
+        <label>Attachment</label>
+        <input type="file" id="itinFileInput" accept="image/*,.pdf" style="display:none" onchange="handleItinFile(event)">
+        <div id="itinAttachBtn">
+          <button type="button" class="itin-attach-btn" onclick="document.getElementById('itinFileInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            Add photo or PDF
+          </button>
+        </div>
+        <div id="itinAttachPreview" style="display:none"></div>
+      </div>
     </div>
     <div class="itin-modal-footer">
       <button class="btn-del-itin" id="itinDelBtn" onclick="deleteEditingItinerary()" title="Delete" aria-label="Delete item" style="display:none">
@@ -6284,6 +6460,15 @@ window.addEventListener('pageshow',(ev)=>{
       <button class="btn-save" id="itinSaveBtn" onclick="saveItineraryEntry()" style="flex:1">Add</button>
     </div>
   </div>
+</div>
+
+<!-- Attachment full-screen preview -->
+<div id="itinPreviewOverlay" onclick="if(event.target===this)closeAttachmentPreview()">
+  <button id="itinPreviewClose" onclick="closeAttachmentPreview()" aria-label="Close preview">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <img id="itinPreviewImg" alt="Attachment preview" style="display:none">
+  <iframe id="itinPreviewPdf" style="display:none" title="PDF preview"></iframe>
 </div>
 </body>
 </html>
