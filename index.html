@@ -624,19 +624,23 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
   position:relative;display:flex;align-items:center;gap:12px;
   padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--tint);
 }
-.itin-attach-thumb{
-  width:48px;height:48px;border-radius:8px;object-fit:cover;
-  border:1px solid var(--border);cursor:pointer;flex-shrink:0;
-}
+.itin-attach-img-wrap{width:48px;height:48px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0;}
+.itin-attach-thumb{width:100%;height:100%;object-fit:cover;display:block;}
 .itin-attach-pdf-icon{
   width:48px;height:48px;border-radius:8px;
   background:#fee2e2;display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;cursor:pointer;
+  flex-shrink:0;
 }
-.itin-attach-pdf-icon svg{width:22px;height:22px;color:#ef4444;}
 .itin-attach-info{flex:1;min-width:0;}
 .itin-attach-name{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .itin-attach-size{font-size:11px;color:var(--muted);}
+.itin-attach-view-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 12px;border-radius:8px;border:1.5px solid var(--accent);
+  background:transparent;color:var(--accent);
+  font-family:'Figtree',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;flex-shrink:0;white-space:nowrap;
+}
 .itin-attach-remove{
   width:28px;height:28px;border-radius:50%;border:none;
   background:rgba(0,0,0,.07);color:var(--muted);cursor:pointer;
@@ -5581,7 +5585,7 @@ window.selectItinDay=function(n){
 };
 
 function _attachItinDrag(card){
-  const LONG_MS=380, THRESH=8;
+  const LONG_MS=300, THRESH=12;
   let timer=null, dragging=false, startX, startY;
 
   card.addEventListener('pointerdown',e=>{
@@ -5891,23 +5895,29 @@ function renderItinAttachUI(){
   const isImg=_itinAttachment.mimeType.startsWith('image/');
   const kb=_itinAttachment.dataUrl?Math.round(_itinAttachment.dataUrl.length*0.75/1024):0;
   const sizeStr=kb>1024?`${(kb/1024).toFixed(1)} MB`:`${kb} KB`;
-  let thumbHtml='';
+  let iconHtml='';
   if(isImg){
-    thumbHtml=`<img class="itin-attach-thumb" src="${_itinAttachment.dataUrl}" alt="" onclick="openAttachmentPreview()">`;
+    iconHtml=`<div class="itin-attach-img-wrap">
+      <img class="itin-attach-thumb" src="${_itinAttachment.dataUrl}" alt="">
+    </div>`;
   } else {
-    thumbHtml=`<div class="itin-attach-pdf-icon" onclick="openAttachmentPreview()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px">
+    iconHtml=`<div class="itin-attach-pdf-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
       </svg>
     </div>`;
   }
   preview.innerHTML=`<div class="itin-attach-preview">
-    ${thumbHtml}
+    ${iconHtml}
     <div class="itin-attach-info">
       <div class="itin-attach-name">${_itinAttachment.name}</div>
       <div class="itin-attach-size">${sizeStr}</div>
     </div>
+    <button type="button" class="itin-attach-view-btn" onclick="openAttachmentPreview()" title="View">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      View
+    </button>
     <button type="button" class="itin-attach-remove" onclick="clearItinAttachment()" title="Remove">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
@@ -5922,19 +5932,26 @@ window.clearItinAttachment=function(){
 
 window.openAttachmentPreview=function(){
   if(!_itinAttachment)return;
-  const ov=document.getElementById('itinPreviewOverlay');
-  const img=document.getElementById('itinPreviewImg');
-  const pdf=document.getElementById('itinPreviewPdf');
   const isImg=_itinAttachment.mimeType.startsWith('image/');
   if(isImg){
+    const ov=document.getElementById('itinPreviewOverlay');
+    const img=document.getElementById('itinPreviewImg');
+    const pdf=document.getElementById('itinPreviewPdf');
     img.src=_itinAttachment.dataUrl;img.style.display='';
     pdf.src='';pdf.style.display='none';
+    ov.classList.add('open');
+    history.pushState({packly:'itinPreview'},'','#checklist');
   } else {
-    pdf.src=_itinAttachment.dataUrl;pdf.style.display='';
-    img.src='';img.style.display='none';
+    // PDF: convert base64 to blob and open in new tab — works on all platforms
+    const b64=_itinAttachment.dataUrl.split(',')[1];
+    const bytes=atob(b64);
+    const arr=new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+    const blob=new Blob([arr],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    window.open(url,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
   }
-  ov.classList.add('open');
-  history.pushState({packly:'itinPreview'},'','#checklist');
 };
 
 window.closeAttachmentPreview=function(){
