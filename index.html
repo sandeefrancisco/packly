@@ -393,6 +393,13 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-item{cursor:pointer;}
 .exp-item:active{background:var(--tint);}
 .exp-item.exp-settled{box-shadow:inset 3px 0 0 #16a34a;}
+.exp-split-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 7px;border-radius:99px;}
+.exp-share-amt{font-size:11px;color:var(--accent);font-weight:600;white-space:nowrap;}
+.exp-split-stepper{display:flex;align-items:center;gap:14px;padding:8px 0 4px;}
+.exp-split-step-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .1s;flex-shrink:0;}
+.exp-split-step-btn:active{background:var(--tint);}
+.exp-split-ways-lbl{font-size:15px;font-weight:700;color:var(--ink);min-width:72px;text-align:center;}
+.exp-split-hint{font-size:13px;color:var(--accent);font-weight:600;margin:2px 0 0;}
 .exp-day-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:10px 4px 6px;
@@ -2235,7 +2242,7 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
             <span id="expCurrencyDisplay">EUR</span>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <input id="expAmount" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00">
+          <input id="expAmount" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00" oninput="_updateSplitHint()">
         </div>
         <input type="hidden" id="expCurrency" value="EUR">
         <p class="field-error" id="expAmountError"></p>
@@ -2257,6 +2264,21 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
       <div class="field">
         <label>Paid by</label>
         <input id="expPaidBy" placeholder="You (leave empty if you paid)" maxlength="40" autocomplete="off">
+      </div>
+      <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+        <label style="margin:0">Split expense</label>
+        <label class="exp-toggle">
+          <input type="checkbox" id="expSplitEnabled" onchange="toggleSplitEnabled()">
+          <span class="exp-toggle-track"></span>
+        </label>
+      </div>
+      <div id="expSplitDetails" class="field" style="display:none;padding-top:0">
+        <div class="exp-split-stepper">
+          <button type="button" class="exp-split-step-btn" onclick="stepSplitWays(-1)">−</button>
+          <span id="expSplitWaysLbl" class="exp-split-ways-lbl">2 people</span>
+          <button type="button" class="exp-split-step-btn" onclick="stepSplitWays(1)">+</button>
+        </div>
+        <p class="exp-split-hint" id="expSplitHint"></p>
       </div>
       <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
         <label style="margin:0">Already settled</label>
@@ -4958,6 +4980,27 @@ const EXP_PAYMENTS=[
   {id:'cash',  name:'Cash',       logo:`<svg viewBox="0 0 56 36" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#f0fdf4"/><text x="28" y="24" text-anchor="middle" font-size="18" font-weight="700" fill="#16a34a" font-family="Figtree,sans-serif">$</text></svg>`},
 ];
 let _editingExpenseId=null;
+let _splitWays=1;
+window.toggleSplitEnabled=function(){
+  const on=document.getElementById('expSplitEnabled').checked;
+  if(on&&_splitWays<2)_splitWays=2;
+  else if(!on)_splitWays=1;
+  document.getElementById('expSplitDetails').style.display=on?'':'none';
+  _updateSplitHint();
+};
+window.stepSplitWays=function(d){
+  _splitWays=Math.max(2,Math.min(20,_splitWays+d));
+  _updateSplitHint();
+};
+window._updateSplitHint=function(){
+  const on=document.getElementById('expSplitEnabled')?.checked;
+  if(!on)return;
+  document.getElementById('expSplitWaysLbl').textContent=`${_splitWays} people`;
+  const amt=parseFloat(document.getElementById('expAmount').value.replace(',','.'));
+  const cur=document.getElementById('expCurrency').value||'';
+  const hint=document.getElementById('expSplitHint');
+  hint.textContent=(amt>0&&_splitWays>=2)?`Your share: ${cur} ${(amt/_splitWays).toFixed(2)}`:'';
+};
 let _selectedPayment='cash';
 let _expFilterCats=new Set();
 let _expFilterPays=new Set();
@@ -5093,12 +5136,15 @@ function renderExpenses(){
     const pm=EXP_PAYMENTS.find(p=>p.id===e.payWith);
     const payIcon=pm?`<span class="exp-pay-icon" title="${pm.name}">${pm.logo}</span>`:'';
     const cat=catIconFor(e);
-    const metaParts=[e.category,payIcon].filter(Boolean);
+    const split=e.splitWays>1?e.splitWays:0;
+    const splitBadge=split?`<span class="exp-split-badge">÷${split}</span>`:'';
+    const metaParts=[e.category,payIcon,splitBadge].filter(Boolean);
     // Right-column subtitle: "by KR · Settled"
     const subParts=[];
     if(e.paidBy) subParts.push(`<span>by ${esc(e.paidBy)}</span>`);
     if(e.settled) subParts.push(`<span class="exp-settled-tag">Settled</span>`);
     const rightSub=subParts.join('<span style="opacity:.3">·</span>');
+    const shareAmt=split?`<div class="exp-share-amt">${e.currency} ${(e.amount/split).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} each</div>`:'';
     return`<div class="exp-item${e.settled?" exp-settled":""}" onclick="editExpense('${e.id}')">
       <div class="exp-cat-icon" style="background:${cat.bg}">
         <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
@@ -5110,6 +5156,7 @@ function renderExpenses(){
       </div>
       <div class="exp-item-right">
         <div class="exp-item-amount">${e.currency} ${e.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        ${shareAmt}
         ${rightSub?`<div class="exp-item-sub">${rightSub}</div>`:''}
       </div>
     </div>`;
@@ -5367,6 +5414,10 @@ window.openAddExpense=function(){
   renderPayChips('visa');
   document.getElementById('expPaidBy').value='';
   document.getElementById('expSettled').checked=false;
+  _splitWays=1;
+  document.getElementById('expSplitEnabled').checked=false;
+  document.getElementById('expSplitDetails').style.display='none';
+  document.getElementById('expSplitHint').textContent='';
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -5410,6 +5461,12 @@ window.editExpense=function(id){
   renderPayChips(e.payWith||'visa');
   document.getElementById('expPaidBy').value=e.paidBy||'';
   document.getElementById('expSettled').checked=!!e.settled;
+  _splitWays=e.splitWays>1?e.splitWays:1;
+  const splitOn=_splitWays>1;
+  document.getElementById('expSplitEnabled').checked=splitOn;
+  document.getElementById('expSplitDetails').style.display=splitOn?'':'none';
+  if(splitOn){document.getElementById('expSplitWaysLbl').textContent=`${_splitWays} people`;}
+  document.getElementById('expSplitHint').textContent='';
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -5425,6 +5482,7 @@ window.saveExpense=function(){
   const payWith=_selectedPayment;
   const paidBy=document.getElementById('expPaidBy').value.trim();
   const settled=document.getElementById('expSettled').checked;
+  const splitWays=document.getElementById('expSplitEnabled').checked&&_splitWays>=2?_splitWays:1;
   const amountErr=document.getElementById('expAmountError');
   const labelErr=document.getElementById('expLabelError');
   const amountRow=document.getElementById('expAmount').closest('.amount-cur-row');
@@ -5449,9 +5507,9 @@ window.saveExpense=function(){
   if(!trip.expenses)trip.expenses=[];
   if(_editingExpenseId){
     const idx=trip.expenses.findIndex(e=>e.id===_editingExpenseId);
-    if(idx>-1)trip.expenses[idx]={...trip.expenses[idx],label,amount,currency,category,date,notes,payWith,paidBy,settled};
+    if(idx>-1)trip.expenses[idx]={...trip.expenses[idx],label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWays};
   }else{
-    trip.expenses.unshift({id:uid(),label,amount,currency,category,date,notes,payWith,paidBy,settled});
+    trip.expenses.unshift({id:uid(),label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWays});
   }
   saveAll(trips);
   closeExpenseModal();
