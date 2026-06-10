@@ -395,11 +395,15 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-item.exp-settled{box-shadow:inset 3px 0 0 #16a34a;}
 .exp-split-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 7px;border-radius:99px;}
 .exp-share-amt{font-size:11px;color:var(--accent);font-weight:600;white-space:nowrap;}
-.exp-split-stepper{display:flex;align-items:center;gap:14px;padding:8px 0 4px;}
-.exp-split-step-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .1s;flex-shrink:0;}
-.exp-split-step-btn:active{background:var(--tint);}
-.exp-split-ways-lbl{font-size:15px;font-weight:700;color:var(--ink);min-width:72px;text-align:center;}
-.exp-split-hint{font-size:13px;color:var(--accent);font-weight:600;margin:2px 0 0;}
+.exp-split-add-row{display:flex;gap:8px;margin-top:8px;}
+.exp-split-add-row input{flex:1;height:40px;border-radius:10px;border:1.5px solid var(--border);padding:0 12px;font-family:'Figtree',sans-serif;font-size:15px;color:var(--ink);background:var(--white);outline:none;min-width:0;}
+.exp-split-add-row input:focus{border-color:var(--accent);}
+.exp-split-add-btn{width:40px;height:40px;border-radius:10px;border:none;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.exp-split-add-btn svg{width:18px;height:18px;}
+.exp-split-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.exp-split-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(74,144,226,.12);color:var(--accent);border-radius:99px;padding:5px 8px 5px 12px;font-size:13px;font-weight:600;}
+.exp-split-chip-rm{width:18px;height:18px;border-radius:50%;border:none;background:rgba(74,144,226,.22);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font-size:14px;line-height:1;flex-shrink:0;}
+.exp-split-hint{font-size:13px;color:var(--accent);font-weight:600;margin:8px 0 0;}
 .exp-day-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:10px 4px 6px;
@@ -2273,11 +2277,14 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
         </label>
       </div>
       <div id="expSplitDetails" class="field" style="display:none;padding-top:0">
-        <div class="exp-split-stepper">
-          <button type="button" class="exp-split-step-btn" onclick="stepSplitWays(-1)">−</button>
-          <span id="expSplitWaysLbl" class="exp-split-ways-lbl">2 people</span>
-          <button type="button" class="exp-split-step-btn" onclick="stepSplitWays(1)">+</button>
+        <div class="exp-split-add-row">
+          <input id="expSplitPersonInput" type="text" placeholder="Add person's name…" maxlength="30" autocomplete="off"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();addSplitPerson()}">
+          <button type="button" class="exp-split-add-btn" onclick="addSplitPerson()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
         </div>
+        <div id="expSplitChips" class="exp-split-chips"></div>
         <p class="exp-split-hint" id="expSplitHint"></p>
       </div>
       <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
@@ -4980,26 +4987,48 @@ const EXP_PAYMENTS=[
   {id:'cash',  name:'Cash',       logo:`<svg viewBox="0 0 56 36" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="36" rx="6" fill="#f0fdf4"/><text x="28" y="24" text-anchor="middle" font-size="18" font-weight="700" fill="#16a34a" font-family="Figtree,sans-serif">$</text></svg>`},
 ];
 let _editingExpenseId=null;
-let _splitWays=1;
+let _splitWith=[];
+function _renderSplitChips(){
+  const container=document.getElementById('expSplitChips');
+  if(!container)return;
+  container.innerHTML=_splitWith.map((name,i)=>
+    `<span class="exp-split-chip">${esc(name)}<button type="button" class="exp-split-chip-rm" onclick="removeSplitPerson(${i})" aria-label="Remove">×</button></span>`
+  ).join('');
+  _updateSplitHint();
+}
 window.toggleSplitEnabled=function(){
   const on=document.getElementById('expSplitEnabled').checked;
-  if(on&&_splitWays<2)_splitWays=2;
-  else if(!on)_splitWays=1;
   document.getElementById('expSplitDetails').style.display=on?'':'none';
+  if(!on){_splitWith=[];_renderSplitChips();}
   _updateSplitHint();
 };
-window.stepSplitWays=function(d){
-  _splitWays=Math.max(2,Math.min(20,_splitWays+d));
-  _updateSplitHint();
+window.addSplitPerson=function(){
+  const inp=document.getElementById('expSplitPersonInput');
+  const name=inp.value.trim();
+  if(!name||_splitWith.length>=19)return;
+  _splitWith.push(name);
+  inp.value='';
+  _renderSplitChips();
+  inp.focus();
+};
+window.removeSplitPerson=function(i){
+  _splitWith.splice(i,1);
+  _renderSplitChips();
 };
 window._updateSplitHint=function(){
   const on=document.getElementById('expSplitEnabled')?.checked;
-  if(!on)return;
-  document.getElementById('expSplitWaysLbl').textContent=`${_splitWays} people`;
+  const hint=document.getElementById('expSplitHint');
+  if(!hint)return;
+  if(!on||_splitWith.length===0){hint.innerHTML='';return;}
+  const ways=_splitWith.length+1;
   const amt=parseFloat(document.getElementById('expAmount').value.replace(',','.'));
   const cur=document.getElementById('expCurrency').value||'';
-  const hint=document.getElementById('expSplitHint');
-  hint.textContent=(amt>0&&_splitWays>=2)?`Your share: ${cur} ${(amt/_splitWays).toFixed(2)}`:'';
+  if(amt>0){
+    const share=(amt/ways).toFixed(2);
+    hint.innerHTML=`<span style="opacity:.7">${cur} ${amt.toFixed(2)} total ÷ ${ways} =</span> <strong>${cur} ${share} each</strong>`;
+  }else{
+    hint.innerHTML=`<span style="opacity:.7">Split ${ways} ways — you + ${_splitWith.length}</span>`;
+  }
 };
 let _selectedPayment='cash';
 let _expFilterCats=new Set();
@@ -5137,6 +5166,7 @@ function renderExpenses(){
     const payIcon=pm?`<span class="exp-pay-icon" title="${pm.name}">${pm.logo}</span>`:'';
     const cat=catIconFor(e);
     const split=e.splitWays>1?e.splitWays:0;
+    const splitNames=(e.splitWith||[]);
     const splitBadge=split?`<span class="exp-split-badge">÷${split}</span>`:'';
     const metaParts=[e.category,payIcon,splitBadge].filter(Boolean);
     // Right-column subtitle: "by KR · Settled"
@@ -5145,6 +5175,7 @@ function renderExpenses(){
     if(e.settled) subParts.push(`<span class="exp-settled-tag">Settled</span>`);
     const rightSub=subParts.join('<span style="opacity:.3">·</span>');
     const shareAmt=split?`<div class="exp-share-amt">${e.currency} ${(e.amount/split).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} each</div>`:'';
+    const withLine=splitNames.length?`<div class="exp-item-notes">with ${splitNames.slice(0,3).map(esc).join(', ')}${splitNames.length>3?` +${splitNames.length-3}`:''}` +'</div>':'';
     return`<div class="exp-item${e.settled?" exp-settled":""}" onclick="editExpense('${e.id}')">
       <div class="exp-cat-icon" style="background:${cat.bg}">
         <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
@@ -5152,6 +5183,7 @@ function renderExpenses(){
       <div class="exp-item-info">
         <div class="exp-item-label">${esc(e.label)}</div>
         <div class="exp-item-meta">${metaParts.join('<span style="opacity:.35">·</span>')}</div>
+        ${withLine}
         ${e.notes?`<div class="exp-item-notes">${esc(e.notes)}</div>`:''}
       </div>
       <div class="exp-item-right">
@@ -5414,10 +5446,12 @@ window.openAddExpense=function(){
   renderPayChips('visa');
   document.getElementById('expPaidBy').value='';
   document.getElementById('expSettled').checked=false;
-  _splitWays=1;
+  _splitWith=[];
   document.getElementById('expSplitEnabled').checked=false;
   document.getElementById('expSplitDetails').style.display='none';
+  document.getElementById('expSplitChips').innerHTML='';
   document.getElementById('expSplitHint').textContent='';
+  document.getElementById('expSplitPersonInput').value='';
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -5461,12 +5495,12 @@ window.editExpense=function(id){
   renderPayChips(e.payWith||'visa');
   document.getElementById('expPaidBy').value=e.paidBy||'';
   document.getElementById('expSettled').checked=!!e.settled;
-  _splitWays=e.splitWays>1?e.splitWays:1;
-  const splitOn=_splitWays>1;
+  _splitWith=(e.splitWith||[]).slice();
+  const splitOn=_splitWith.length>0;
   document.getElementById('expSplitEnabled').checked=splitOn;
   document.getElementById('expSplitDetails').style.display=splitOn?'':'none';
-  if(splitOn){document.getElementById('expSplitWaysLbl').textContent=`${_splitWays} people`;}
-  document.getElementById('expSplitHint').textContent='';
+  document.getElementById('expSplitPersonInput').value='';
+  if(splitOn){_renderSplitChips();}else{document.getElementById('expSplitChips').innerHTML='';document.getElementById('expSplitHint').textContent='';}
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -5482,7 +5516,9 @@ window.saveExpense=function(){
   const payWith=_selectedPayment;
   const paidBy=document.getElementById('expPaidBy').value.trim();
   const settled=document.getElementById('expSettled').checked;
-  const splitWays=document.getElementById('expSplitEnabled').checked&&_splitWays>=2?_splitWays:1;
+  const splitOn=document.getElementById('expSplitEnabled').checked&&_splitWith.length>0;
+  const splitWith=splitOn?_splitWith.slice():[];
+  const splitWays=splitOn?splitWith.length+1:1;
   const amountErr=document.getElementById('expAmountError');
   const labelErr=document.getElementById('expLabelError');
   const amountRow=document.getElementById('expAmount').closest('.amount-cur-row');
@@ -5507,9 +5543,9 @@ window.saveExpense=function(){
   if(!trip.expenses)trip.expenses=[];
   if(_editingExpenseId){
     const idx=trip.expenses.findIndex(e=>e.id===_editingExpenseId);
-    if(idx>-1)trip.expenses[idx]={...trip.expenses[idx],label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWays};
+    if(idx>-1)trip.expenses[idx]={...trip.expenses[idx],label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWith,splitWays};
   }else{
-    trip.expenses.unshift({id:uid(),label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWays});
+    trip.expenses.unshift({id:uid(),label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWith,splitWays});
   }
   saveAll(trips);
   closeExpenseModal();
