@@ -5159,9 +5159,8 @@ function renderExpenses(){
     const combined=availCurs.reduce((sum,cur)=>sum+(_convertAmt(totals[cur],cur,displayCur,_fxRates)??0),0);
     totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(combined)}</div>`;
   } else {
-    // Rates loading or unavailable — never show multiple currencies at once
-    totalHtml=`<div class="exp-total-amount" style="opacity:.35">—</div>`
-      +(_fxFailed?`<div style="font-size:11px;color:var(--muted);margin-top:4px;opacity:.6">Exchange rates unavailable</div>`:'');
+    // Rates loading or unavailable — show individual amounts so numbers are always visible
+    totalHtml=availCurs.map(c=>`<div class="exp-total-amount">${c} ${fmtN(totals[c])}</div>`).join('');
   }
 
   const totalLabel=hasFilter
@@ -5198,8 +5197,8 @@ function renderExpenses(){
         return`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join('')}</span>`;
       }
       if(!_fxRates){
-        // No rates yet — never show mixed currencies; show a dash
-        return`<span class="exp-split-person-amt" style="opacity:.35">—</span>`;
+        // Rates not yet available — show raw amounts so numbers are always visible
+        return`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join(' · ')}</span>`;
       }
       // FX available — convert everything to displayCur and show one number
       const converted=entries.reduce((sum,[cur,amt])=>sum+(_convertAmt(amt,cur,displayCur,_fxRates)??0),0);
