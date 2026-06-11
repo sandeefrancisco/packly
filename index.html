@@ -5015,19 +5015,22 @@ window.toggleSplitEnabled=function(){
   const on=document.getElementById('expSplitEnabled').checked;
   document.getElementById('expSplitDetails').style.display=on?'':'none';
   if(!on){_splitWith=[];_renderSplitChips();}
+  else if(!localStorage.getItem('packly_my_name')){
+    setTimeout(()=>document.getElementById('expSplitMyName').focus(),50);
+  }
   _updateSplitHint();
 };
 window.saveMyExpenseName=function(){
-  const trip=getTrip();if(!trip)return;
-  trip.myName=document.getElementById('expSplitMyName').value.trim();
-  saveAll(trips);
+  const name=document.getElementById('expSplitMyName').value.trim();
+  if(name)localStorage.setItem('packly_my_name',name);
+  else localStorage.removeItem('packly_my_name');
   _updateSplitHint();
 };
 window.addSplitPerson=function(){
   const inp=document.getElementById('expSplitPersonInput');
   const name=inp.value.trim();
   if(!name||_splitWith.length>=19)return;
-  const myName=(getTrip()?.myName||'').toLowerCase();
+  const myName=(localStorage.getItem('packly_my_name')||'').toLowerCase();
   if(myName&&name.toLowerCase()===myName){
     showToast("That's you — your share is already included.");
     inp.value='';inp.focus();return;
@@ -5046,12 +5049,13 @@ window._updateSplitHint=function(){
   const hint=document.getElementById('expSplitHint');
   if(!hint)return;
   if(!on||_splitWith.length===0){hint.innerHTML='';return;}
+  const me=localStorage.getItem('packly_my_name')||'You';
   const ways=_splitWith.length+1;
   const amt=parseFloat(document.getElementById('expAmount').value.replace(',','.'));
   const cur=document.getElementById('expCurrency').value||'';
   if(amt>0){
     const share=(amt/ways).toFixed(2);
-    hint.innerHTML=`<span style="opacity:.7">${cur} ${amt.toFixed(2)} total ÷ ${ways} =</span> <strong>${cur} ${share} each</strong>`;
+    hint.innerHTML=`<span style="opacity:.7">${cur} ${amt.toFixed(2)} total ÷ ${ways} =</span> <strong>${cur} ${share} each</strong> <span style="opacity:.5">(${me} + ${_splitWith.map(esc).join(', ')})</span>`;
   }else{
     hint.innerHTML=`<span style="opacity:.7">Split ${ways} ways — you + ${_splitWith.length}</span>`;
   }
@@ -5103,8 +5107,7 @@ function renderExpenses(){
   const hasSplit=expenses.some(e=>e.splitWays>1);
   let splitSummaryHtml='';
   if(hasSplit){
-    const trip=getTrip();
-    const myName=trip?.myName||'';
+    const myName=localStorage.getItem('packly_my_name')||'';
     const myNameLower=myName.toLowerCase();
     const fmtA=(cur,amt)=>`${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
     const myShares={};
@@ -5519,7 +5522,7 @@ window.openAddExpense=function(){
   document.getElementById('expSplitChips').innerHTML='';
   document.getElementById('expSplitHint').textContent='';
   document.getElementById('expSplitPersonInput').value='';
-  document.getElementById('expSplitMyName').value=getTrip()?.myName||'';
+  document.getElementById('expSplitMyName').value=localStorage.getItem('packly_my_name')||'';
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -5568,7 +5571,7 @@ window.editExpense=function(id){
   document.getElementById('expSplitEnabled').checked=splitOn;
   document.getElementById('expSplitDetails').style.display=splitOn?'':'none';
   document.getElementById('expSplitPersonInput').value='';
-  document.getElementById('expSplitMyName').value=getTrip()?.myName||'';
+  document.getElementById('expSplitMyName').value=localStorage.getItem('packly_my_name')||'';
   if(splitOn){_renderSplitChips();}else{document.getElementById('expSplitChips').innerHTML='';document.getElementById('expSplitHint').textContent='';}
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
