@@ -5075,6 +5075,8 @@ let _fxPending=null;
 let _fxFailed=false;
 let _totalDisplayCur=null;
 let _splitBreakdownOpen=false;
+// Seed from localStorage so rates are available immediately on repeat visits
+(function(){try{const d=JSON.parse(localStorage.getItem('_fxCache')||'null');if(d&&d.rates&&Date.now()-d.at<86400000){_fxRates=d.rates;_fxFetchedAt=d.at;}}catch(e){}}());
 function getExpenses(){
   const trip=getTrip();return trip?.expenses||[];
 }
@@ -5087,7 +5089,11 @@ function _ensureFxRates(){
   if(_fxPending)return _fxPending;
   _fxPending=fetch('https://api.frankfurter.app/latest?from=EUR')
     .then(r=>r.json())
-    .then(data=>{_fxRates={EUR:1,...data.rates};_fxFetchedAt=Date.now();_fxPending=null;_fxFailed=false;return _fxRates;})
+    .then(data=>{
+      _fxRates={EUR:1,...data.rates};_fxFetchedAt=Date.now();_fxPending=null;_fxFailed=false;
+      try{localStorage.setItem('_fxCache',JSON.stringify({rates:_fxRates,at:_fxFetchedAt}));}catch(e){}
+      return _fxRates;
+    })
     .catch(()=>{_fxPending=null;_fxFailed=true;return null;});
   return _fxPending;
 }
@@ -5152,12 +5158,10 @@ function renderExpenses(){
   } else if(_fxRates){
     const combined=availCurs.reduce((sum,cur)=>sum+(_convertAmt(totals[cur],cur,displayCur,_fxRates)??0),0);
     totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(combined)}</div>`;
-  } else if(_fxFailed){
-    // Rates unavailable — show individual amounts as fallback
-    totalHtml=availCurs.map(c=>`<div class="exp-total-amount">${c} ${fmtN(totals[c])}</div>`).join('');
   } else {
-    // Rates loading (~200ms) — show a dash until the re-render arrives with combined total
-    totalHtml=`<div class="exp-total-amount" style="opacity:.35">—</div>`;
+    // Rates loading or unavailable — never show multiple currencies at once
+    totalHtml=`<div class="exp-total-amount" style="opacity:.35">—</div>`
+      +(_fxFailed?`<div style="font-size:11px;color:var(--muted);margin-top:4px;opacity:.6">Exchange rates unavailable</div>`:'');
   }
 
   const totalLabel=hasFilter
@@ -5194,10 +5198,8 @@ function renderExpenses(){
         return`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join('')}</span>`;
       }
       if(!_fxRates){
-        // Rates unavailable (failed) or still loading — show per-currency amounts or a dash
-        return _fxFailed
-          ?`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join(' · ')}</span>`
-          :`<span class="exp-split-person-amt" style="opacity:.35">—</span>`;
+        // No rates yet — never show mixed currencies; show a dash
+        return`<span class="exp-split-person-amt" style="opacity:.35">—</span>`;
       }
       // FX available — convert everything to displayCur and show one number
       const converted=entries.reduce((sum,[cur,amt])=>sum+(_convertAmt(amt,cur,displayCur,_fxRates)??0),0);
