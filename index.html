@@ -5071,6 +5071,8 @@ let _expFilterPayers=new Set();
 let _expFilterSettled=null; // null=all, true=settled only, false=unsettled only
 let _fxRates=null;
 let _fxFetchedAt=0;
+let _fxPending=null;
+let _fxFailed=false;
 let _totalDisplayCur=null;
 let _splitBreakdownOpen=false;
 function getExpenses(){
@@ -5082,10 +5084,12 @@ window.toggleSplitBreakdown=function(){_splitBreakdownOpen=!_splitBreakdownOpen;
 function _ensureFxRates(){
   const now=Date.now();
   if(_fxRates&&(now-_fxFetchedAt)<3600000)return Promise.resolve(_fxRates);
-  return fetch('https://api.frankfurter.app/latest?from=EUR')
+  if(_fxPending)return _fxPending;
+  _fxPending=fetch('https://api.frankfurter.app/latest?from=EUR')
     .then(r=>r.json())
-    .then(data=>{_fxRates={EUR:1,...data.rates};_fxFetchedAt=Date.now();return _fxRates;})
-    .catch(()=>null);
+    .then(data=>{_fxRates={EUR:1,...data.rates};_fxFetchedAt=Date.now();_fxPending=null;_fxFailed=false;return _fxRates;})
+    .catch(()=>{_fxPending=null;_fxFailed=true;return null;});
+  return _fxPending;
 }
 function _convertAmt(amount,fromCur,toCur,rates){
   if(!rates||fromCur===toCur)return amount;
@@ -5128,7 +5132,7 @@ function renderExpenses(){
   const displayCur=(_totalDisplayCur&&availCurs.includes(_totalDisplayCur))?_totalDisplayCur:baseCur;
 
   // Kick off FX fetch if needed, then re-render once rates arrive
-  if(isMultiCurrency&&!_fxRates){_ensureFxRates().then(r=>{if(r)renderExpenses();});}
+  if(isMultiCurrency&&!_fxRates&&!_fxFailed){_ensureFxRates().then(()=>renderExpenses());}
 
   const fmtN=(amt)=>amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 
@@ -5148,12 +5152,12 @@ function renderExpenses(){
   } else if(_fxRates){
     const combined=availCurs.reduce((sum,cur)=>sum+(_convertAmt(totals[cur],cur,displayCur,_fxRates)??0),0);
     totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(combined)}</div>`;
+  } else if(_fxFailed){
+    // Rates unavailable — show individual amounts as fallback
+    totalHtml=availCurs.map(c=>`<div class="exp-total-amount">${c} ${fmtN(totals[c])}</div>`).join('');
   } else {
-    // FX loading — show only the displayCur slice; combined total arrives on re-render
-    const partial=totals[displayCur];
-    totalHtml=partial!=null
-      ?`<div class="exp-total-amount">${displayCur} ${fmtN(partial)}</div>`
-      :`<div class="exp-total-amount" style="opacity:.35">—</div>`;
+    // Rates loading (~200ms) — show a dash until the re-render arrives with combined total
+    totalHtml=`<div class="exp-total-amount" style="opacity:.35">—</div>`;
   }
 
   const totalLabel=hasFilter
@@ -5190,9 +5194,10 @@ function renderExpenses(){
         return`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join('')}</span>`;
       }
       if(!_fxRates){
-        // FX loading — show only the displayCur slice for this person
-        const a=shares[displayCur];
-        return`<span class="exp-split-person-amt">${a!=null?fmtA(displayCur,a):'<span style="opacity:.35">—</span>'}</span>`;
+        // Rates unavailable (failed) or still loading — show per-currency amounts or a dash
+        return _fxFailed
+          ?`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join(' · ')}</span>`
+          :`<span class="exp-split-person-amt" style="opacity:.35">—</span>`;
       }
       // FX available — convert everything to displayCur and show one number
       const converted=entries.reduce((sum,[cur,amt])=>sum+(_convertAmt(amt,cur,displayCur,_fxRates)??0),0);
