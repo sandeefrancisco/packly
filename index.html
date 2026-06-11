@@ -379,10 +379,7 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-split-person-name{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;}
 .exp-split-you-tag{font-size:10px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 6px;border-radius:99px;}
 .exp-split-person-amt{font-size:14px;font-weight:700;color:var(--ink);text-align:right;}
-.exp-split-converted{display:block;}
-.exp-split-orig{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-top:1px;}
 .exp-fx-note{font-size:10px;color:var(--muted);margin-top:10px;opacity:.5;text-align:right;}
-.exp-total-converted{font-size:13px;font-weight:600;color:var(--muted);margin-top:6px;}
 .exp-list{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
 .exp-item{
   background:var(--white);border-radius:0;
@@ -5150,9 +5147,7 @@ function renderExpenses(){
     totalHtml=`<div class="exp-total-amount">${availCurs[0]} ${fmtN(totals[availCurs[0]])}</div>`;
   } else if(_fxRates){
     const combined=availCurs.reduce((sum,cur)=>sum+(_convertAmt(totals[cur],cur,displayCur,_fxRates)??0),0);
-    const otherCurs=availCurs.filter(c=>c!==displayCur);
-    totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(combined)}</div>`
-      +(otherCurs.length?`<div class="exp-total-converted">converted from ${otherCurs.join(' + ')}</div>`:'');
+    totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(combined)}</div>`;
   } else {
     // FX not yet loaded — show individual amounts until rates arrive
     totalHtml=availCurs.map(c=>`<div class="exp-total-amount">${c} ${fmtN(totals[c])}</div>`).join('');
@@ -5184,18 +5179,16 @@ function renderExpenses(){
       }
     });
 
-    // Render the amount cell for a person; converts to displayCur when multi-currency
+    // Render the amount cell for a person — always single currency (displayCur)
     const renderAmt=(shares)=>{
       const entries=Object.entries(shares);
-      const origStr=entries.map(([c,a])=>fmtA(c,a)).join(' · ');
-      if(!isMultiCurrency||!_fxRates||entries.every(([c])=>c===displayCur)){
-        return`<span class="exp-split-person-amt">${origStr}</span>`;
+      // Single-currency trip or rates not yet loaded: show the raw amount(s)
+      if(!isMultiCurrency||!_fxRates){
+        return`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join(' · ')}</span>`;
       }
-      const converted=entries.reduce((sum,[cur,amt])=>{
-        const v=_convertAmt(amt,cur,displayCur,_fxRates);
-        return sum+(v??0);
-      },0);
-      return`<span class="exp-split-person-amt"><span class="exp-split-converted">${displayCur} ${fmtN(converted)}</span><span class="exp-split-orig">${origStr}</span></span>`;
+      // Convert all of this person's shares into displayCur and show one number
+      const converted=entries.reduce((sum,[cur,amt])=>sum+(_convertAmt(amt,cur,displayCur,_fxRates)??0),0);
+      return`<span class="exp-split-person-amt">${fmtA(displayCur,converted)}</span>`;
     };
 
     const myLabel=myName?`${esc(myName)} <span class="exp-split-you-tag">me</span>`:`You <span class="exp-split-you-tag">me</span>`;
