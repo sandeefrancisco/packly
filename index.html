@@ -366,6 +366,12 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 }
 .exp-total-label{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
 .exp-total-amount{font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1}
+.exp-split-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.exp-split-summary-hdr{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.exp-split-person-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+.exp-split-person-name{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;}
+.exp-split-you-tag{font-size:10px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 6px;border-radius:99px;}
+.exp-split-person-amt{font-size:14px;font-weight:700;color:var(--ink);}
 .exp-list{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
 .exp-item{
   background:var(--white);border-radius:0;
@@ -5073,6 +5079,40 @@ function renderExpenses(){
     ?`Filtered Total <span style="font-size:11px;font-weight:500;opacity:.6;letter-spacing:0;text-transform:none">${expenses.length} of ${allExpenses.length}</span>`
     :'Total Spent';
 
+  // Per-person split breakdown
+  const hasSplit=expenses.some(e=>e.splitWays>1);
+  let splitSummaryHtml='';
+  if(hasSplit){
+    const fmtA=(cur,amt)=>`${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    const myShares={};
+    const personShares={};
+    expenses.forEach(e=>{
+      const ways=e.splitWays>1?e.splitWays:1;
+      const share=e.amount/ways;
+      myShares[e.currency]=(myShares[e.currency]||0)+share;
+      if(ways>1&&e.splitWith?.length){
+        e.splitWith.forEach(name=>{
+          if(!personShares[name])personShares[name]={};
+          personShares[name][e.currency]=(personShares[name][e.currency]||0)+share;
+        });
+      }
+    });
+    const myRow=`<div class="exp-split-person-row">
+      <span class="exp-split-person-name">You <span class="exp-split-you-tag">me</span></span>
+      <span class="exp-split-person-amt">${Object.entries(myShares).map(([c,a])=>fmtA(c,a)).join(' · ')}</span>
+    </div>`;
+    const otherRows=Object.entries(personShares).map(([name,shares])=>
+      `<div class="exp-split-person-row">
+        <span class="exp-split-person-name">${esc(name)}</span>
+        <span class="exp-split-person-amt">${Object.entries(shares).map(([c,a])=>fmtA(c,a)).join(' · ')}</span>
+      </div>`
+    ).join('');
+    splitSummaryHtml=`<div class="exp-split-summary">
+      <div class="exp-split-summary-hdr">Split Breakdown</div>
+      ${myRow}${otherRows}
+    </div>`;
+  }
+
   // Build filter row — category dropdown + payment chips
   const usedCats=[...new Set(allExpenses.map(e=>e.category))].filter(Boolean)
     .sort((a,b)=>a.localeCompare(b));
@@ -5219,6 +5259,7 @@ function renderExpenses(){
     <div class="exp-total-card">
       <div class="exp-total-label">${totalLabel}</div>
       ${totalHtml}
+      ${splitSummaryHtml}
     </div>
     ${filterBarHtml}
     ${groupsHtml}`;
