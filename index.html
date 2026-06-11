@@ -364,10 +364,17 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
   margin-bottom:8px;
   box-shadow:0 1px 6px rgba(26,26,46,.06);
 }
-.exp-total-label{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.exp-total-label{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;}
+.exp-total-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.exp-cur-switcher{display:flex;gap:4px;}
+.exp-cur-chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;border:1.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:border-color .15s,background .15s,color .15s;}
+.exp-cur-chip.active{border-color:var(--accent);background:var(--tint);color:var(--accent);}
 .exp-total-amount{font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1}
 .exp-split-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
-.exp-split-summary-hdr{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.exp-split-summary-hdr{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:2px 0;}
+.exp-split-summary-hdr svg{transition:transform .2s;flex-shrink:0;}
+.exp-split-summary-hdr.open svg{transform:rotate(180deg);}
+.exp-split-rows{margin-top:8px;}
 .exp-split-person-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
 .exp-split-person-name{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;}
 .exp-split-you-tag{font-size:10px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 6px;border-radius:99px;}
@@ -5067,10 +5074,14 @@ let _expFilterPayers=new Set();
 let _expFilterSettled=null; // null=all, true=settled only, false=unsettled only
 let _fxRates=null;
 let _fxFetchedAt=0;
+let _totalDisplayCur=null;
+let _splitBreakdownOpen=false;
 function getExpenses(){
   const trip=getTrip();return trip?.expenses||[];
 }
 
+window.setTotalCur=function(cur){_totalDisplayCur=cur;renderExpenses();};
+window.toggleSplitBreakdown=function(){_splitBreakdownOpen=!_splitBreakdownOpen;renderExpenses();};
 function _ensureFxRates(){
   const now=Date.now();
   if(_fxRates&&(now-_fxFetchedAt)<3600000)return Promise.resolve(_fxRates);
@@ -5110,32 +5121,43 @@ function renderExpenses(){
   // Overall totals by currency (respects filters)
   const totals={};
   expenses.forEach(e=>{totals[e.currency]=(totals[e.currency]||0)+e.amount;});
-  const isMultiCurrency=Object.keys(totals).length>1;
+  const availCurs=Object.keys(totals);
+  const isMultiCurrency=availCurs.length>1;
   const baseCur=isMultiCurrency
     ?Object.entries(totals).sort((a,b)=>b[1]-a[1])[0][0]
-    :(Object.keys(totals)[0]||'EUR');
+    :(availCurs[0]||'EUR');
+
+  // Determine which currency to display totals in (user-selected or auto)
+  const displayCur=(_totalDisplayCur&&availCurs.includes(_totalDisplayCur))?_totalDisplayCur:baseCur;
 
   // Kick off FX fetch if needed, then re-render once rates arrive
   if(isMultiCurrency&&!_fxRates){_ensureFxRates().then(r=>{if(r)renderExpenses();});}
 
   const fmtN=(amt)=>amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 
-  // Converted grand total
-  let convertedTotal=null;
-  if(isMultiCurrency&&_fxRates){
-    convertedTotal=Object.entries(totals).reduce((sum,[cur,amt])=>{
-      const v=_convertAmt(amt,cur,baseCur,_fxRates);
-      return sum+(v??0);
-    },0);
+  // Currency switcher chips (only shown when multi-currency)
+  const curSwitcher=isMultiCurrency
+    ?`<div class="exp-cur-switcher">${availCurs.map(c=>
+        `<button class="exp-cur-chip${c===displayCur?' active':''}" onclick="setTotalCur('${c}')">${c}</button>`
+      ).join('')}</div>`
+    :'';
+
+  // Grand total — single combined amount in displayCur
+  let totalHtml;
+  if(!availCurs.length){
+    totalHtml=`<div class="exp-total-amount" style="opacity:.35">—</div>`;
+  } else if(!isMultiCurrency){
+    totalHtml=`<div class="exp-total-amount">${availCurs[0]} ${fmtN(totals[availCurs[0]])}</div>`;
+  } else if(_fxRates){
+    const combined=availCurs.reduce((sum,cur)=>sum+(_convertAmt(totals[cur],cur,displayCur,_fxRates)??0),0);
+    const otherCurs=availCurs.filter(c=>c!==displayCur);
+    totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(combined)}</div>`
+      +(otherCurs.length?`<div class="exp-total-converted">converted from ${otherCurs.join(' + ')}</div>`:'');
+  } else {
+    // FX not yet loaded — show individual amounts until rates arrive
+    totalHtml=availCurs.map(c=>`<div class="exp-total-amount">${c} ${fmtN(totals[c])}</div>`).join('');
   }
 
-  const totalHtml=Object.entries(totals).length
-    ?Object.entries(totals).map(([cur,amt])=>
-        `<div class="exp-total-amount">${cur} ${fmtN(amt)}</div>`
-      ).join('')+(convertedTotal!=null
-        ?`<div class="exp-total-converted">≈ ${baseCur} ${fmtN(convertedTotal)} total</div>`
-        :'')
-    :`<div class="exp-total-amount" style="opacity:.35">—</div>`;
   const totalLabel=hasFilter
     ?`Filtered Total <span style="font-size:11px;font-weight:500;opacity:.6;letter-spacing:0;text-transform:none">${expenses.length} of ${allExpenses.length}</span>`
     :'Total Spent';
@@ -5162,18 +5184,18 @@ function renderExpenses(){
       }
     });
 
-    // Render the amount cell for a person; converts to baseCur when multi-currency
+    // Render the amount cell for a person; converts to displayCur when multi-currency
     const renderAmt=(shares)=>{
       const entries=Object.entries(shares);
       const origStr=entries.map(([c,a])=>fmtA(c,a)).join(' · ');
-      if(!isMultiCurrency||!_fxRates||entries.every(([c])=>c===baseCur)){
+      if(!isMultiCurrency||!_fxRates||entries.every(([c])=>c===displayCur)){
         return`<span class="exp-split-person-amt">${origStr}</span>`;
       }
       const converted=entries.reduce((sum,[cur,amt])=>{
-        const v=_convertAmt(amt,cur,baseCur,_fxRates);
+        const v=_convertAmt(amt,cur,displayCur,_fxRates);
         return sum+(v??0);
       },0);
-      return`<span class="exp-split-person-amt"><span class="exp-split-converted">≈ ${baseCur} ${fmtN(converted)}</span><span class="exp-split-orig">${origStr}</span></span>`;
+      return`<span class="exp-split-person-amt"><span class="exp-split-converted">${displayCur} ${fmtN(converted)}</span><span class="exp-split-orig">${origStr}</span></span>`;
     };
 
     const myLabel=myName?`${esc(myName)} <span class="exp-split-you-tag">me</span>`:`You <span class="exp-split-you-tag">me</span>`;
@@ -5190,9 +5212,14 @@ function renderExpenses(){
     const fxNote=isMultiCurrency&&_fxRates
       ?`<div class="exp-fx-note">Live rates · ${new Date(_fxFetchedAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</div>`
       :'';
+    const personCount=1+Object.keys(personShares).length;
+    const chevron=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
     splitSummaryHtml=`<div class="exp-split-summary">
-      <div class="exp-split-summary-hdr">Split Breakdown</div>
-      ${myRow}${otherRows}${fxNote}
+      <div class="exp-split-summary-hdr${_splitBreakdownOpen?' open':''}" onclick="toggleSplitBreakdown()">
+        <span>Split Breakdown · ${personCount} ${personCount===1?'person':'people'}</span>
+        ${chevron}
+      </div>
+      ${_splitBreakdownOpen?`<div class="exp-split-rows">${myRow}${otherRows}${fxNote}</div>`:''}
     </div>`;
   }
 
@@ -5340,7 +5367,10 @@ function renderExpenses(){
 
   el.innerHTML=`
     <div class="exp-total-card">
-      <div class="exp-total-label">${totalLabel}</div>
+      <div class="exp-total-header">
+        <div class="exp-total-label">${totalLabel}</div>
+        ${curSwitcher}
+      </div>
       ${totalHtml}
       ${splitSummaryHtml}
     </div>
