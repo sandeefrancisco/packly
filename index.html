@@ -401,6 +401,10 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-item.exp-settled{box-shadow:inset 3px 0 0 #16a34a;}
 .exp-split-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 7px;border-radius:99px;}
 .exp-share-amt{font-size:11px;color:var(--accent);font-weight:600;white-space:nowrap;}
+.exp-split-myname-row{display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:10px;}
+.exp-split-myname-lbl{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+.exp-split-myname-row input{flex:1;height:38px;border-radius:10px;border:1.5px solid var(--border);padding:0 12px;font-family:'Figtree',sans-serif;font-size:15px;color:var(--ink);background:var(--white);outline:none;min-width:0;}
+.exp-split-myname-row input:focus{border-color:var(--accent);}
 .exp-split-add-row{display:flex;gap:8px;margin-top:8px;}
 .exp-split-add-row input{flex:1;height:40px;border-radius:10px;border:1.5px solid var(--border);padding:0 12px;font-family:'Figtree',sans-serif;font-size:15px;color:var(--ink);background:var(--white);outline:none;min-width:0;}
 .exp-split-add-row input:focus{border-color:var(--accent);}
@@ -2283,8 +2287,13 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
         </label>
       </div>
       <div id="expSplitDetails" class="field" style="display:none;padding-top:0">
+        <div class="exp-split-myname-row">
+          <label class="exp-split-myname-lbl">Your name</label>
+          <input id="expSplitMyName" type="text" placeholder="e.g. Sandee" maxlength="30" autocomplete="off"
+                 oninput="saveMyExpenseName()">
+        </div>
         <div class="exp-split-add-row">
-          <input id="expSplitPersonInput" type="text" placeholder="Add person's name…" maxlength="30" autocomplete="off"
+          <input id="expSplitPersonInput" type="text" placeholder="Add person to split with…" maxlength="30" autocomplete="off"
                  onkeydown="if(event.key==='Enter'){event.preventDefault();addSplitPerson()}">
           <button type="button" class="exp-split-add-btn" onclick="addSplitPerson()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -5008,10 +5017,21 @@ window.toggleSplitEnabled=function(){
   if(!on){_splitWith=[];_renderSplitChips();}
   _updateSplitHint();
 };
+window.saveMyExpenseName=function(){
+  const trip=getTrip();if(!trip)return;
+  trip.myName=document.getElementById('expSplitMyName').value.trim();
+  saveAll(trips);
+  _updateSplitHint();
+};
 window.addSplitPerson=function(){
   const inp=document.getElementById('expSplitPersonInput');
   const name=inp.value.trim();
   if(!name||_splitWith.length>=19)return;
+  const myName=(getTrip()?.myName||'').toLowerCase();
+  if(myName&&name.toLowerCase()===myName){
+    showToast("That's you — your share is already included.");
+    inp.value='';inp.focus();return;
+  }
   _splitWith.push(name);
   inp.value='';
   _renderSplitChips();
@@ -5083,6 +5103,9 @@ function renderExpenses(){
   const hasSplit=expenses.some(e=>e.splitWays>1);
   let splitSummaryHtml='';
   if(hasSplit){
+    const trip=getTrip();
+    const myName=trip?.myName||'';
+    const myNameLower=myName.toLowerCase();
     const fmtA=(cur,amt)=>`${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
     const myShares={};
     const personShares={};
@@ -5092,13 +5115,16 @@ function renderExpenses(){
       myShares[e.currency]=(myShares[e.currency]||0)+share;
       if(ways>1&&e.splitWith?.length){
         e.splitWith.forEach(name=>{
+          // merge into "me" if name matches myName
+          if(myNameLower&&name.toLowerCase()===myNameLower)return;
           if(!personShares[name])personShares[name]={};
           personShares[name][e.currency]=(personShares[name][e.currency]||0)+share;
         });
       }
     });
+    const myLabel=myName?`${esc(myName)} <span class="exp-split-you-tag">me</span>`:`You <span class="exp-split-you-tag">me</span>`;
     const myRow=`<div class="exp-split-person-row">
-      <span class="exp-split-person-name">You <span class="exp-split-you-tag">me</span></span>
+      <span class="exp-split-person-name">${myLabel}</span>
       <span class="exp-split-person-amt">${Object.entries(myShares).map(([c,a])=>fmtA(c,a)).join(' · ')}</span>
     </div>`;
     const otherRows=Object.entries(personShares).map(([name,shares])=>
@@ -5493,6 +5519,7 @@ window.openAddExpense=function(){
   document.getElementById('expSplitChips').innerHTML='';
   document.getElementById('expSplitHint').textContent='';
   document.getElementById('expSplitPersonInput').value='';
+  document.getElementById('expSplitMyName').value=getTrip()?.myName||'';
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -5541,6 +5568,7 @@ window.editExpense=function(id){
   document.getElementById('expSplitEnabled').checked=splitOn;
   document.getElementById('expSplitDetails').style.display=splitOn?'':'none';
   document.getElementById('expSplitPersonInput').value='';
+  document.getElementById('expSplitMyName').value=getTrip()?.myName||'';
   if(splitOn){_renderSplitChips();}else{document.getElementById('expSplitChips').innerHTML='';document.getElementById('expSplitHint').textContent='';}
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
