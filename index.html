@@ -3113,7 +3113,8 @@ function mergeTrash(local,cloud){
 // Always deduplicate by trip.id before saving — shared copy wins over personal copy
 const dedup=d=>{const m=new Map();d.forEach(t=>m.set(t.id,t));return[...m.values()];};
 const saveLocalOnly=d=>localStorage.setItem(STORE,JSON.stringify(dedup(d)));
-const saveAll=d=>{saveLocalOnly(d);cloudSync(d);};
+let _lastLocalSaveAt=0;
+const saveAll=d=>{saveLocalOnly(d);_lastLocalSaveAt=Date.now();cloudSync(d);};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -3203,12 +3204,15 @@ async function onSignedIn(user){
       const{data}=await sb.from('user_data').select('trips,deleted_trips').eq('user_id',user.id).single();
       saveTrash(mergeTrash(loadTrash(),data?.deleted_trips||[]));
       const trashedIds=new Set(loadTrash().map(t=>t.id));
+      // If user saved data locally very recently, skip cloud overwrite — cloudSync
+      // may not have finished yet, so cloud data is stale. Trust local instead.
+      const freshSave=Date.now()-_lastLocalSaveAt<8000;
       const localPersonal=loadAll().filter(t=>!t.sharedTripId);
-      const cloudPersonal=data?.trips||[];
+      const cloudPersonal=freshSave?[]:data?.trips||[];
       const byIdBg=new Map();
       cloudPersonal.forEach(t=>byIdBg.set(t.id,t));
       localPersonal.forEach(t=>byIdBg.set(t.id,t));
-      const shared=await loadSharedTrips();
+      const shared=freshSave?[]:await loadSharedTrips();
       shared.forEach(t=>byIdBg.set(t.id,t));
       trips=[...byIdBg.values()].filter(t=>!trashedIds.has(t.id));
       saveLocalOnly(trips);
@@ -4951,8 +4955,10 @@ function startSharedTripPolling(tripId){
       // Skip if we haven't received anything newer
       if(_polledUpdatedAt&&data.updated_at<=_polledUpdatedAt)return;
       _polledUpdatedAt=data.updated_at;
-      // Skip if this is our own last save
+      // Skip if this is our own last save, or if we saved locally very recently
+      // (cloudSync may not have written yet, so cloud data is still stale)
       if(data.data?.lastModifiedBy===_currentUserId)return;
+      if(Date.now()-_lastLocalSaveAt<8000)return;
       const incoming={...data.data,sharedTripId:sid,isShared:true};
       const idx=trips.findIndex(t=>t.id===incoming.id);
       if(idx!==-1) trips[idx]=incoming; else trips.push(incoming);
@@ -5614,6 +5620,7 @@ window.openAddExpense=function(){
   document.getElementById('expSplitChips').innerHTML='';
   document.getElementById('expSplitHint').innerHTML='';
   document.getElementById('expSplitPersonInput').value='';
+  document.getElementById('exp-modal-body')?.scrollTo(0,0);
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -5664,6 +5671,7 @@ window.editExpense=function(id){
   document.getElementById('expSplitIncludeMe').checked=splitOn?(e.splitWays>e.splitWith?.length):true;
   document.getElementById('expSplitPersonInput').value='';
   if(splitOn){_renderSplitChips();}else{document.getElementById('expSplitChips').innerHTML='';document.getElementById('expSplitHint').textContent='';}
+  document.getElementById('exp-modal-body')?.scrollTo(0,0);
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
   setTimeout(()=>document.getElementById('expLabel').focus(),50);
@@ -5721,6 +5729,7 @@ window.saveExpense=function(){
   saveAll(trips);
   renderExpenses();
   closeExpenseModal();
+  showToast('Expense saved');
 };
 
 window.deleteExpense=function(id){
