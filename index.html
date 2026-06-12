@@ -5705,15 +5705,22 @@ window.saveExpense=function(){
 
   const trip=getTrip();if(!trip)return;
   if(!trip.expenses)trip.expenses=[];
+  const expData={label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWith,splitWays};
   if(_editingExpenseId){
     const idx=trip.expenses.findIndex(e=>e.id===_editingExpenseId);
-    if(idx>-1)trip.expenses[idx]={...trip.expenses[idx],label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWith,splitWays};
+    if(idx>-1){
+      trip.expenses[idx]={...trip.expenses[idx],...expData};
+    }else{
+      // Expense not found in current trip data (e.g. stale reference) — re-insert with original ID
+      trip.expenses.unshift({id:_editingExpenseId,...expData});
+    }
   }else{
-    trip.expenses.unshift({id:uid(),label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWith,splitWays});
+    trip.expenses.unshift({id:uid(),...expData});
   }
+  _editingExpenseId=null;
   saveAll(trips);
-  closeExpenseModal();
   renderExpenses();
+  closeExpenseModal();
 };
 
 window.deleteExpense=function(id){
