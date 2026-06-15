@@ -5336,6 +5336,7 @@ function renderExpenses(){
     const cat=catIconFor(e);
     const split=e.splitWays>1?e.splitWays:0;
     const splitNames=(e.splitWith||[]);
+    const meIncludedInItem=split===1||(e.splitWays>(e.splitWith?.length||0));
     const splitBadge=split?`<span class="exp-split-badge">÷${split}</span>`:'';
     const metaParts=[e.category,payIcon,splitBadge].filter(Boolean);
     // Right-column subtitle: "by KR · Settled"
@@ -5344,7 +5345,9 @@ function renderExpenses(){
     if(e.settled) subParts.push(`<span class="exp-settled-tag">Settled</span>`);
     const rightSub=subParts.join('<span style="opacity:.3">·</span>');
     const shareAmt=split?`<div class="exp-share-amt">${e.currency} ${(e.amount/split).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} each</div>`:'';
-    const withLine=splitNames.length?`<div class="exp-item-notes">with ${splitNames.slice(0,3).map(esc).join(', ')}${splitNames.length>3?` +${splitNames.length-3}`:''}` +'</div>':'';
+    // Build the full participant list: prepend "you" when me is included
+    const allSplitPeople=meIncludedInItem?['you',...splitNames]:splitNames;
+    const withLine=allSplitPeople.length?`<div class="exp-item-notes">with ${allSplitPeople.slice(0,3).map(n=>n==='you'?'<strong>you</strong>':esc(n)).join(', ')}${allSplitPeople.length>3?` +${allSplitPeople.length-3}`:''}` +'</div>':'';
     return`<div class="exp-item${e.settled?" exp-settled":""}" onclick="editExpense('${e.id}')">
       <div class="exp-cat-icon" style="background:${cat.bg}">
         <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
