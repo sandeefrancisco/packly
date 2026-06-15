@@ -5185,7 +5185,12 @@ function renderExpenses(){
     expenses.forEach(e=>{
       const ways=e.splitWays>1?e.splitWays:1;
       const share=e.amount/ways;
-      myShares[e.currency]=(myShares[e.currency]||0)+share;
+      // Only count "me" if splitWays is greater than the number of others
+      // (i.e. includeMe was true when the expense was saved)
+      const meIncluded=ways===1||(e.splitWays>(e.splitWith?.length||0));
+      if(meIncluded){
+        myShares[e.currency]=(myShares[e.currency]||0)+share;
+      }
       if(ways>1&&e.splitWith?.length){
         e.splitWith.forEach(name=>{
           if(myNameLower&&name.toLowerCase()===myNameLower)return;
@@ -5211,11 +5216,12 @@ function renderExpenses(){
       return`<span class="exp-split-person-amt">${fmtA(displayCur,converted)}</span>`;
     };
 
+    const showMyRow=Object.keys(myShares).length>0;
     const myLabel=myName?`${esc(myName)} <span class="exp-split-you-tag">me</span>`:`You <span class="exp-split-you-tag">me</span>`;
-    const myRow=`<div class="exp-split-person-row">
+    const myRow=showMyRow?`<div class="exp-split-person-row">
       <span class="exp-split-person-name">${myLabel}</span>
       ${renderAmt(myShares)}
-    </div>`;
+    </div>`:'';
     const otherRows=Object.entries(personShares).map(([name,shares])=>
       `<div class="exp-split-person-row">
         <span class="exp-split-person-name">${esc(name)}</span>
@@ -5225,7 +5231,7 @@ function renderExpenses(){
     const fxNote=isMultiCurrency&&_fxRates
       ?`<div class="exp-fx-note">Live rates · ${new Date(_fxFetchedAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</div>`
       :'';
-    const personCount=1+Object.keys(personShares).length;
+    const personCount=(showMyRow?1:0)+Object.keys(personShares).length;
     const chevron=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
     splitSummaryHtml=`<div class="exp-split-summary">
       <div class="exp-split-summary-hdr${_splitBreakdownOpen?' open':''}" onclick="toggleSplitBreakdown()">
