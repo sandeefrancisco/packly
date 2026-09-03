@@ -379,6 +379,7 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-split-person-name{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;}
 .exp-split-you-tag{font-size:10px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 6px;border-radius:99px;}
 .exp-split-person-amt{font-size:14px;font-weight:700;color:var(--ink);text-align:right;display:inline-flex;align-items:center;gap:6px;}
+.exp-split-person-amt.owes{color:#dc2626;text-transform:lowercase;}
 .exp-split-person-amt-wrap{display:flex;flex-direction:column;align-items:flex-end;}
 .exp-split-person-sub{font-size:10.5px;color:var(--muted);margin-top:1px;}
 .exp-split-paid-tag{font-size:10px;font-weight:700;color:#16a34a;background:rgba(22,163,74,.1);padding:1px 6px;border-radius:99px;}
@@ -5350,7 +5351,8 @@ function renderExpenses(){
       return entries.reduce((sum,[cur,amt])=>sum+(_convertAmt(amt,cur,displayCur,_fxRates)??0),0);
     };
 
-    // Render a person's cell: total owed, how much they've settled, and what's left.
+    // Render a person's cell: total owed, how much they've settled, and what they
+    // still owe — phrased Splitwise-style ("owes €58.00") rather than a generic "left".
     const renderAmt=(totalShares,settledShares)=>{
       const total=toDisplayAmt(totalShares);
       if(total===null){
@@ -5359,15 +5361,17 @@ function renderExpenses(){
         return`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join(' · ')}</span>`;
       }
       const settled=toDisplayAmt(settledShares)||0;
-      const left=Math.max(0,total-settled);
-      if(left<0.005){
+      const owed=Math.max(0,total-settled);
+      if(owed<0.005){
         return`<span class="exp-split-person-amt">${fmtA(displayCur,total)}<span class="exp-split-paid-tag">Paid</span></span>`;
       }
       if(settled<0.005){
-        return`<span class="exp-split-person-amt">${fmtA(displayCur,total)}</span>`;
+        return`<span class="exp-split-person-amt-wrap">
+          <span class="exp-split-person-amt owes">owes ${fmtA(displayCur,owed)}</span>
+        </span>`;
       }
       return`<span class="exp-split-person-amt-wrap">
-        <span class="exp-split-person-amt">${fmtA(displayCur,left)} left</span>
+        <span class="exp-split-person-amt owes">owes ${fmtA(displayCur,owed)}</span>
         <span class="exp-split-person-sub">of ${fmtA(displayCur,total)} · ${fmtA(displayCur,settled)} paid</span>
       </span>`;
     };
