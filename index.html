@@ -379,10 +379,16 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-split-person-name{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;}
 .exp-split-you-tag{font-size:10px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 6px;border-radius:99px;}
 .exp-split-person-amt{font-size:14px;font-weight:700;color:var(--ink);text-align:right;display:inline-flex;align-items:center;gap:6px;}
-.exp-split-person-amt.owes{color:#dc2626;text-transform:lowercase;}
 .exp-split-person-amt-wrap{display:flex;flex-direction:column;align-items:flex-end;}
 .exp-split-person-sub{font-size:10.5px;color:var(--muted);margin-top:1px;}
 .exp-split-paid-tag{font-size:10px;font-weight:700;color:#16a34a;background:rgba(22,163,74,.1);padding:1px 6px;border-radius:99px;}
+.exp-sheet-section-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.exp-debt-rows{display:flex;flex-direction:column;}
+.exp-debt-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:10px;}
+.exp-debt-row:last-child{border-bottom:none;}
+.exp-debt-text{font-size:14px;font-weight:600;color:var(--ink);}
+.exp-debt-amt{font-size:14px;font-weight:700;color:#dc2626;white-space:nowrap;}
+.exp-debt-empty{font-size:14px;font-weight:600;color:#16a34a;text-align:center;padding:16px 0;}
 .exp-fx-note{font-size:10px;color:var(--muted);margin-top:10px;opacity:.5;text-align:right;}
 .exp-list{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
 .exp-item{
@@ -5351,8 +5357,70 @@ function renderExpenses(){
       return entries.reduce((sum,[cur,amt])=>sum+(_convertAmt(amt,cur,displayCur,_fxRates)??0),0);
     };
 
-    // Render a person's cell: total owed, how much they've settled, and what they
-    // still owe — phrased Splitwise-style ("owes €58.00") rather than a generic "left".
+    // Splitwise-style ledger: who owes whom. Each split expense's unsettled
+    // participants owe its payer (paidBy — blank means you paid) their share;
+    // debts between the same two people are netted across every expense so a
+    // pair shows one line (e.g. you owing Alex from one dinner nets against
+    // Alex owing you from another, rather than listing both separately).
+    const personKey=(raw)=>{
+      const t=(raw||'').trim();
+      if(!t)return'you';
+      if(myNameLower&&t.toLowerCase()===myNameLower)return'you';
+      return t;
+    };
+    const debts={}; // debts[fromKey][toKey][currency] = amount fromKey owes toKey
+    const debtNames={you:myName||'You'};
+    expenses.forEach(e=>{
+      const ways=e.splitWays>1?e.splitWays:1;
+      if(ways<=1)return;
+      const share=e.amount/ways;
+      const payerKey=personKey(e.paidBy);
+      debtNames[payerKey]=debtNames[payerKey]||(payerKey==='you'?(myName||'You'):payerKey);
+      const settledSet=_expSettledSet(e);
+      _expParticipants(e).forEach(p=>{
+        const key=p==='you'?'you':p;
+        debtNames[key]=debtNames[key]||(key==='you'?(myName||'You'):key);
+        if(key===payerKey||settledSet.has(p))return;
+        debts[key]=debts[key]||{};
+        debts[key][payerKey]=debts[key][payerKey]||{};
+        debts[key][payerKey][e.currency]=(debts[key][payerKey][e.currency]||0)+share;
+      });
+    });
+    const pairKeys=new Set();
+    Object.keys(debts).forEach(a=>Object.keys(debts[a]).forEach(b=>pairKeys.add([a,b].sort().join('|||'))));
+    const debtLines=[];
+    pairKeys.forEach(pk=>{
+      const[a,b]=pk.split('|||');
+      const ab=debts[a]?.[b]||{},ba=debts[b]?.[a]||{};
+      const curs=new Set([...Object.keys(ab),...Object.keys(ba)]);
+      const aOwesB={},bOwesA={};
+      curs.forEach(cur=>{
+        const net=(ab[cur]||0)-(ba[cur]||0);
+        if(net>0.005)aOwesB[cur]=net;else if(net<-0.005)bOwesA[cur]=-net;
+      });
+      if(Object.keys(aOwesB).length)debtLines.push({fromKey:a,toKey:b,shares:aOwesB});
+      if(Object.keys(bOwesA).length)debtLines.push({fromKey:b,toKey:a,shares:bOwesA});
+    });
+    const debtRowsHtml=debtLines
+      .map(d=>({...d,amt:toDisplayAmt(d.shares)}))
+      .sort((a,b)=>(b.amt||0)-(a.amt||0))
+      .map(d=>{
+        const amtHtml=d.amt===null
+          ?Object.entries(d.shares).map(([c,a])=>fmtA(c,a)).join(' · ')
+          :fmtA(displayCur,d.amt);
+        return`<div class="exp-debt-row">
+          <span class="exp-debt-text">${esc(debtNames[d.fromKey])} owes ${esc(debtNames[d.toKey])}</span>
+          <span class="exp-debt-amt">${amtHtml}</span>
+        </div>`;
+      }).join('');
+    const debtSectionHtml=debtRowsHtml
+      ?`<div class="exp-sheet-section-label">Who owes whom</div><div class="exp-debt-rows">${debtRowsHtml}</div>`
+      :`<div class="exp-debt-empty">Everyone's settled up 🎉</div>`;
+
+    // Render a person's cell in the Totals list: how much of the trip is theirs
+    // and how much they've paid back. Debt *direction* (who owes whom) now lives
+    // in the ledger above, so this just shows their own contribution — no more
+    // ambiguous "owes X" here with no stated recipient.
     const renderAmt=(totalShares,settledShares)=>{
       const total=toDisplayAmt(totalShares);
       if(total===null){
@@ -5361,18 +5429,15 @@ function renderExpenses(){
         return`<span class="exp-split-person-amt">${entries.map(([c,a])=>fmtA(c,a)).join(' · ')}</span>`;
       }
       const settled=toDisplayAmt(settledShares)||0;
-      const owed=Math.max(0,total-settled);
-      if(owed<0.005){
+      if(total-settled<0.005){
         return`<span class="exp-split-person-amt">${fmtA(displayCur,total)}<span class="exp-split-paid-tag">Paid</span></span>`;
       }
       if(settled<0.005){
-        return`<span class="exp-split-person-amt-wrap">
-          <span class="exp-split-person-amt owes">owes ${fmtA(displayCur,owed)}</span>
-        </span>`;
+        return`<span class="exp-split-person-amt">${fmtA(displayCur,total)}</span>`;
       }
       return`<span class="exp-split-person-amt-wrap">
-        <span class="exp-split-person-amt owes">owes ${fmtA(displayCur,owed)}</span>
-        <span class="exp-split-person-sub">of ${fmtA(displayCur,total)} · ${fmtA(displayCur,settled)} paid</span>
+        <span class="exp-split-person-amt">${fmtA(displayCur,total)}</span>
+        <span class="exp-split-person-sub">${fmtA(displayCur,settled)} paid</span>
       </span>`;
     };
 
@@ -5397,7 +5462,7 @@ function renderExpenses(){
     // Rows render into a bottom sheet (opened on tap) rather than expanding inline,
     // so long lists get proper room instead of squeezing into the totals card.
     window._splitBreakdownTitle=breakdownTitle;
-    window._splitBreakdownRowsHtml=`${myRow}${otherRows}${fxNote}`;
+    window._splitBreakdownRowsHtml=`${debtSectionHtml}<div class="exp-sheet-section-label" style="margin-top:18px">Totals</div><div class="exp-split-rows">${myRow}${otherRows}</div>${fxNote}`;
     splitSummaryHtml=`<div class="exp-split-summary">
       <div class="exp-split-summary-hdr" onclick="openSplitBreakdownSheet()">
         <span>${breakdownTitle}</span>
@@ -6888,7 +6953,7 @@ window.addEventListener('pageshow',(ev)=>{
   <div class="modal" onclick="event.stopPropagation()" style="padding-top:24px">
     <button class="sheet-close-btn" onclick="closeSplitBreakdownSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div id="splitBreakdownTitle" style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:20px"></div>
-    <div id="splitBreakdownContent" class="exp-split-rows"></div>
+    <div id="splitBreakdownContent"></div>
   </div>
 </div>
 
