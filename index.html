@@ -5379,14 +5379,11 @@ function renderExpenses(){
     settledChips=`<button class="exp-filter-chip" style="${sStyle}" onclick="toggleExpFilter('settled','false')">${_clockSvg} Unpaid${sActive?_xSvg:''}</button><button class="exp-filter-chip" style="${rStyle}" onclick="toggleExpFilter('settled','true')">${_checkSvg} Settled${rActive?_xSvg:''}</button>`;
   }
 
-  // Row 1: dropdowns; Row 2: pay chips; Row 3: settled chips
+  // Single horizontally-scrolling row: dropdowns, then pay chips, then settled chips
   const sep='<span class="exp-filter-sep"></span>';
-  const dropdowns=[catSelect,payerChips].filter(Boolean);
-  const dropRow=dropdowns.length?`<div class="exp-filter-scroll">${dropdowns.join(sep)}</div>`:'';
-  const payRow=payChips?`<div class="exp-filter-scroll" style="margin-top:8px">${payChips}</div>`:'';
-  const settledRow=settledChips?`<div class="exp-filter-scroll" style="margin-top:8px">${settledChips}</div>`:'';
-  const filterBarHtml=(dropRow||payRow||settledRow)
-    ?`<div class="exp-filter-area">${dropRow}${payRow}${settledRow}</div>`
+  const groups=[[catSelect,payerChips].filter(Boolean).join(sep),payChips,settledChips].filter(Boolean);
+  const filterBarHtml=groups.length
+    ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${groups.join(sep)}</div></div>`
     :'';
 
   // Group expenses by date (undated go last)
