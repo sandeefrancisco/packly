@@ -5140,8 +5140,10 @@ function renderExpenses(){
     ?Object.entries(totals).sort((a,b)=>b[1]-a[1])[0][0]
     :(availCurs[0]||'EUR');
 
-  // Determine which currency to display totals in (user-selected or auto)
-  const displayCur=(_totalDisplayCur&&availCurs.includes(_totalDisplayCur))?_totalDisplayCur:baseCur;
+  // Determine which currency to display totals in (user-selected, else EUR by default, else auto)
+  const displayCur=(_totalDisplayCur&&availCurs.includes(_totalDisplayCur))
+    ?_totalDisplayCur
+    :(availCurs.includes('EUR')?'EUR':baseCur);
 
   // Kick off FX fetch if needed, then re-render once rates arrive
   if(isMultiCurrency&&!_fxRates&&!_fxFailed){_ensureFxRates().then(()=>renderExpenses());}
@@ -5165,8 +5167,8 @@ function renderExpenses(){
     const combined=availCurs.reduce((sum,cur)=>sum+(_convertAmt(totals[cur],cur,displayCur,_fxRates)??0),0);
     totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(combined)}</div>`;
   } else {
-    // Rates loading or unavailable — show individual amounts so numbers are always visible
-    totalHtml=availCurs.map(c=>`<div class="exp-total-amount">${c} ${fmtN(totals[c])}</div>`).join('');
+    // Rates still loading — avoid showing multiple raw currency totals at once
+    totalHtml=`<div class="exp-total-amount" style="opacity:.35">${displayCur} …</div>`;
   }
 
   const totalLabel=hasFilter
