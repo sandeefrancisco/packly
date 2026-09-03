@@ -372,10 +372,10 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-total-amount{font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1}
 .exp-split-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
 .exp-split-summary-hdr{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:2px 0;}
-.exp-split-summary-hdr svg{transition:transform .2s;flex-shrink:0;}
-.exp-split-summary-hdr.open svg{transform:rotate(180deg);}
+.exp-split-summary-hdr svg{flex-shrink:0;}
 .exp-split-rows{margin-top:8px;}
-.exp-split-person-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+.exp-split-person-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.exp-split-person-row:last-of-type{border-bottom:none;}
 .exp-split-person-name{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;}
 .exp-split-you-tag{font-size:10px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 6px;border-radius:99px;}
 .exp-split-person-amt{font-size:14px;font-weight:700;color:var(--ink);text-align:right;display:inline-flex;align-items:center;gap:6px;}
@@ -5153,7 +5153,6 @@ let _fxPending=null;
 let _fxFailed=false;
 let _fxFailedAt=0;
 let _totalDisplayCur=null;
-let _splitBreakdownOpen=false;
 // Seed from localStorage so a fully-converted total is available immediately on
 // repeat visits — even a stale cached rate beats an incomplete (partially-summed)
 // total. _ensureFxRates still refreshes in the background once it's >1h old.
@@ -5163,7 +5162,18 @@ function getExpenses(){
 }
 
 window.setTotalCur=function(cur){_totalDisplayCur=cur;renderExpenses();};
-window.toggleSplitBreakdown=function(){_splitBreakdownOpen=!_splitBreakdownOpen;renderExpenses();};
+// The Split Breakdown list lives in a bottom sheet (more room per row than the
+// inline card) — renderExpenses() stashes the current rows' HTML here, and the
+// sheet just displays whatever was stashed most recently when opened.
+window._splitBreakdownRowsHtml='';
+window.openSplitBreakdownSheet=function(){
+  document.getElementById('splitBreakdownTitle').textContent=window._splitBreakdownTitle||'Split Breakdown';
+  document.getElementById('splitBreakdownContent').innerHTML=window._splitBreakdownRowsHtml;
+  document.getElementById('splitBreakdownOverlay').classList.add('open');
+};
+window.closeSplitBreakdownSheet=function(){
+  document.getElementById('splitBreakdownOverlay').classList.remove('open');
+};
 function _ensureFxRates(){
   const now=Date.now();
   if(_fxRates&&(now-_fxFetchedAt)<3600000)return Promise.resolve(_fxRates);
@@ -5343,13 +5353,17 @@ function renderExpenses(){
       ?`<div class="exp-fx-note">Live rates · ${new Date(_fxFetchedAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</div>`
       :'';
     const personCount=(showMyRow?1:0)+Object.keys(personShares).length;
-    const chevron=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    const chevronRight=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
+    const breakdownTitle=`Split Breakdown · ${personCount} ${personCount===1?'person':'people'}`;
+    // Rows render into a bottom sheet (opened on tap) rather than expanding inline,
+    // so long lists get proper room instead of squeezing into the totals card.
+    window._splitBreakdownTitle=breakdownTitle;
+    window._splitBreakdownRowsHtml=`${myRow}${otherRows}${fxNote}`;
     splitSummaryHtml=`<div class="exp-split-summary">
-      <div class="exp-split-summary-hdr${_splitBreakdownOpen?' open':''}" onclick="toggleSplitBreakdown()">
-        <span>Split Breakdown · ${personCount} ${personCount===1?'person':'people'}</span>
-        ${chevron}
+      <div class="exp-split-summary-hdr" onclick="openSplitBreakdownSheet()">
+        <span>${breakdownTitle}</span>
+        ${chevronRight}
       </div>
-      ${_splitBreakdownOpen?`<div class="exp-split-rows">${myRow}${otherRows}${fxNote}</div>`:''}
     </div>`;
   }
 
@@ -6826,6 +6840,15 @@ window.addEventListener('pageshow',(ev)=>{
     <button class="sheet-close-btn" onclick="closeExpFilterSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div id="expFltTitle" style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:32px"></div>
     <div id="expFltOptions"></div>
+  </div>
+</div>
+
+<!-- Split breakdown bottom sheet -->
+<div class="overlay" id="splitBreakdownOverlay" onclick="closeSplitBreakdownSheet()">
+  <div class="modal" onclick="event.stopPropagation()" style="padding-top:24px">
+    <button class="sheet-close-btn" onclick="closeSplitBreakdownSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div id="splitBreakdownTitle" style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:20px"></div>
+    <div id="splitBreakdownContent" class="exp-split-rows"></div>
   </div>
 </div>
 
