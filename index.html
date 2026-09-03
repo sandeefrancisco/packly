@@ -420,6 +420,15 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-split-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(74,144,226,.12);color:var(--accent);border-radius:99px;padding:5px 8px 5px 12px;font-size:13px;font-weight:600;}
 .exp-split-chip-rm{width:18px;height:18px;border-radius:50%;border:none;background:rgba(74,144,226,.22);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font-size:14px;line-height:1;flex-shrink:0;}
 .exp-split-hint{font-size:13px;color:var(--accent);font-weight:600;margin:8px 0 0;}
+.exp-item-people{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.exp-person-pill{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);background:var(--tint);border:1px solid var(--border);border-radius:99px;padding:3px 9px;cursor:pointer;line-height:1.3;}
+.exp-person-pill svg{width:11px;height:11px;flex-shrink:0;}
+.exp-person-pill.done{color:#16a34a;background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.3);}
+.exp-settled-tag.partial{color:var(--muted);}
+.exp-settled-people{display:flex;flex-direction:column;gap:2px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;}
+.exp-settled-people-hdr{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;}
+.exp-settled-person-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;}
+.exp-settled-person-row span{font-size:14px;color:var(--ink);}
 .exp-day-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:10px 4px 6px;
@@ -2309,8 +2318,9 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
         </div>
         <div id="expSplitChips" class="exp-split-chips"></div>
         <p class="exp-split-hint" id="expSplitHint"></p>
+        <div id="expSettledPeople" class="exp-settled-people"></div>
       </div>
-      <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+      <div id="expSettledSimpleField" class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
         <label style="margin:0">Already settled</label>
         <label class="exp-toggle">
           <input type="checkbox" id="expSettled">
@@ -5017,6 +5027,40 @@ const EXP_PAYMENTS=[
 ];
 let _editingExpenseId=null;
 let _splitWith=[];
+let _settledPeople=new Set();
+const _checkSvgSmall='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+// Participants owing/sharing an expense: 'you' (if included) plus each splitWith name.
+// Non-split expenses always have a single implicit participant, 'you'.
+function _expParticipants(e){
+  const ways=e.splitWays>1?e.splitWays:0;
+  if(!ways)return['you'];
+  const names=(e.splitWith||[]);
+  const meIncluded=ways>(names.length||0);
+  return meIncluded?['you',...names]:names.slice();
+}
+// Settled participants for an expense — reads the granular settledPeople list when
+// present, falling back to the legacy whole-expense `settled` boolean for old data.
+function _expSettledSet(e){
+  if(Array.isArray(e.settledPeople))return new Set(e.settledPeople);
+  return e.settled?new Set(_expParticipants(e)):new Set();
+}
+function _expIsFullySettled(e){
+  const participants=_expParticipants(e);
+  const set=_expSettledSet(e);
+  return participants.length>0&&participants.every(p=>set.has(p));
+}
+window.toggleParticipantSettled=function(expenseId,personKey,ev){
+  if(ev){ev.stopPropagation();ev.preventDefault();}
+  const trip=getTrip();if(!trip)return;
+  const e=(trip.expenses||[]).find(x=>x.id===expenseId);if(!e)return;
+  const person=decodeURIComponent(personKey);
+  const set=_expSettledSet(e);
+  if(set.has(person))set.delete(person);else set.add(person);
+  e.settledPeople=[...set];
+  e.settled=_expIsFullySettled(e);
+  saveAll(trips);
+  renderExpenses();
+};
 function _renderSplitChips(){
   const container=document.getElementById('expSplitChips');
   if(!container)return;
@@ -5051,6 +5095,10 @@ window.removeSplitPerson=function(i){
 };
 window._updateSplitHint=function(){
   const on=document.getElementById('expSplitEnabled')?.checked;
+  const splitOn=!!on&&_splitWith.length>0;
+  const simpleField=document.getElementById('expSettledSimpleField');
+  if(simpleField)simpleField.style.display=splitOn?'none':'';
+  _renderSettledPeopleChecklist();
   const hint=document.getElementById('expSplitHint');
   if(!hint)return;
   if(!on||_splitWith.length===0){hint.innerHTML='';return;}
@@ -5069,6 +5117,27 @@ window._updateSplitHint=function(){
   }else{
     hint.innerHTML=`<span style="opacity:.7">Split ${ways} ways — ${people.map(esc).join(', ')}</span>`;
   }
+};
+// Checklist of each split participant with an individual settled toggle — lets you
+// mark who has paid back their share separately, instead of one all-or-nothing flag.
+window._renderSettledPeopleChecklist=function(){
+  const container=document.getElementById('expSettledPeople');
+  if(!container)return;
+  const on=document.getElementById('expSplitEnabled')?.checked;
+  if(!on||_splitWith.length===0){container.innerHTML='';return;}
+  const includeMe=document.getElementById('expSplitIncludeMe')?.checked!==false;
+  const me=_currentUserName||'You';
+  const participants=includeMe?['you',..._splitWith]:_splitWith.slice();
+  const rows=participants.map(p=>{
+    const label=p==='you'?me:p;
+    const checked=_settledPeople.has(p);
+    return`<div class="exp-settled-person-row"><span>${esc(label)}</span><label class="exp-toggle" style="transform:scale(.8);transform-origin:right"><input type="checkbox" ${checked?'checked':''} onchange="toggleEditingSettled('${encodeURIComponent(p)}')"><span class="exp-toggle-track"></span></label></div>`;
+  }).join('');
+  container.innerHTML=`<div class="exp-settled-people-hdr">Settled</div>${rows}`;
+};
+window.toggleEditingSettled=function(personKey){
+  const person=decodeURIComponent(personKey);
+  if(_settledPeople.has(person))_settledPeople.delete(person);else _settledPeople.add(person);
 };
 let _selectedPayment='cash';
 let _expFilterCats=new Set();
@@ -5354,15 +5423,28 @@ function renderExpenses(){
     const meIncludedInItem=split===1||(e.splitWays>(e.splitWith?.length||0));
     const splitBadge=split?`<span class="exp-split-badge">÷${split}</span>`:'';
     const metaParts=[e.category,payIcon,splitBadge].filter(Boolean);
-    // Right-column subtitle: "by KR · Settled"
-    const subParts=[];
-    if(e.paidBy) subParts.push(`<span>by ${esc(e.paidBy)}</span>`);
-    if(e.settled) subParts.push(`<span class="exp-settled-tag">Settled</span>`);
-    const rightSub=subParts.join('<span style="opacity:.3">·</span>');
-    const shareAmt=split?`<div class="exp-share-amt">${e.currency} ${(e.amount/split).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} each</div>`:'';
     // Build the full participant list: prepend "you" when me is included
     const allSplitPeople=meIncludedInItem?['you',...splitNames]:splitNames;
-    const withLine=allSplitPeople.length?`<div class="exp-item-notes">with ${allSplitPeople.slice(0,3).map(n=>n==='you'?'<strong>you</strong>':esc(n)).join(', ')}${allSplitPeople.length>3?` +${allSplitPeople.length-3}`:''}` +'</div>':'';
+    const settledSet=_expSettledSet(e);
+    const settledCount=allSplitPeople.filter(p=>settledSet.has(p)).length;
+    // Right-column subtitle: "by KR · 2/3 settled" (or "Settled" for non-split)
+    const subParts=[];
+    if(e.paidBy) subParts.push(`<span>by ${esc(e.paidBy)}</span>`);
+    if(split){
+      if(allSplitPeople.length)subParts.push(`<span class="exp-settled-tag${settledCount===allSplitPeople.length?'':' partial'}">${settledCount}/${allSplitPeople.length} settled</span>`);
+    }else if(e.settled){
+      subParts.push(`<span class="exp-settled-tag">Settled</span>`);
+    }
+    const rightSub=subParts.join('<span style="opacity:.3">·</span>');
+    const shareAmt=split?`<div class="exp-share-amt">${e.currency} ${(e.amount/split).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} each</div>`:'';
+    // Tappable per-person pills — toggle each participant's settled status directly
+    // from the card, without opening the edit modal (stopPropagation on the button).
+    const withLine=allSplitPeople.length?`<div class="exp-item-people">${allSplitPeople.map(p=>{
+      const isMe=p==='you';
+      const done=settledSet.has(p);
+      const label=isMe?'you':esc(p);
+      return`<button type="button" class="exp-person-pill${done?' done':''}" onclick="toggleParticipantSettled('${e.id}','${encodeURIComponent(p)}',event)">${done?_checkSvgSmall:''}${isMe?`<strong>${label}</strong>`:label}</button>`;
+    }).join('')}</div>`:'';
     return`<div class="exp-item${e.settled?" exp-settled":""}" onclick="editExpense('${e.id}')">
       <div class="exp-cat-icon" style="background:${cat.bg}">
         <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
@@ -5637,12 +5719,15 @@ window.openAddExpense=function(){
   renderPayChips('visa');
   document.getElementById('expPaidBy').value='';
   document.getElementById('expSettled').checked=false;
+  document.getElementById('expSettledSimpleField').style.display='';
   _splitWith=[];
+  _settledPeople=new Set();
   document.getElementById('expSplitEnabled').checked=false;
   document.getElementById('expSplitDetails').style.display='none';
   document.getElementById('expSplitIncludeMe').checked=true;
   document.getElementById('expSplitChips').innerHTML='';
   document.getElementById('expSplitHint').innerHTML='';
+  document.getElementById('expSettledPeople').innerHTML='';
   document.getElementById('expSplitPersonInput').value='';
   document.getElementById('exp-modal-body')?.scrollTo(0,0);
   document.getElementById('expenseOverlay').classList.add('open');
@@ -5688,6 +5773,7 @@ window.editExpense=function(id){
   renderPayChips(e.payWith||'visa');
   document.getElementById('expPaidBy').value=e.paidBy||'';
   document.getElementById('expSettled').checked=!!e.settled;
+  _settledPeople=_expSettledSet(e);
   _splitWith=(e.splitWith||[]).slice();
   const splitOn=_splitWith.length>0;
   document.getElementById('expSplitEnabled').checked=splitOn;
@@ -5695,6 +5781,7 @@ window.editExpense=function(id){
   document.getElementById('expSplitIncludeMe').checked=splitOn?(e.splitWays>e.splitWith?.length):true;
   document.getElementById('expSplitPersonInput').value='';
   if(splitOn){_renderSplitChips();}else{document.getElementById('expSplitChips').innerHTML='';document.getElementById('expSplitHint').textContent='';}
+  _updateSplitHint();
   document.getElementById('exp-modal-body')?.scrollTo(0,0);
   document.getElementById('expenseOverlay').classList.add('open');
   history.pushState({packly:'expense'},'','#checklist');
@@ -5710,11 +5797,17 @@ window.saveExpense=function(){
   const notes=document.getElementById('expNotes').value.trim();
   const payWith=_selectedPayment;
   const paidBy=document.getElementById('expPaidBy').value.trim();
-  const settled=document.getElementById('expSettled').checked;
   const splitOn=document.getElementById('expSplitEnabled').checked&&_splitWith.length>0;
   const includeMe=document.getElementById('expSplitIncludeMe')?.checked!==false;
   const splitWith=splitOn?_splitWith.slice():[];
   const splitWays=splitOn?splitWith.length+(includeMe?1:0):1;
+  // Non-split expenses keep the simple single toggle; split ones use the
+  // per-person checklist (_settledPeople), pruned to whoever's still a participant.
+  const participants=splitOn?(includeMe?['you',...splitWith]:splitWith):['you'];
+  const settledPeople=splitOn
+    ?participants.filter(p=>_settledPeople.has(p))
+    :(document.getElementById('expSettled').checked?['you']:[]);
+  const settled=participants.length>0&&participants.every(p=>settledPeople.includes(p));
   const amountErr=document.getElementById('expAmountError');
   const labelErr=document.getElementById('expLabelError');
   const amountRow=document.getElementById('expAmount').closest('.amount-cur-row');
@@ -5737,7 +5830,7 @@ window.saveExpense=function(){
 
   const trip=getTrip();if(!trip)return;
   if(!trip.expenses)trip.expenses=[];
-  const expData={label,amount,currency,category,date,notes,payWith,paidBy,settled,splitWith,splitWays};
+  const expData={label,amount,currency,category,date,notes,payWith,paidBy,settled,settledPeople,splitWith,splitWays};
   if(_editingExpenseId){
     const idx=trip.expenses.findIndex(e=>e.id===_editingExpenseId);
     if(idx>-1){
