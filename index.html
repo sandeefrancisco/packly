@@ -5082,8 +5082,10 @@ let _fxFailed=false;
 let _fxFailedAt=0;
 let _totalDisplayCur=null;
 let _splitBreakdownOpen=false;
-// Seed from localStorage so rates are available immediately on repeat visits
-(function(){try{const d=JSON.parse(localStorage.getItem('_fxCache')||'null');if(d&&d.rates&&Date.now()-d.at<86400000){_fxRates=d.rates;_fxFetchedAt=d.at;}}catch(e){}}());
+// Seed from localStorage so a fully-converted total is available immediately on
+// repeat visits — even a stale cached rate beats an incomplete (partially-summed)
+// total. _ensureFxRates still refreshes in the background once it's >1h old.
+(function(){try{const d=JSON.parse(localStorage.getItem('_fxCache')||'null');if(d&&d.rates){_fxRates=d.rates;_fxFetchedAt=d.at;}}catch(e){}}());
 function getExpenses(){
   const trip=getTrip();return trip?.expenses||[];
 }
@@ -5147,9 +5149,14 @@ function renderExpenses(){
     :(availCurs.includes('EUR')?'EUR':baseCur);
 
   // Kick off FX fetch if needed, then re-render once rates arrive.
-  // Retry a failed fetch after a cooldown instead of blocking forever.
+  // Retry a failed fetch after a cooldown instead of blocking forever, and
+  // self-schedule that retry so the total resolves even with no further
+  // user interaction to trigger a re-render.
   const fxCanRetry=!_fxFailed||(Date.now()-_fxFailedAt)>30000;
-  if(isMultiCurrency&&!_fxRates&&fxCanRetry){_ensureFxRates().then(()=>renderExpenses());}
+  if(isMultiCurrency&&!_fxRates){
+    if(fxCanRetry){_ensureFxRates().then(()=>renderExpenses());}
+    else{setTimeout(renderExpenses,30000-(Date.now()-_fxFailedAt)+50);}
+  }
 
   const fmtN=(amt)=>amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 
@@ -5169,14 +5176,12 @@ function renderExpenses(){
   } else if(_fxRates){
     const combined=availCurs.reduce((sum,cur)=>sum+(_convertAmt(totals[cur],cur,displayCur,_fxRates)??0),0);
     totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(combined)}</div>`;
-  } else if(totals[displayCur]!=null){
-    // Rates not ready yet — show the displayCur's own raw total so a number
-    // is never left invisible; it upgrades to the full converted sum once
-    // rates load (amounts in other currencies aren't included yet).
-    totalHtml=`<div class="exp-total-amount">${displayCur} ${fmtN(totals[displayCur])}</div><div class="exp-fx-note">+ amounts in other currencies not yet converted</div>`;
   } else {
-    // displayCur has no expenses of its own — fall back to raw per-currency totals
-    totalHtml=availCurs.map(c=>`<div class="exp-total-amount">${c} ${fmtN(totals[c])}</div>`).join('');
+    // No rates yet (first-ever load, offline, or a fetch in flight/retry) — the
+    // total must include every currency, so don't show a partial displayCur-only
+    // figure that silently excludes the rest. Show a loading placeholder instead;
+    // it upgrades to the real combined total the moment rates arrive.
+    totalHtml=`<div class="exp-total-amount" style="opacity:.35">${displayCur} …</div>`;
   }
 
   const totalLabel=hasFilter
