@@ -419,8 +419,6 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-item.exp-settled{box-shadow:inset 3px 0 0 #16a34a;}
 .exp-split-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 7px;border-radius:99px;}
 .exp-share-amt{font-size:11px;color:var(--accent);font-weight:600;white-space:nowrap;}
-.exp-split-myname-lbl{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;flex-shrink:0;}
-.exp-split-includeme-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;margin-bottom:4px;}
 .exp-split-add-row{display:flex;gap:8px;margin-top:8px;}
 .exp-split-add-row input{flex:1;height:40px;border-radius:10px;border:1.5px solid var(--border);padding:0 12px;font-family:'Figtree',sans-serif;font-size:15px;color:var(--ink);background:var(--white);outline:none;min-width:0;}
 .exp-split-add-row input:focus{border-color:var(--accent);}
@@ -2316,13 +2314,6 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
         </label>
       </div>
       <div id="expSplitDetails" class="field" style="display:none;padding-top:0">
-        <div class="exp-split-includeme-row">
-          <span id="expSplitMeLabel" class="exp-split-myname-lbl">Include me in split</span>
-          <label class="exp-toggle" style="transform:scale(.85);transform-origin:right">
-            <input type="checkbox" id="expSplitIncludeMe" checked onchange="_updateSplitHint()">
-            <span class="exp-toggle-track"></span>
-          </label>
-        </div>
         <div class="exp-split-add-row">
           <input id="expSplitPersonInput" type="text" placeholder="Add person to split with…" maxlength="30" autocomplete="off"
                  onkeydown="if(event.key==='Enter'){event.preventDefault();addSplitPerson()}">
@@ -5147,15 +5138,11 @@ window._updateSplitHint=function(){
   const hint=document.getElementById('expSplitHint');
   if(!hint)return;
   if(!on||_splitWith.length===0){hint.innerHTML='';return;}
-  const includeMe=document.getElementById('expSplitIncludeMe')?.checked!==false;
   const me=_currentUserName||'You';
-  const meLabel=document.getElementById('expSplitMeLabel');
-  if(meLabel)meLabel.textContent=`Include ${me} in split`;
-  const ways=_splitWith.length+(includeMe?1:0);
-  if(ways===0){hint.innerHTML='';return;}
+  const ways=_splitWith.length+1;
   const amt=parseFloat(document.getElementById('expAmount').value.replace(',','.'));
   const cur=document.getElementById('expCurrency').value||'';
-  const people=includeMe?[me,..._splitWith]:_splitWith;
+  const people=[me,..._splitWith];
   if(amt>0){
     const share=(amt/ways).toFixed(2);
     hint.innerHTML=`<span style="opacity:.7">${cur} ${amt.toFixed(2)} ÷ ${ways} =</span> <strong>${cur} ${share} each</strong> <span style="opacity:.5">(${people.map(esc).join(', ')})</span>`;
@@ -5170,9 +5157,8 @@ window._renderSettledPeopleChecklist=function(){
   if(!container)return;
   const on=document.getElementById('expSplitEnabled')?.checked;
   if(!on||_splitWith.length===0){container.innerHTML='';return;}
-  const includeMe=document.getElementById('expSplitIncludeMe')?.checked!==false;
   const me=_currentUserName||'You';
-  const participants=includeMe?['you',..._splitWith]:_splitWith.slice();
+  const participants=['you',..._splitWith];
   const rows=participants.map(p=>{
     const label=p==='you'?me:p;
     const checked=_settledPeople.has(p);
@@ -5866,7 +5852,6 @@ window.openAddExpense=function(){
   _settledPeople=new Set();
   document.getElementById('expSplitEnabled').checked=false;
   document.getElementById('expSplitDetails').style.display='none';
-  document.getElementById('expSplitIncludeMe').checked=true;
   document.getElementById('expSplitChips').innerHTML='';
   document.getElementById('expSplitSuggestions').innerHTML='';
   document.getElementById('expSplitHint').innerHTML='';
@@ -5921,7 +5906,6 @@ window.editExpense=function(id){
   const splitOn=_splitWith.length>0;
   document.getElementById('expSplitEnabled').checked=splitOn;
   document.getElementById('expSplitDetails').style.display=splitOn?'':'none';
-  document.getElementById('expSplitIncludeMe').checked=splitOn?(e.splitWays>e.splitWith?.length):true;
   document.getElementById('expSplitPersonInput').value='';
   if(splitOn){_renderSplitChips();}else{document.getElementById('expSplitChips').innerHTML='';document.getElementById('expSplitHint').textContent='';}
   _updateSplitHint();
@@ -5941,12 +5925,11 @@ window.saveExpense=function(){
   const payWith=_selectedPayment;
   const paidBy=document.getElementById('expPaidBy').value.trim();
   const splitOn=document.getElementById('expSplitEnabled').checked&&_splitWith.length>0;
-  const includeMe=document.getElementById('expSplitIncludeMe')?.checked!==false;
   const splitWith=splitOn?_splitWith.slice():[];
-  const splitWays=splitOn?splitWith.length+(includeMe?1:0):1;
+  const splitWays=splitOn?splitWith.length+1:1;
   // Non-split expenses keep the simple single toggle; split ones use the
   // per-person checklist (_settledPeople), pruned to whoever's still a participant.
-  const participants=splitOn?(includeMe?['you',...splitWith]:splitWith):['you'];
+  const participants=splitOn?['you',...splitWith]:['you'];
   const settledPeople=splitOn
     ?participants.filter(p=>_settledPeople.has(p))
     :(document.getElementById('expSettled').checked?['you']:[]);
