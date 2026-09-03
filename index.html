@@ -422,6 +422,10 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-split-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
 .exp-split-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(74,144,226,.12);color:var(--accent);border-radius:99px;padding:5px 8px 5px 12px;font-size:13px;font-weight:600;}
 .exp-split-chip-rm{width:18px;height:18px;border-radius:50%;border:none;background:rgba(74,144,226,.22);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font-size:14px;line-height:1;flex-shrink:0;}
+.exp-split-suggest-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-top:10px;}
+.exp-split-suggest-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.exp-split-suggest-chip{background:var(--tint);border:1.5px dashed var(--border);color:var(--muted);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer;}
+.exp-split-suggest-chip:active{background:var(--white);}
 .exp-split-hint{font-size:13px;color:var(--accent);font-weight:600;margin:8px 0 0;}
 .exp-item-people{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
 .exp-person-pill{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);background:var(--tint);border:1px solid var(--border);border-radius:99px;padding:3px 9px;cursor:pointer;line-height:1.3;}
@@ -2320,6 +2324,7 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
           </button>
         </div>
         <div id="expSplitChips" class="exp-split-chips"></div>
+        <div id="expSplitSuggestions"></div>
         <p class="exp-split-hint" id="expSplitHint"></p>
         <div id="expSettledPeople" class="exp-settled-people"></div>
       </div>
@@ -5072,6 +5077,35 @@ function _renderSplitChips(){
   ).join('');
   _updateSplitHint();
 }
+// Every name ever typed into a split, across the whole trip — so once you've
+// added someone once, you can tap to re-add them on later expenses instead of
+// retyping their name each time.
+function _getKnownSplitNames(){
+  const trip=getTrip();if(!trip)return[];
+  const names=new Set();
+  (trip.expenses||[]).forEach(e=>(e.splitWith||[]).forEach(n=>{if(n)names.add(n);}));
+  return[...names].sort((a,b)=>a.localeCompare(b));
+}
+window._renderSplitSuggestions=function(){
+  const container=document.getElementById('expSplitSuggestions');
+  if(!container)return;
+  const on=document.getElementById('expSplitEnabled')?.checked;
+  if(!on){container.innerHTML='';return;}
+  const already=new Set(_splitWith.map(n=>n.toLowerCase()));
+  const myNameLower=(_currentUserName||'').toLowerCase();
+  const avail=_getKnownSplitNames().filter(n=>!already.has(n.toLowerCase())&&(!myNameLower||n.toLowerCase()!==myNameLower));
+  if(!avail.length){container.innerHTML='';return;}
+  container.innerHTML=`<div class="exp-split-suggest-label">Add from before</div><div class="exp-split-suggest-row">${avail.map(n=>
+    `<button type="button" class="exp-split-suggest-chip" onclick="addKnownSplitPerson('${encodeURIComponent(n)}')">+ ${esc(n)}</button>`
+  ).join('')}</div>`;
+};
+window.addKnownSplitPerson=function(nameKey){
+  const name=decodeURIComponent(nameKey);
+  if(_splitWith.length>=19)return;
+  if(_splitWith.some(n=>n.toLowerCase()===name.toLowerCase()))return;
+  _splitWith.push(name);
+  _renderSplitChips();
+};
 window.toggleSplitEnabled=function(){
   const on=document.getElementById('expSplitEnabled').checked;
   document.getElementById('expSplitDetails').style.display=on?'':'none';
@@ -5102,6 +5136,7 @@ window._updateSplitHint=function(){
   const simpleField=document.getElementById('expSettledSimpleField');
   if(simpleField)simpleField.style.display=splitOn?'none':'';
   _renderSettledPeopleChecklist();
+  _renderSplitSuggestions();
   const hint=document.getElementById('expSplitHint');
   if(!hint)return;
   if(!on||_splitWith.length===0){hint.innerHTML='';return;}
@@ -5764,6 +5799,7 @@ window.openAddExpense=function(){
   document.getElementById('expSplitDetails').style.display='none';
   document.getElementById('expSplitIncludeMe').checked=true;
   document.getElementById('expSplitChips').innerHTML='';
+  document.getElementById('expSplitSuggestions').innerHTML='';
   document.getElementById('expSplitHint').innerHTML='';
   document.getElementById('expSettledPeople').innerHTML='';
   document.getElementById('expSplitPersonInput').value='';
