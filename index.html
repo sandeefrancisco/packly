@@ -4303,7 +4303,7 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
   const resuming=sessionStorage.getItem('packly-nav')===id;
-  if(!resuming){_expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;}
+  if(!resuming){_expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;_expFilterSplit=null;}
   activeId=id;
   sessionStorage.setItem('packly-nav',id);
   document.getElementById('checklistView').scrollTop=0;
@@ -5272,6 +5272,7 @@ let _expFilterCats=new Set();
 let _expFilterPays=new Set();
 let _expFilterPayers=new Set();
 let _expFilterSettled=null; // null=all, true=settled only, false=unsettled only
+let _expFilterSplit=null; // null=all, true=split only, false=solo only
 let _fxRates=null;
 let _fxFetchedAt=0;
 let _fxPending=null;
@@ -5330,14 +5331,16 @@ function renderExpenses(){
   }
 
   // Apply filters
-  const hasFilter=_expFilterCats.size>0||_expFilterPays.size>0||_expFilterPayers.size>0||_expFilterSettled!==null;
+  const hasFilter=_expFilterCats.size>0||_expFilterPays.size>0||_expFilterPayers.size>0||_expFilterSettled!==null||_expFilterSplit!==null;
   const expenses=hasFilter
     ?allExpenses.filter(e=>{
       const catOk=_expFilterCats.size===0||_expFilterCats.has(e.category);
       const payOk=_expFilterPays.size===0||_expFilterPays.has(e.payWith);
       const payerOk=_expFilterPayers.size===0||_expFilterPayers.has(e.paidBy||'');
       const settledOk=_expFilterSettled===null||(!!e.settled===_expFilterSettled);
-      return catOk&&payOk&&payerOk&&settledOk;
+      const isSplit=(e.splitWays||1)>1;
+      const splitOk=_expFilterSplit===null||isSplit===_expFilterSplit;
+      return catOk&&payOk&&payerOk&&settledOk&&splitOk;
     })
     :allExpenses;
 
@@ -5654,9 +5657,22 @@ function renderExpenses(){
     settledChips=`<button class="exp-filter-chip" style="${sStyle}" onclick="toggleExpFilter('settled','false')">${_clockSvg} Unpaid${sActive?_xSvg:''}</button><button class="exp-filter-chip" style="${rStyle}" onclick="toggleExpFilter('settled','true')">${_checkSvg} Settled${rActive?_xSvg:''}</button>`;
   }
 
-  // Single horizontally-scrolling row: dropdowns, then pay chips, then settled chips
+  // Split filter chip
+  let splitChips='';
+  const hasAnySplit=allExpenses.some(e=>(e.splitWays||1)>1);
+  if(hasAnySplit){
+    const spActive=_expFilterSplit===true;
+    const soActive=_expFilterSplit===false;
+    const spStyle=spActive?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
+    const soStyle=soActive?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
+    const _xSvg2='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7;margin-left:2px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    const _splitSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>';
+    splitChips=`<button class="exp-filter-chip" style="${spStyle}" onclick="toggleExpFilter('split','true')">${_splitSvg} Split${spActive?_xSvg2:''}</button><button class="exp-filter-chip" style="${soStyle}" onclick="toggleExpFilter('split','false')">Solo${soActive?_xSvg2:''}</button>`;
+  }
+
+  // Single horizontally-scrolling row: dropdowns, then pay chips, then settled chips, then split chips
   const sep='<span class="exp-filter-sep"></span>';
-  const groups=[[catSelect,payerChips].filter(Boolean).join(sep),payChips,settledChips].filter(Boolean);
+  const groups=[[catSelect,payerChips].filter(Boolean).join(sep),payChips,settledChips,splitChips].filter(Boolean);
   const filterBarHtml=groups.length
     ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${groups.join(sep)}</div></div>`
     :'';
@@ -5811,6 +5827,9 @@ window.toggleExpFilter=function(type,value){
   } else if(type==='settled'){
     const want=value==='true';
     _expFilterSettled=(_expFilterSettled===want)?null:want;
+  } else if(type==='split'){
+    const want=value==='true';
+    _expFilterSplit=(_expFilterSplit===want)?null:want;
   } else {
     if(_expFilterCats.has(value))_expFilterCats.delete(value);else _expFilterCats.add(value);
   }
@@ -5818,7 +5837,7 @@ window.toggleExpFilter=function(type,value){
 };
 
 window.clearExpFilters=function(){
-  _expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;
+  _expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;_expFilterSplit=null;
   renderExpenses();
 };
 
