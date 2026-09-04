@@ -5125,18 +5125,11 @@ window.renderPaidByList=function(query){
   const q=(query||'').trim();
   const qLower=q.toLowerCase();
   const current=document.getElementById('expPaidBy')?.value||'';
-  // Historical expenses sometimes stored the current user's own name as the
-  // payer (before "You" existed as a concept) — collapse that into the single
-  // "You" row instead of listing yourself twice.
-  const myNameLower=(_currentUserName||'').toLowerCase();
-  const knownOthers=_getKnownPayers().filter(n=>!myNameLower||n.toLowerCase()!==myNameLower);
-  const items=[{v:'',l:_currentUserName||'You'},...knownOthers.map(n=>({v:n,l:n}))]
+  const items=_getKnownPayers().map(n=>({v:n,l:n}))
     .filter(o=>!qLower||o.l.toLowerCase().includes(qLower));
   const exactMatch=items.some(o=>o.l.toLowerCase()===qLower);
-  // A stored paidBy matching your own name (old data) selects the "You" row.
-  const currentIsMe=myNameLower&&current.toLowerCase()===myNameLower;
   const rows=items.map(o=>{
-    const sel=(currentIsMe?o.v==='':o.v===current)?' selected':'';
+    const sel=o.v===current?' selected':'';
     return`<button type="button" class="cur-item${sel}" onclick="selectPaidBy('${encodeURIComponent(o.v)}')">
       <span class="cur-item-name">${esc(o.l)}</span>
       <svg class="cur-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
