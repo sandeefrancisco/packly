@@ -1220,6 +1220,7 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.35);backdrop-filter:blur(6px);z-index:200;align-items:flex-end}
 #calOverlay{z-index:400;}
 #currencyPickerOverlay{z-index:300;}
+#paidByOverlay{z-index:300;}
 #confirmOverlay{z-index:600;}
 .amount-cur-row{display:flex;border:1.5px solid var(--border);border-radius:12px;background:var(--tint);overflow:hidden;transition:border-color .12s;}
 .amount-cur-row:focus-within{border-color:var(--accent);background:var(--white);}
@@ -2304,7 +2305,11 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
       </div>
       <div class="field">
         <label>Paid by</label>
-        <input id="expPaidBy" placeholder="You (leave empty if you paid)" maxlength="40" autocomplete="off">
+        <button type="button" class="cur-trigger" id="expPaidByTrigger" onclick="openPaidByPicker()">
+          <span id="expPaidByDisplay" class="cal-trigger-val">You</span>
+          <svg class="cur-trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <input type="hidden" id="expPaidBy" value="">
       </div>
       <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
         <label style="margin:0">Split expense</label>
@@ -5098,6 +5103,70 @@ function _getKnownSplitNames(){
   (trip.expenses||[]).forEach(e=>(e.splitWith||[]).forEach(n=>{if(n)names.add(n);}));
   return[...names].sort((a,b)=>a.localeCompare(b));
 }
+// Every payer and split-with name seen on the trip — feeds the "Paid by"
+// dropdown so it doesn't require retyping a name once it's been used once.
+function _getKnownPayers(){
+  const trip=getTrip();if(!trip)return[];
+  const names=new Set();
+  (trip.expenses||[]).forEach(e=>{
+    if(e.paidBy)names.add(e.paidBy);
+    (e.splitWith||[]).forEach(n=>{if(n)names.add(n);});
+  });
+  return[...names].sort((a,b)=>a.localeCompare(b));
+}
+function _refreshPaidByDisplay(){
+  const val=document.getElementById('expPaidBy')?.value||'';
+  const disp=document.getElementById('expPaidByDisplay');
+  if(disp)disp.textContent=val||(_currentUserName||'You');
+}
+window.renderPaidByList=function(query){
+  const list=document.getElementById('paidByList');
+  if(!list)return;
+  const q=(query||'').trim();
+  const qLower=q.toLowerCase();
+  const current=document.getElementById('expPaidBy')?.value||'';
+  const items=[{v:'',l:_currentUserName||'You'},...(_getKnownPayers().map(n=>({v:n,l:n})))]
+    .filter(o=>!qLower||o.l.toLowerCase().includes(qLower));
+  const exactMatch=items.some(o=>o.l.toLowerCase()===qLower);
+  const rows=items.map(o=>{
+    const sel=o.v===current?' selected':'';
+    return`<button type="button" class="cur-item${sel}" onclick="selectPaidBy('${encodeURIComponent(o.v)}')">
+      <span class="cur-item-name">${esc(o.l)}</span>
+      <svg class="cur-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>`;
+  }).join('');
+  const useTyped=q&&!exactMatch
+    ?`<button type="button" class="cur-item" onclick="selectPaidBy('${encodeURIComponent(q)}')">
+        <span class="cur-item-name">Use "${esc(q)}"</span>
+      </button>`
+    :'';
+  list.innerHTML=useTyped+rows||`<div style="padding:16px;text-align:center;color:var(--muted);font-size:14px">No matches</div>`;
+};
+window.openPaidByPicker=function(){
+  const inp=document.getElementById('paidBySearchInput');
+  if(inp)inp.value='';
+  renderPaidByList('');
+  document.getElementById('paidByOverlay').classList.add('open');
+  setTimeout(()=>inp?.focus(),50);
+};
+window.closePaidByPicker=function(){
+  document.getElementById('paidByOverlay').classList.remove('open');
+};
+window.handlePaidByOverlay=function(e){
+  if(e.target===document.getElementById('paidByOverlay'))closePaidByPicker();
+};
+window.selectPaidBy=function(valueKey){
+  document.getElementById('expPaidBy').value=decodeURIComponent(valueKey);
+  _refreshPaidByDisplay();
+  closePaidByPicker();
+};
+window.confirmPaidByCustom=function(){
+  const val=(document.getElementById('paidBySearchInput')?.value||'').trim();
+  if(!val)return;
+  document.getElementById('expPaidBy').value=val;
+  _refreshPaidByDisplay();
+  closePaidByPicker();
+};
 window._renderSplitSuggestions=function(){
   const container=document.getElementById('expSplitSuggestions');
   if(!container)return;
@@ -5862,6 +5931,7 @@ window.openAddExpense=function(){
   _setCurrency('EUR','Euro');
   renderPayChips('visa');
   document.getElementById('expPaidBy').value='';
+  _refreshPaidByDisplay();
   document.getElementById('expSettled').checked=false;
   document.getElementById('expSettledSimpleField').style.display='';
   _splitWith=[];
@@ -5917,6 +5987,7 @@ window.editExpense=function(id){
   document.getElementById('expAmount').closest('.amount-cur-row')?.classList.remove('error');
   renderPayChips(e.payWith||'visa');
   document.getElementById('expPaidBy').value=e.paidBy||'';
+  _refreshPaidByDisplay();
   document.getElementById('expSettled').checked=!!e.settled;
   _settledPeople=_expSettledSet(e);
   _splitWith=(e.splitWith||[]).slice();
@@ -6937,6 +7008,20 @@ window.addEventListener('pageshow',(ev)=>{
       <input type="search" id="curSearchInput" placeholder="Search currency…" oninput="filterCurrencies(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
     <div class="cur-list" id="curList"></div>
+  </div>
+</div>
+
+<!-- Paid-by picker overlay -->
+<div class="overlay" id="paidByOverlay" onclick="handlePaidByOverlay(event)">
+  <div class="modal cur-picker-modal" role="dialog" aria-modal="true" aria-label="Select who paid">
+    <button class="sheet-close-btn" onclick="closePaidByPicker()" aria-label="Close">
+      <svg class="lucide lucide-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2>Paid by</h2>
+    <div class="cur-search-wrap">
+      <input type="text" id="paidBySearchInput" placeholder="Type a name…" oninput="renderPaidByList(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmPaidByCustom()}" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="cur-list" id="paidByList"></div>
   </div>
 </div>
 
