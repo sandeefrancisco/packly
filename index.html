@@ -914,8 +914,6 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .exp-filter-chip:active{opacity:.75;}
-.chip-pay-logo{display:inline-flex;align-items:center;}
-.chip-pay-logo svg{width:28px;height:18px;border-radius:4px;overflow:hidden;}
 
 /* luggage compact bar */
 .luggage-bar{
@@ -5614,11 +5612,17 @@ function renderExpenses(){
 
   const activeCat=[..._expFilterCats][0]||'';
   const activePayer=[..._expFilterPayers][0]||'';
+  const activePay=[..._expFilterPays][0]||'';
+  const activePayPm=activePay?EXP_PAYMENTS.find(p=>p.id===activePay):null;
 
   // Store options for the filter bottom sheet
   window._expSheetOpts={
     cat:[{v:'',l:'All categories'},...usedCats.map(k=>({v:k,l:k}))],
-    payer:[{v:'',l:'All payers'},...usedPaidBy.map(n=>({v:n,l:n}))]
+    payer:[{v:'',l:'All payers'},...usedPaidBy.map(n=>({v:n,l:n}))],
+    pay:[{v:'',l:'All payment methods'},...usedPays.map(payId=>{
+      const pm=EXP_PAYMENTS.find(p=>p.id===payId);
+      return{v:payId,l:pm?`${pm.logo} ${pm.name}`:payId};
+    })]
   };
 
   const _chevron=`<svg class="exp-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
@@ -5629,13 +5633,12 @@ function renderExpenses(){
       </div>`
     :'';
 
-  const payChips=usedPays.map(payId=>{
-    const pm=EXP_PAYMENTS.find(p=>p.id===payId);if(!pm)return'';
-    const active=_expFilterPays.has(payId);
-    const chipStyle=active?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
-    const xIcon=active?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`:'';
-    return`<button class="exp-filter-chip" style="${chipStyle}" onclick="toggleExpFilter('pay','${payId}')"><span class="chip-pay-logo">${pm.logo}</span>${pm.name}${xIcon}</button>`;
-  }).join('');
+  const payChips=usedPays.length>0
+    ?`<div class="exp-cat-select-wrap">
+        <button class="exp-cat-select${activePay?' active':''}" onclick="openExpFilterSheet('pay','Payment method')">${activePayPm?`${activePayPm.logo} ${esc(activePayPm.name)}`:'Payment method'}</button>
+        ${_chevron}
+      </div>`
+    :'';
 
   const payerChips=usedPaidBy.length>0
     ?`<div class="exp-cat-select-wrap">
@@ -5670,9 +5673,9 @@ function renderExpenses(){
     splitChips=`<button class="exp-filter-chip" style="${spStyle}" onclick="toggleExpFilter('split','true')">${_splitSvg} Split${spActive?_xSvg2:''}</button><button class="exp-filter-chip" style="${soStyle}" onclick="toggleExpFilter('split','false')">Solo${soActive?_xSvg2:''}</button>`;
   }
 
-  // Single horizontally-scrolling row: dropdowns, then pay chips, then settled chips, then split chips
+  // Single horizontally-scrolling row: dropdowns, then settled chips, then split chips
   const sep='<span class="exp-filter-sep"></span>';
-  const groups=[[catSelect,payerChips].filter(Boolean).join(sep),payChips,settledChips,splitChips].filter(Boolean);
+  const groups=[[catSelect,payerChips,payChips].filter(Boolean).join(sep),settledChips,splitChips].filter(Boolean);
   const filterBarHtml=groups.length
     ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${groups.join(sep)}</div></div>`
     :'';
@@ -5795,9 +5798,14 @@ window.onExpPayerFilter=function(value){
   if(value)_expFilterPayers.add(value);
   renderExpenses();
 };
+window.onExpPayFilter=function(value){
+  _expFilterPays.clear();
+  if(value)_expFilterPays.add(value);
+  renderExpenses();
+};
 window.openExpFilterSheet=function(type,title){
   const opts=(window._expSheetOpts||{})[type]||[];
-  const active=type==='cat'?([..._expFilterCats][0]||''):([..._expFilterPayers][0]||'');
+  const active=type==='cat'?([..._expFilterCats][0]||''):type==='payer'?([..._expFilterPayers][0]||''):([..._expFilterPays][0]||'');
   document.getElementById('expFltTitle').textContent=title;
   document.getElementById('expFltOptions').innerHTML=opts.map(o=>
     `<div class="fopt${o.v===active?' fopt-active':''}" data-ftype="${type}" data-fval="${esc(o.v)}" onclick="selectExpFilter(this)">
@@ -5816,12 +5824,10 @@ window.selectExpFilter=function(el){
   closeExpFilterSheet();
   if(type==='cat')onExpCatFilter(value);
   else if(type==='payer')onExpPayerFilter(value);
+  else if(type==='pay')onExpPayFilter(value);
 };
 window.toggleExpFilter=function(type,value){
-  if(type==='pay'){
-    if(_expFilterPays.has(value)){_expFilterPays.clear();}
-    else{_expFilterPays.clear();_expFilterPays.add(value);}
-  } else if(type==='payer'){
+  if(type==='payer'){
     if(_expFilterPayers.has(value)){_expFilterPayers.clear();}
     else{_expFilterPayers.clear();_expFilterPayers.add(value);}
   } else if(type==='settled'){
