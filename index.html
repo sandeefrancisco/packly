@@ -376,18 +376,30 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-split-rows{margin-top:8px;}
 .exp-split-person-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
 .exp-split-person-row:last-of-type{border-bottom:none;}
-.exp-split-person-name{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;}
+.exp-split-person-name{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px;min-width:0;}
 .exp-split-you-tag{font-size:10px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 6px;border-radius:99px;}
 .exp-split-person-amt{font-size:14px;font-weight:700;color:var(--ink);text-align:right;display:inline-flex;align-items:center;gap:6px;}
 .exp-split-person-amt-wrap{display:flex;flex-direction:column;align-items:flex-end;}
 .exp-split-person-sub{font-size:10.5px;color:var(--muted);margin-top:1px;}
 .exp-split-paid-tag{font-size:10px;font-weight:700;color:#16a34a;background:rgba(22,163,74,.1);padding:1px 6px;border-radius:99px;}
 .exp-sheet-section-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.exp-debt-hero{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;padding:6px 0 18px;}
+.exp-debt-hero-label{font-size:13px;font-weight:600;color:var(--muted);}
+.exp-debt-hero-amt{font-size:26px;font-weight:800;color:var(--ink);}
+.exp-debt-hero.owed .exp-debt-hero-amt{color:#16a34a;}
+.exp-debt-hero.owe .exp-debt-hero-amt{color:#dc2626;}
 .exp-debt-rows{display:flex;flex-direction:column;}
 .exp-debt-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:10px;}
 .exp-debt-row:last-child{border-bottom:none;}
+.exp-debt-who{display:flex;align-items:center;gap:10px;min-width:0;}
+.exp-debt-avatar{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
 .exp-debt-text{font-size:14px;font-weight:600;color:var(--ink);}
 .exp-debt-amt{font-size:14px;font-weight:700;color:#dc2626;white-space:nowrap;}
+.exp-debt-amt.owed{color:#16a34a;}
+.exp-debt-amt.owe{color:#dc2626;}
+.exp-debt-section-other .exp-debt-text{font-weight:500;color:var(--muted);}
+.exp-debt-section-other .exp-debt-amt{font-size:13px;color:var(--muted);}
+.exp-debt-section-other-label{margin-top:16px;}
 .exp-debt-empty{font-size:14px;font-weight:600;color:#16a34a;text-align:center;padding:16px 0;}
 .exp-fx-note{font-size:10px;color:var(--muted);margin-top:10px;opacity:.5;text-align:right;}
 .exp-list{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
@@ -5472,20 +5484,67 @@ function renderExpenses(){
       if(Object.keys(aOwesB).length)debtLines.push({fromKey:a,toKey:b,shares:aOwesB});
       if(Object.keys(bOwesA).length)debtLines.push({fromKey:b,toKey:a,shares:bOwesA});
     });
-    const debtRowsHtml=debtLines
-      .map(d=>({...d,amt:toDisplayAmt(d.shares)}))
-      .sort((a,b)=>(b.amt||0)-(a.amt||0))
-      .map(d=>{
-        const amtHtml=d.amt===null
-          ?Object.entries(d.shares).map(([c,a])=>fmtA(c,a)).join(' · ')
-          :fmtA(displayCur,d.amt);
+    // Avatar initials + a stable color per person, so rows can be scanned by
+    // shape/color at a glance instead of reading every name.
+    const avatarColors=['#4a90e2','#e2844a','#7c5cf0','#16a34a','#0891b2','#c026d3','#ca8a04','#ec4899'];
+    const initialsFor=(name)=>{
+      const parts=(name||'').trim().split(/\s+/).filter(Boolean);
+      if(!parts.length)return'?';
+      return(parts[0][0]+(parts[1]?parts[1][0]:'')).toUpperCase();
+    };
+    const colorFor=(key)=>{
+      let h=0;for(let i=0;i<key.length;i++)h=(h*31+key.charCodeAt(i))>>>0;
+      return avatarColors[h%avatarColors.length];
+    };
+
+    const debtLinesWithAmt=debtLines.map(d=>({...d,amt:toDisplayAmt(d.shares)}));
+    const mineLines=debtLinesWithAmt.filter(d=>d.fromKey==='you'||d.toKey==='you').sort((a,b)=>(b.amt||0)-(a.amt||0));
+    const otherLines=debtLinesWithAmt.filter(d=>d.fromKey!=='you'&&d.toKey!=='you').sort((a,b)=>(b.amt||0)-(a.amt||0));
+
+    // Headline net position for "you" — the number the user actually wants at
+    // a glance. Skipped while any of my lines are still waiting on FX rates.
+    let netToMe=0,netUnknown=false;
+    mineLines.forEach(d=>{
+      if(d.amt===null){netUnknown=true;return;}
+      netToMe+=d.toKey==='you'?d.amt:-d.amt;
+    });
+    let heroHtml='';
+    if(mineLines.length&&!netUnknown&&Math.abs(netToMe)>=0.005){
+      const owed=netToMe>0;
+      heroHtml=`<div class="exp-debt-hero ${owed?'owed':'owe'}">
+        <span class="exp-debt-hero-label">${owed?"You're owed":'You owe'}</span>
+        <span class="exp-debt-hero-amt">${fmtA(displayCur,Math.abs(netToMe))}</span>
+      </div>`;
+    }
+
+    const renderDebtRow=(d,perspective)=>{
+      const amtHtml=d.amt===null
+        ?Object.entries(d.shares).map(([c,a])=>fmtA(c,a)).join(' · ')
+        :fmtA(displayCur,d.amt);
+      if(perspective){
+        const otherKey=d.fromKey==='you'?d.toKey:d.fromKey;
+        const iOwe=d.fromKey==='you';
+        const otherName=debtNames[otherKey];
         return`<div class="exp-debt-row">
-          <span class="exp-debt-text">${esc(debtNames[d.fromKey])} owes ${esc(debtNames[d.toKey])}</span>
-          <span class="exp-debt-amt">${amtHtml}</span>
+          <span class="exp-debt-who">
+            <span class="exp-debt-avatar" style="background:${colorFor(otherKey)}">${esc(initialsFor(otherName))}</span>
+            <span class="exp-debt-text">${iOwe?`You owe ${esc(otherName)}`:`${esc(otherName)} owes you`}</span>
+          </span>
+          <span class="exp-debt-amt ${iOwe?'owe':'owed'}">${amtHtml}</span>
         </div>`;
-      }).join('');
-    const debtSectionHtml=debtRowsHtml
-      ?`<div class="exp-sheet-section-label">Who owes whom</div><div class="exp-debt-rows">${debtRowsHtml}</div>`
+      }
+      return`<div class="exp-debt-row">
+        <span class="exp-debt-who">
+          <span class="exp-debt-avatar" style="background:${colorFor(d.fromKey)}">${esc(initialsFor(debtNames[d.fromKey]))}</span>
+          <span class="exp-debt-text">${esc(debtNames[d.fromKey])} owes ${esc(debtNames[d.toKey])}</span>
+        </span>
+        <span class="exp-debt-amt">${amtHtml}</span>
+      </div>`;
+    };
+    const mineRowsHtml=mineLines.map(d=>renderDebtRow(d,true)).join('');
+    const otherRowsHtml=otherLines.map(d=>renderDebtRow(d,false)).join('');
+    const debtSectionHtml=debtLines.length
+      ?`${heroHtml}${mineRowsHtml?`<div class="exp-sheet-section-label">Your balances</div><div class="exp-debt-rows">${mineRowsHtml}</div>`:''}${otherRowsHtml?`<div class="exp-sheet-section-label exp-debt-section-other-label">Other balances</div><div class="exp-debt-rows exp-debt-section-other">${otherRowsHtml}</div>`:''}`
       :`<div class="exp-debt-empty">Everyone's settled up 🎉</div>`;
 
     // Render a person's cell in the Totals list: how much of the trip is theirs
@@ -5515,12 +5574,12 @@ function renderExpenses(){
     const showMyRow=Object.keys(myShares).length>0;
     const myLabel=myName?`${esc(myName)} <span class="exp-split-you-tag">me</span>`:`You <span class="exp-split-you-tag">me</span>`;
     const myRow=showMyRow?`<div class="exp-split-person-row">
-      <span class="exp-split-person-name">${myLabel}</span>
+      <span class="exp-split-person-name"><span class="exp-debt-avatar" style="background:${colorFor('you')}">${esc(initialsFor(myName||'You'))}</span>${myLabel}</span>
       ${renderAmt(myShares,mySettled)}
     </div>`:'';
     const otherRows=Object.entries(personShares).map(([name,shares])=>
       `<div class="exp-split-person-row">
-        <span class="exp-split-person-name">${esc(name)}</span>
+        <span class="exp-split-person-name"><span class="exp-debt-avatar" style="background:${colorFor(name)}">${esc(initialsFor(name))}</span>${esc(name)}</span>
         ${renderAmt(shares,personSettled[name]||{})}
       </div>`
     ).join('');
