@@ -5033,6 +5033,7 @@ const EXP_PAYMENTS=[
 ];
 let _editingExpenseId=null;
 let _splitWith=[];
+let _includeMe=true;
 let _settledPeople=new Set();
 const _checkSvgSmall='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 // Participants owing/sharing an expense: 'you' (if included) plus each splitWith name.
@@ -5070,11 +5071,24 @@ window.toggleParticipantSettled=function(expenseId,personKey,ev){
 function _renderSplitChips(){
   const container=document.getElementById('expSplitChips');
   if(!container)return;
-  container.innerHTML=_splitWith.map((name,i)=>
+  // "You" is a removable chip just like everyone else — tap × to drop yourself
+  // out when you paid for others without taking a share; tap the suggestion
+  // chip below to add yourself back. No separate toggle to get confused by.
+  const me=_currentUserName||'You';
+  const meChip=_includeMe?`<span class="exp-split-chip">${esc(me)}<button type="button" class="exp-split-chip-rm" onclick="removeMeFromSplit()" aria-label="Remove">×</button></span>`:'';
+  container.innerHTML=meChip+_splitWith.map((name,i)=>
     `<span class="exp-split-chip">${esc(name)}<button type="button" class="exp-split-chip-rm" onclick="removeSplitPerson(${i})" aria-label="Remove">×</button></span>`
   ).join('');
   _updateSplitHint();
 }
+window.removeMeFromSplit=function(){
+  _includeMe=false;
+  _renderSplitChips();
+};
+window.addMeToSplit=function(){
+  _includeMe=true;
+  _renderSplitChips();
+};
 // Every name ever typed into a split, across the whole trip — so once you've
 // added someone once, you can tap to re-add them on later expenses instead of
 // retyping their name each time.
@@ -5092,8 +5106,9 @@ window._renderSplitSuggestions=function(){
   const already=new Set(_splitWith.map(n=>n.toLowerCase()));
   const myNameLower=(_currentUserName||'').toLowerCase();
   const avail=_getKnownSplitNames().filter(n=>!already.has(n.toLowerCase())&&(!myNameLower||n.toLowerCase()!==myNameLower));
-  if(!avail.length){container.innerHTML='';return;}
-  container.innerHTML=`<div class="exp-split-suggest-label">Add from before</div><div class="exp-split-suggest-row">${avail.map(n=>
+  const meChip=_includeMe?'':`<button type="button" class="exp-split-suggest-chip" onclick="addMeToSplit()">+ ${esc(_currentUserName||'You')}</button>`;
+  if(!avail.length&&!meChip){container.innerHTML='';return;}
+  container.innerHTML=`<div class="exp-split-suggest-label">Add people</div><div class="exp-split-suggest-row">${meChip}${avail.map(n=>
     `<button type="button" class="exp-split-suggest-chip" onclick="addKnownSplitPerson('${encodeURIComponent(n)}')">+ ${esc(n)}</button>`
   ).join('')}</div>`;
 };
@@ -5107,7 +5122,7 @@ window.addKnownSplitPerson=function(nameKey){
 window.toggleSplitEnabled=function(){
   const on=document.getElementById('expSplitEnabled').checked;
   document.getElementById('expSplitDetails').style.display=on?'':'none';
-  if(!on){_splitWith=[];_renderSplitChips();}
+  if(!on){_splitWith=[];_includeMe=true;_renderSplitChips();}
   _updateSplitHint();
 };
 window.addSplitPerson=function(){
@@ -5139,10 +5154,11 @@ window._updateSplitHint=function(){
   if(!hint)return;
   if(!on||_splitWith.length===0){hint.innerHTML='';return;}
   const me=_currentUserName||'You';
-  const ways=_splitWith.length+1;
+  const ways=_splitWith.length+(_includeMe?1:0);
+  if(ways===0){hint.innerHTML='';return;}
   const amt=parseFloat(document.getElementById('expAmount').value.replace(',','.'));
   const cur=document.getElementById('expCurrency').value||'';
-  const people=[me,..._splitWith];
+  const people=_includeMe?[me,..._splitWith]:_splitWith;
   if(amt>0){
     const share=(amt/ways).toFixed(2);
     hint.innerHTML=`<span style="opacity:.7">${cur} ${amt.toFixed(2)} ÷ ${ways} =</span> <strong>${cur} ${share} each</strong> <span style="opacity:.5">(${people.map(esc).join(', ')})</span>`;
@@ -5158,7 +5174,7 @@ window._renderSettledPeopleChecklist=function(){
   const on=document.getElementById('expSplitEnabled')?.checked;
   if(!on||_splitWith.length===0){container.innerHTML='';return;}
   const me=_currentUserName||'You';
-  const participants=['you',..._splitWith];
+  const participants=_includeMe?['you',..._splitWith]:_splitWith.slice();
   const rows=participants.map(p=>{
     const label=p==='you'?me:p;
     const checked=_settledPeople.has(p);
@@ -5849,6 +5865,7 @@ window.openAddExpense=function(){
   document.getElementById('expSettled').checked=false;
   document.getElementById('expSettledSimpleField').style.display='';
   _splitWith=[];
+  _includeMe=true;
   _settledPeople=new Set();
   document.getElementById('expSplitEnabled').checked=false;
   document.getElementById('expSplitDetails').style.display='none';
@@ -5904,6 +5921,7 @@ window.editExpense=function(id){
   _settledPeople=_expSettledSet(e);
   _splitWith=(e.splitWith||[]).slice();
   const splitOn=_splitWith.length>0;
+  _includeMe=splitOn?(e.splitWays>(e.splitWith?.length||0)):true;
   document.getElementById('expSplitEnabled').checked=splitOn;
   document.getElementById('expSplitDetails').style.display=splitOn?'':'none';
   document.getElementById('expSplitPersonInput').value='';
@@ -5926,10 +5944,10 @@ window.saveExpense=function(){
   const paidBy=document.getElementById('expPaidBy').value.trim();
   const splitOn=document.getElementById('expSplitEnabled').checked&&_splitWith.length>0;
   const splitWith=splitOn?_splitWith.slice():[];
-  const splitWays=splitOn?splitWith.length+1:1;
+  const splitWays=splitOn?splitWith.length+(_includeMe?1:0):1;
   // Non-split expenses keep the simple single toggle; split ones use the
   // per-person checklist (_settledPeople), pruned to whoever's still a participant.
-  const participants=splitOn?['you',...splitWith]:['you'];
+  const participants=splitOn?(_includeMe?['you',...splitWith]:splitWith):['you'];
   const settledPeople=splitOn
     ?participants.filter(p=>_settledPeople.has(p))
     :(document.getElementById('expSettled').checked?['you']:[]);
