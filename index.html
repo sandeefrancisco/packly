@@ -5622,7 +5622,8 @@ function renderExpenses(){
     pay:[{v:'',l:'All payment methods'},...usedPays.map(payId=>{
       const pm=EXP_PAYMENTS.find(p=>p.id===payId);
       return{v:payId,l:pm?`${pm.logo} ${pm.name}`:payId};
-    })]
+    })],
+    settled:[{v:'',l:'All'},{v:'false',l:'Unpaid'},{v:'true',l:'Settled'}]
   };
 
   const _chevron=`<svg class="exp-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
@@ -5647,17 +5648,14 @@ function renderExpenses(){
       </div>`
     :'';
 
-  // Settled filter chip
+  // Settled dropdown (All / Unpaid / Settled)
   let settledChips='';
   if(hasAnySettled||hasAnyUnsettledPaidByOther){
-    const sActive=_expFilterSettled===false;
-    const rActive=_expFilterSettled===true;
-    const sStyle=sActive?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
-    const rStyle=rActive?`border-color:#16a34a;background:#f0fdf4;color:#16a34a`:'';
-    const _xSvg='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7;margin-left:2px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    const _clockSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-    const _checkSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>';
-    settledChips=`<button class="exp-filter-chip" style="${sStyle}" onclick="toggleExpFilter('settled','false')">${_clockSvg} Unpaid${sActive?_xSvg:''}</button><button class="exp-filter-chip" style="${rStyle}" onclick="toggleExpFilter('settled','true')">${_checkSvg} Settled${rActive?_xSvg:''}</button>`;
+    const settledLabel=_expFilterSettled===false?'Unpaid':_expFilterSettled===true?'Settled':'Payment status';
+    settledChips=`<div class="exp-cat-select-wrap">
+        <button class="exp-cat-select${_expFilterSettled!==null?' active':''}" onclick="openExpFilterSheet('settled','Payment status')">${settledLabel}</button>
+        ${_chevron}
+      </div>`;
   }
 
   // Split filter chip
@@ -5673,9 +5671,9 @@ function renderExpenses(){
     splitChips=`<button class="exp-filter-chip" style="${spStyle}" onclick="toggleExpFilter('split','true')">${_splitSvg} Split${spActive?_xSvg2:''}</button><button class="exp-filter-chip" style="${soStyle}" onclick="toggleExpFilter('split','false')">Solo${soActive?_xSvg2:''}</button>`;
   }
 
-  // Single horizontally-scrolling row: dropdowns, then settled chips, then split chips
+  // Single horizontally-scrolling row: dropdowns, then split chips
   const sep='<span class="exp-filter-sep"></span>';
-  const groups=[[catSelect,payerChips,payChips].filter(Boolean).join(sep),settledChips,splitChips].filter(Boolean);
+  const groups=[[catSelect,payerChips,payChips,settledChips].filter(Boolean).join(sep),splitChips].filter(Boolean);
   const filterBarHtml=groups.length
     ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${groups.join(sep)}</div></div>`
     :'';
@@ -5803,9 +5801,16 @@ window.onExpPayFilter=function(value){
   if(value)_expFilterPays.add(value);
   renderExpenses();
 };
+window.onExpSettledFilter=function(value){
+  _expFilterSettled=value===''?null:value==='true';
+  renderExpenses();
+};
 window.openExpFilterSheet=function(type,title){
   const opts=(window._expSheetOpts||{})[type]||[];
-  const active=type==='cat'?([..._expFilterCats][0]||''):type==='payer'?([..._expFilterPayers][0]||''):([..._expFilterPays][0]||'');
+  const active=type==='cat'?([..._expFilterCats][0]||'')
+    :type==='payer'?([..._expFilterPayers][0]||'')
+    :type==='pay'?([..._expFilterPays][0]||'')
+    :(_expFilterSettled===null?'':String(_expFilterSettled));
   document.getElementById('expFltTitle').textContent=title;
   document.getElementById('expFltOptions').innerHTML=opts.map(o=>
     `<div class="fopt${o.v===active?' fopt-active':''}" data-ftype="${type}" data-fval="${esc(o.v)}" onclick="selectExpFilter(this)">
@@ -5825,14 +5830,12 @@ window.selectExpFilter=function(el){
   if(type==='cat')onExpCatFilter(value);
   else if(type==='payer')onExpPayerFilter(value);
   else if(type==='pay')onExpPayFilter(value);
+  else if(type==='settled')onExpSettledFilter(value);
 };
 window.toggleExpFilter=function(type,value){
   if(type==='payer'){
     if(_expFilterPayers.has(value)){_expFilterPayers.clear();}
     else{_expFilterPayers.clear();_expFilterPayers.add(value);}
-  } else if(type==='settled'){
-    const want=value==='true';
-    _expFilterSettled=(_expFilterSettled===want)?null:want;
   } else if(type==='split'){
     const want=value==='true';
     _expFilterSplit=(_expFilterSplit===want)?null:want;
