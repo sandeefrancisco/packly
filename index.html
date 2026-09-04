@@ -5673,7 +5673,7 @@ function renderExpenses(){
 
   // Single horizontally-scrolling row: dropdowns, then split chips
   const sep='<span class="exp-filter-sep"></span>';
-  const groups=[[catSelect,payerChips,payChips,settledChips].filter(Boolean).join(sep),splitChips].filter(Boolean);
+  const groups=[[catSelect,payerChips,payChips,settledChips].filter(Boolean).join(''),splitChips].filter(Boolean);
   const filterBarHtml=groups.length
     ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${groups.join(sep)}</div></div>`
     :'';
