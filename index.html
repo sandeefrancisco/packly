@@ -5708,7 +5708,7 @@ function renderExpenses(){
     payer:[{v:'',l:'All payers'},...usedPaidBy.map(n=>({v:n,l:n}))],
     pay:[{v:'',l:'All payment methods'},...usedPays.map(payId=>{
       const pm=EXP_PAYMENTS.find(p=>p.id===payId);
-      return{v:payId,l:pm?`${pm.logo} ${pm.name}`:payId};
+      return{v:payId,l:pm?pm.name:payId};
     })],
     settled:[{v:'',l:'All'},{v:'false',l:'Unpaid'},{v:'true',l:'Settled'}]
   };
