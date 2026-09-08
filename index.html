@@ -1895,6 +1895,23 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
       <input type="date" id="mDateFrom" style="display:none">
       <input type="date" id="mDateTo" style="display:none">
     </div>
+    <div class="field" id="mIncludeSectionsField">
+      <label>Include in this trip</label>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:15px;color:var(--ink)">Packing list</span>
+          <label class="exp-toggle"><input type="checkbox" id="mIncludePacking" checked><span class="exp-toggle-track"></span></label>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:15px;color:var(--ink)">Itinerary</span>
+          <label class="exp-toggle"><input type="checkbox" id="mIncludeItinerary" checked><span class="exp-toggle-track"></span></label>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:15px;color:var(--ink)">Expenses</span>
+          <label class="exp-toggle"><input type="checkbox" id="mIncludeExpenses" checked><span class="exp-toggle-track"></span></label>
+        </div>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn-save" id="tripSaveBtn" onclick="saveTrip()">Create trip</button>
     </div>
@@ -4118,6 +4135,10 @@ window.openNewTripModal=function(){
   document.getElementById('mDateFrom').value='';
   document.getElementById('mDateTo').value='';
   _calStart=null;_calEnd=null;_updateCalTrigger();
+  document.getElementById('mIncludeSectionsField').style.display='';
+  document.getElementById('mIncludePacking').checked=true;
+  document.getElementById('mIncludeItinerary').checked=true;
+  document.getElementById('mIncludeExpenses').checked=true;
   document.getElementById('tripOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('mDest').focus(),50);
 };
@@ -4131,6 +4152,7 @@ window.openEditModal=function(id){
   document.getElementById('mDateFrom').value=t.dateFrom||'';
   document.getElementById('mDateTo').value=t.dateTo||'';
   _calStart=t.dateFrom||null;_calEnd=t.dateTo||null;_updateCalTrigger();
+  document.getElementById('mIncludeSectionsField').style.display='none';
   document.getElementById('tripOverlay').classList.add('open');
 };
 
@@ -4296,9 +4318,17 @@ window.saveTrip=function(){
     const t=trips.find(x=>x.id===editingId);
     if(t){t.name=name;t.dates=dates;t.dateFrom=dateFrom;t.dateTo=dateTo;t.iconKey=selTripIcon;}
   } else {
-    const sections=_duplicateSections||DEFAULT_SECTIONS();
+    const includePacking=document.getElementById('mIncludePacking').checked;
+    const includeItinerary=document.getElementById('mIncludeItinerary').checked;
+    const includeExpenses=document.getElementById('mIncludeExpenses').checked;
+    if(!includePacking&&!includeItinerary&&!includeExpenses){
+      showToast('Include at least one of packing, itinerary or expenses');
+      return;
+    }
+    const sections=includePacking?(_duplicateSections||DEFAULT_SECTIONS()):[];
     _duplicateSections=null;
-    trips.push({id:uid(),name,dates,dateFrom,dateTo,iconKey:selTripIcon,sections,travelers:[]});
+    trips.push({id:uid(),name,dates,dateFrom,dateTo,iconKey:selTripIcon,sections,travelers:[],
+      includePacking,includeItinerary,includeExpenses});
   }
   saveAll(trips);closeTripModal();renderTrips();
 };
@@ -4313,9 +4343,12 @@ async function showChecklist(id){
   sessionStorage.setItem('packly-nav',id);
   document.getElementById('checklistView').scrollTop=0;
   const trip=trips.find(t=>t.id===id);
-  const defaultTab=resuming
+  applyTripTabVisibility(trip);
+  const visibleTabs=_visibleTripTabs();
+  let defaultTab=resuming
     ?(sessionStorage.getItem('packly-cl-tab')||'packing')
     :(['ongoing','past'].includes(tripTabOf(trip))?'expenses':'packing');
+  if(!visibleTabs.includes(defaultTab))defaultTab=visibleTabs[0]||'packing';
   setTripTab(defaultTab);
   _clOpen();
   history.pushState({packly:'checklist',tripId:id},'','#checklist');
@@ -4347,6 +4380,7 @@ function renderChecklist(){
     }
     return;
   }
+  applyTripTabVisibility(trip);
 
   document.getElementById('clTripName').innerHTML=
     `${getTripFlagOrIcon(trip,'lucide lucide-lg','plane',24)} ${esc(trip.name)}`;
@@ -4911,6 +4945,10 @@ window.duplicateTrip=function(id){
   document.getElementById('mDateFrom').value='';
   document.getElementById('mDateTo').value='';
   _calStart=null;_calEnd=null;_updateCalTrigger();
+  document.getElementById('mIncludeSectionsField').style.display='';
+  document.getElementById('mIncludePacking').checked=true;
+  document.getElementById('mIncludeItinerary').checked=true;
+  document.getElementById('mIncludeExpenses').checked=true;
   document.getElementById('tripOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('calTrigger')?.click(),50);
 };
@@ -5040,6 +5078,20 @@ function stopSharedTripPolling(){
 
 /* ── Trip Tabs ── */
 let _activeTripTab=sessionStorage.getItem('packly-cl-tab')||'packing';
+const _TRIP_TAB_IDS={packing:'clTabPacking',expenses:'clTabExpenses',itinerary:'clTabItinerary'};
+
+// A trip's tab bar only shows the sections the user opted into when creating
+// it (defaulting to all shown for older trips without the flags).
+function _visibleTripTabs(){
+  return Object.keys(_TRIP_TAB_IDS).filter(t=>document.getElementById(_TRIP_TAB_IDS[t]).style.display!=='none');
+}
+function applyTripTabVisibility(trip){
+  document.getElementById('clTabPacking').style.display=trip.includePacking===false?'none':'';
+  document.getElementById('clTabExpenses').style.display=trip.includeExpenses===false?'none':'';
+  document.getElementById('clTabItinerary').style.display=trip.includeItinerary===false?'none':'';
+  const n=_visibleTripTabs().length||1;
+  document.getElementById('clTabPill').style.width=`calc(${100/n}% - 2px)`;
+}
 
 window.setTripTab=function(tab){
   _activeTripTab=tab;
@@ -5047,8 +5099,8 @@ window.setTripTab=function(tab){
   document.getElementById('clTabPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clTabExpenses').classList.toggle('active',tab==='expenses');
   document.getElementById('clTabItinerary').classList.toggle('active',tab==='itinerary');
-  const pillPos={packing:'translateX(0)',expenses:'translateX(100%)',itinerary:'translateX(200%)'};
-  document.getElementById('clTabPill').style.transform=pillPos[tab]||'translateX(0)';
+  const idx=Math.max(0,_visibleTripTabs().indexOf(tab));
+  document.getElementById('clTabPill').style.transform=`translateX(${idx*100}%)`;
   document.getElementById('clPanelPacking').classList.toggle('active',tab==='packing');
   document.getElementById('clPanelExpenses').classList.toggle('active',tab==='expenses');
   document.getElementById('clPanelItinerary').classList.toggle('active',tab==='itinerary');
