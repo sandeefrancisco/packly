@@ -2381,6 +2381,9 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
       <button class="btn-dup-expense" id="expenseDupBtn" onclick="duplicateEditingExpense()" title="Duplicate expense" aria-label="Duplicate expense">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
       </button>
+      <button class="btn-dup-expense" id="expenseCopyToTripBtn" style="display:none" onclick="openCopySingleExpenseSheet()" title="Copy to another trip" aria-label="Copy to another trip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+      </button>
       <button class="btn-save" id="expenseSaveBtn" onclick="saveExpense()">Add</button>
     </div>
   </div>
@@ -4954,24 +4957,60 @@ window.duplicateTrip=function(id){
 };
 
 let _copyExpensesSourceId=null;
-window.openCopyExpensesSheet=function(id){
-  const src=trips.find(t=>t.id===id);if(!src)return;
-  _copyExpensesSourceId=id;
-  const dests=trips.filter(t=>t.id!==id);
+let _copyExpensesMode='trip'; // 'trip' = every expense on the trip, 'expense' = one expense being edited
+let _copySingleExpenseId=null;
+
+function _renderCopyExpensesDestList(sourceTripId){
+  const dests=trips.filter(t=>t.id!==sourceTripId);
   const list=document.getElementById('copyExpensesList');
   list.innerHTML=dests.length
     ?dests.map(t=>`<div class="fopt" onclick="selectCopyExpensesDest('${t.id}')"><span class="fopt-label">${esc(t.name)}</span></div>`).join('')
     :`<div style="padding:16px 0;text-align:center;color:var(--muted);font-size:14px">No other trips to copy to yet.</div>`;
+}
+
+window.openCopyExpensesSheet=function(id){
+  const src=trips.find(t=>t.id===id);if(!src)return;
+  _copyExpensesMode='trip';
+  _copyExpensesSourceId=id;
+  document.getElementById('copyExpensesTitle').textContent='Copy expenses to…';
+  _renderCopyExpensesDestList(id);
   document.getElementById('copyExpensesOverlay').classList.add('open');
 };
+
+// Copy just the expense currently open in the edit modal into another trip.
+window.openCopySingleExpenseSheet=function(){
+  if(!_editingExpenseId)return;
+  const trip=getTrip();if(!trip)return;
+  _copyExpensesMode='expense';
+  _copySingleExpenseId=_editingExpenseId;
+  document.getElementById('copyExpensesTitle').textContent='Copy expense to…';
+  _renderCopyExpensesDestList(trip.id);
+  document.getElementById('copyExpensesOverlay').classList.add('open');
+};
+
 window.closeCopyExpensesSheet=function(){
   document.getElementById('copyExpensesOverlay').classList.remove('open');
 };
+
 window.selectCopyExpensesDest=function(destId){
-  const src=trips.find(t=>t.id===_copyExpensesSourceId);
   const dest=trips.find(t=>t.id===destId);
+  const mode=_copyExpensesMode;
   closeCopyExpensesSheet();
-  if(!src||!dest||!src.expenses?.length)return;
+  if(!dest)return;
+  if(mode==='expense'){
+    const trip=getTrip();
+    const src=(trip?.expenses||[]).find(e=>e.id===_copySingleExpenseId);
+    if(!src)return;
+    const copy={...src,id:uid(),settled:false,settledPeople:[]};
+    dest.expenses=[...(dest.expenses||[]),copy];
+    saveAll(trips);
+    showToast(`Copied to ${dest.name}`);
+    closeExpenseModal();
+    if(activeId===destId)renderExpenses();
+    return;
+  }
+  const src=trips.find(t=>t.id===_copyExpensesSourceId);
+  if(!src||!src.expenses?.length)return;
   const copies=src.expenses.map(e=>({
     ...e,id:uid(),settled:false,settledPeople:[]
   }));
@@ -6087,6 +6126,7 @@ window.openAddExpense=function(){
   document.getElementById('expenseSaveBtn').textContent='Add';
   document.getElementById('expenseDelBtn').style.display='none';
   document.getElementById('expenseDupBtn').style.display='none';
+  document.getElementById('expenseCopyToTripBtn').style.display='none';
   document.getElementById('expLabel').value='';
   document.getElementById('expAmount').value='';
   renderExpCatGrid('Food');
@@ -6143,6 +6183,7 @@ window.editExpense=function(id){
   document.getElementById('expenseSaveBtn').textContent='Save';
   document.getElementById('expenseDelBtn').style.display='flex';
   document.getElementById('expenseDupBtn').style.display='flex';
+  document.getElementById('expenseCopyToTripBtn').style.display=trips.length>1?'flex':'none';
   document.getElementById('expLabel').value=e.label||'';
   document.getElementById('expAmount').value=e.amount!=null?e.amount:'';
   renderExpCatGrid(e.category||'Food');
@@ -7212,7 +7253,7 @@ window.addEventListener('pageshow',(ev)=>{
 <div class="overlay" id="copyExpensesOverlay" onclick="closeCopyExpensesSheet()">
   <div class="modal" onclick="event.stopPropagation()" style="padding-top:24px">
     <button class="sheet-close-btn" onclick="closeCopyExpensesSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:32px">Copy expenses to…</div>
+    <div id="copyExpensesTitle" style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:32px">Copy expenses to…</div>
     <div id="copyExpensesList"></div>
   </div>
 </div>
