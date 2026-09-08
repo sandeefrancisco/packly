@@ -4301,7 +4301,7 @@ document.getElementById('mDest').addEventListener('keydown',e=>{if(e.key==='Ente
 /* ── CHECKLIST VIEW ── */
 async function showChecklist(id){
   const resuming=sessionStorage.getItem('packly-nav')===id;
-  if(!resuming){_expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;_expFilterSplit=null;_expFilterMine=null;}
+  if(!resuming){_expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;_expFilterSplit=null;}
   activeId=id;
   sessionStorage.setItem('packly-nav',id);
   document.getElementById('checklistView').scrollTop=0;
@@ -5271,7 +5271,6 @@ let _expFilterPays=new Set();
 let _expFilterPayers=new Set();
 let _expFilterSettled=null; // null=all, true=settled only, false=unsettled only
 let _expFilterSplit=null; // null=all, true=split only, false=solo only
-let _expFilterMine=null; // null=all, true=only expenses allocated to me
 let _fxRates=null;
 let _fxFetchedAt=0;
 let _fxPending=null;
@@ -5329,17 +5328,8 @@ function renderExpenses(){
     return;
   }
 
-  // An expense is "mine" if I paid for it solo, or I'm a participant in its
-  // split — i.e. it's allocated to my travel spend, regardless of who paid.
-  const myNameLowerForMine=(_currentUserName||'').toLowerCase();
-  const isExpenseMine=(e)=>{
-    if((e.splitWays||1)>1)return _expParticipants(e).includes('you');
-    const paidBy=(e.paidBy||'').trim();
-    return !paidBy||(myNameLowerForMine&&paidBy.toLowerCase()===myNameLowerForMine);
-  };
-
   // Apply filters
-  const hasFilter=_expFilterCats.size>0||_expFilterPays.size>0||_expFilterPayers.size>0||_expFilterSettled!==null||_expFilterSplit!==null||_expFilterMine!==null;
+  const hasFilter=_expFilterCats.size>0||_expFilterPays.size>0||_expFilterPayers.size>0||_expFilterSettled!==null||_expFilterSplit!==null;
   const expenses=hasFilter
     ?allExpenses.filter(e=>{
       const catOk=_expFilterCats.size===0||_expFilterCats.has(e.category);
@@ -5348,8 +5338,7 @@ function renderExpenses(){
       const settledOk=_expFilterSettled===null||(!!e.settled===_expFilterSettled);
       const isSplit=(e.splitWays||1)>1;
       const splitOk=_expFilterSplit===null||isSplit===_expFilterSplit;
-      const mineOk=_expFilterMine===null||isExpenseMine(e)===_expFilterMine;
-      return catOk&&payOk&&payerOk&&settledOk&&splitOk&&mineOk;
+      return catOk&&payOk&&payerOk&&settledOk&&splitOk;
     })
     :allExpenses;
 
@@ -5682,21 +5671,9 @@ function renderExpenses(){
     splitChips=`<button class="exp-filter-chip" style="${spStyle}" onclick="toggleExpFilter('split','true')">${_splitSvg} Split${spActive?_xSvg2:''}</button><button class="exp-filter-chip" style="${soStyle}" onclick="toggleExpFilter('split','false')">Solo${soActive?_xSvg2:''}</button>`;
   }
 
-  // "Mine" filter chip — expenses allocated to my travel spend: I paid solo,
-  // or I'm a participant in the split (even when someone else paid).
-  let mineChip='';
-  const hasAnyNotMine=allExpenses.some(e=>!isExpenseMine(e));
-  if(hasAnyNotMine){
-    const mineActive=_expFilterMine===true;
-    const mineStyle=mineActive?`border-color:var(--accent);background:var(--tint);color:var(--accent)`:'';
-    const _xSvg3='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7;margin-left:2px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    const _personSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:middle"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-    mineChip=`<button class="exp-filter-chip" style="${mineStyle}" onclick="toggleExpFilter('mine','true')">${_personSvg} Mine${mineActive?_xSvg3:''}</button>`;
-  }
-
-  // Single horizontally-scrolling row: dropdowns, then split chips, then mine chip
+  // Single horizontally-scrolling row: dropdowns, then split chips
   const sep='<span class="exp-filter-sep"></span>';
-  const groups=[[catSelect,payerChips,payChips,settledChips].filter(Boolean).join(''),splitChips,mineChip].filter(Boolean);
+  const groups=[[catSelect,payerChips,payChips,settledChips].filter(Boolean).join(''),splitChips].filter(Boolean);
   const filterBarHtml=groups.length
     ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${groups.join(sep)}</div></div>`
     :'';
@@ -5862,9 +5839,6 @@ window.toggleExpFilter=function(type,value){
   } else if(type==='split'){
     const want=value==='true';
     _expFilterSplit=(_expFilterSplit===want)?null:want;
-  } else if(type==='mine'){
-    const want=value==='true';
-    _expFilterMine=(_expFilterMine===want)?null:want;
   } else {
     if(_expFilterCats.has(value))_expFilterCats.delete(value);else _expFilterCats.add(value);
   }
@@ -5872,7 +5846,7 @@ window.toggleExpFilter=function(type,value){
 };
 
 window.clearExpFilters=function(){
-  _expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;_expFilterSplit=null;_expFilterMine=null;
+  _expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled=null;_expFilterSplit=null;
   renderExpenses();
 };
 
