@@ -2197,6 +2197,10 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Export trip data
   </button>
+  <button class="sheet-action" id="tripActionCopyExpenses" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    Copy expenses to trip…
+  </button>
   <button class="sheet-action" id="tripActionPackAgain" style="display:none">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
     Pack this list again
@@ -3876,6 +3880,9 @@ window.openTripActions=function(id){
   shareBtn.onclick=()=>{closeTripActions();shareTrip(id);};
   editBtn.onclick=()=>{closeTripActions();openEditModal(id);};
   document.getElementById('tripActionExport').onclick=()=>{closeTripActions();exportTrip(id);};
+  const copyExpBtn=document.getElementById('tripActionCopyExpenses');
+  copyExpBtn.style.display=(t.expenses?.length&&trips.length>1)?'':'none';
+  copyExpBtn.onclick=()=>{closeTripActions();openCopyExpensesSheet(id);};
   const packAgainBtn=document.getElementById('tripActionPackAgain');
   packAgainBtn.style.display=_tripsTab==='past'?'':'none';
   packAgainBtn.onclick=()=>{closeTripActions();duplicateTrip(id);};
@@ -4906,6 +4913,34 @@ window.duplicateTrip=function(id){
   _calStart=null;_calEnd=null;_updateCalTrigger();
   document.getElementById('tripOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('calTrigger')?.click(),50);
+};
+
+let _copyExpensesSourceId=null;
+window.openCopyExpensesSheet=function(id){
+  const src=trips.find(t=>t.id===id);if(!src)return;
+  _copyExpensesSourceId=id;
+  const dests=trips.filter(t=>t.id!==id);
+  const list=document.getElementById('copyExpensesList');
+  list.innerHTML=dests.length
+    ?dests.map(t=>`<div class="fopt" onclick="selectCopyExpensesDest('${t.id}')"><span class="fopt-label">${esc(t.name)}</span></div>`).join('')
+    :`<div style="padding:16px 0;text-align:center;color:var(--muted);font-size:14px">No other trips to copy to yet.</div>`;
+  document.getElementById('copyExpensesOverlay').classList.add('open');
+};
+window.closeCopyExpensesSheet=function(){
+  document.getElementById('copyExpensesOverlay').classList.remove('open');
+};
+window.selectCopyExpensesDest=function(destId){
+  const src=trips.find(t=>t.id===_copyExpensesSourceId);
+  const dest=trips.find(t=>t.id===destId);
+  closeCopyExpensesSheet();
+  if(!src||!dest||!src.expenses?.length)return;
+  const copies=src.expenses.map(e=>({
+    ...e,id:uid(),settled:false,settledPeople:[]
+  }));
+  dest.expenses=[...(dest.expenses||[]),...copies];
+  saveAll(trips);
+  showToast(`Copied ${copies.length} expense${copies.length===1?'':'s'} to ${dest.name}`);
+  if(activeId===destId)renderExpenses();
 };
 
 function openPackCompleteModal(trip){
@@ -7118,6 +7153,15 @@ window.addEventListener('pageshow',(ev)=>{
     <button class="sheet-close-btn" onclick="closeExpFilterSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div id="expFltTitle" style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:32px"></div>
     <div id="expFltOptions"></div>
+  </div>
+</div>
+
+<!-- Copy expenses to another trip -->
+<div class="overlay" id="copyExpensesOverlay" onclick="closeCopyExpensesSheet()">
+  <div class="modal" onclick="event.stopPropagation()" style="padding-top:24px">
+    <button class="sheet-close-btn" onclick="closeCopyExpensesSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:32px">Copy expenses to…</div>
+    <div id="copyExpensesList"></div>
   </div>
 </div>
 
