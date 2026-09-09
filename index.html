@@ -5736,10 +5736,13 @@ function renderExpenses(){
   const hasAnySettled=allExpenses.some(e=>e.settled);
   const hasAnyUnsettledPaidByOther=allExpenses.some(e=>e.paidBy&&!e.settled);
 
-  const activeCat=[..._expFilterCats][0]||'';
-  const activePayer=[..._expFilterPayers][0]||'';
-  const activePay=[..._expFilterPays][0]||'';
-  const activePayPm=activePay?EXP_PAYMENTS.find(p=>p.id===activePay):null;
+  const activeCatArr=[..._expFilterCats];
+  const activePayerArr=[..._expFilterPayers];
+  const activePayArr=[..._expFilterPays];
+  const activePayPm=activePayArr.length===1?EXP_PAYMENTS.find(p=>p.id===activePayArr[0]):null;
+  const catLabel=activeCatArr.length===0?'All categories':activeCatArr.length===1?esc(activeCatArr[0]):`${activeCatArr.length} categories`;
+  const payerLabel=activePayerArr.length===0?'Paid by':activePayerArr.length===1?esc(activePayerArr[0]):`${activePayerArr.length} payers`;
+  const payLabel=activePayArr.length===0?'Payment method':activePayArr.length===1?(activePayPm?`${activePayPm.logo} ${esc(activePayPm.name)}`:'Payment method'):`${activePayArr.length} methods`;
 
   // Store options for the filter bottom sheet
   window._expSheetOpts={
@@ -5755,21 +5758,21 @@ function renderExpenses(){
   const _chevron=`<svg class="exp-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
   const catSelect=usedCats.length>1
     ?`<div class="exp-cat-select-wrap">
-        <button class="exp-cat-select${activeCat?' active':''}" onclick="openExpFilterSheet('cat','Category')">${esc(activeCat||'All categories')}</button>
+        <button class="exp-cat-select${activeCatArr.length?' active':''}" onclick="openExpFilterSheet('cat','Category')">${catLabel}</button>
         ${_chevron}
       </div>`
     :'';
 
   const payChips=usedPays.length>0
     ?`<div class="exp-cat-select-wrap">
-        <button class="exp-cat-select${activePay?' active':''}" onclick="openExpFilterSheet('pay','Payment method')">${activePayPm?`${activePayPm.logo} ${esc(activePayPm.name)}`:'Payment method'}</button>
+        <button class="exp-cat-select${activePayArr.length?' active':''}" onclick="openExpFilterSheet('pay','Payment method')">${payLabel}</button>
         ${_chevron}
       </div>`
     :'';
 
   const payerChips=usedPaidBy.length>0
     ?`<div class="exp-cat-select-wrap">
-        <button class="exp-cat-select${activePayer?' active':''}" onclick="openExpFilterSheet('payer','Paid by')">${esc(activePayer||'Paid by')}</button>
+        <button class="exp-cat-select${activePayerArr.length?' active':''}" onclick="openExpFilterSheet('payer','Paid by')">${payerLabel}</button>
         ${_chevron}
       </div>`
     :'';
@@ -5912,38 +5915,45 @@ function renderExpenses(){
     ${groupsHtml}`;
 }
 
+// Category/Paid by/Payment method are multi-select: tapping a value toggles
+// it in/out of the filter set, tapping "All ..." clears the whole set.
+function _toggleExpFilterSet(set,value){
+  if(value==='')set.clear();
+  else if(set.has(value))set.delete(value);
+  else set.add(value);
+}
 window.onExpCatFilter=function(value){
-  _expFilterCats.clear();
-  if(value)_expFilterCats.add(value);
+  _toggleExpFilterSet(_expFilterCats,value);
   renderExpenses();
 };
 window.onExpPayerFilter=function(value){
-  _expFilterPayers.clear();
-  if(value)_expFilterPayers.add(value);
+  _toggleExpFilterSet(_expFilterPayers,value);
   renderExpenses();
 };
 window.onExpPayFilter=function(value){
-  _expFilterPays.clear();
-  if(value)_expFilterPays.add(value);
+  _toggleExpFilterSet(_expFilterPays,value);
   renderExpenses();
 };
 window.onExpSettledFilter=function(value){
   _expFilterSettled=value===''?null:value==='true';
   renderExpenses();
 };
+let _expFltOpenType=null;
+let _expFltOpenTitle='';
 window.openExpFilterSheet=function(type,title){
+  _expFltOpenType=type;_expFltOpenTitle=title;
   const opts=(window._expSheetOpts||{})[type]||[];
-  const active=type==='cat'?([..._expFilterCats][0]||'')
-    :type==='payer'?([..._expFilterPayers][0]||'')
-    :type==='pay'?([..._expFilterPays][0]||'')
-    :(_expFilterSettled===null?'':String(_expFilterSettled));
+  const isMulti=type==='cat'||type==='payer'||type==='pay';
+  const activeSet=type==='cat'?_expFilterCats:type==='payer'?_expFilterPayers:type==='pay'?_expFilterPays:null;
+  const isActive=v=>isMulti?(v===''?activeSet.size===0:activeSet.has(v)):(v===(_expFilterSettled===null?'':String(_expFilterSettled)));
   document.getElementById('expFltTitle').textContent=title;
   document.getElementById('expFltOptions').innerHTML=opts.map(o=>
-    `<div class="fopt${o.v===active?' fopt-active':''}" data-ftype="${type}" data-fval="${esc(o.v)}" onclick="selectExpFilter(this)">
+    `<div class="fopt${isActive(o.v)?' fopt-active':''}" data-ftype="${type}" data-fval="${esc(o.v)}" onclick="selectExpFilter(this)">
       <span class="fopt-label">${esc(o.l)}</span>
       <span class="fopt-radio"></span>
     </div>`
   ).join('');
+  document.getElementById('expFltDoneBtn').style.display=isMulti?'':'none';
   document.getElementById('expFltOverlay').classList.add('open');
 };
 window.closeExpFilterSheet=function(){
@@ -5952,22 +5962,18 @@ window.closeExpFilterSheet=function(){
 window.selectExpFilter=function(el){
   const type=el.dataset.ftype;
   const value=el.dataset.fval;
-  closeExpFilterSheet();
+  const isMulti=type==='cat'||type==='payer'||type==='pay';
   if(type==='cat')onExpCatFilter(value);
   else if(type==='payer')onExpPayerFilter(value);
   else if(type==='pay')onExpPayFilter(value);
   else if(type==='settled')onExpSettledFilter(value);
+  // Multi-select stays open with checkmarks refreshed; single-select (settled) closes.
+  if(isMulti)openExpFilterSheet(type,_expFltOpenTitle);
+  else closeExpFilterSheet();
 };
 window.toggleExpFilter=function(type,value){
-  if(type==='payer'){
-    if(_expFilterPayers.has(value)){_expFilterPayers.clear();}
-    else{_expFilterPayers.clear();_expFilterPayers.add(value);}
-  } else if(type==='split'){
-    const want=value==='true';
-    _expFilterSplit=(_expFilterSplit===want)?null:want;
-  } else {
-    if(_expFilterCats.has(value))_expFilterCats.delete(value);else _expFilterCats.add(value);
-  }
+  const want=value==='true';
+  _expFilterSplit=(_expFilterSplit===want)?null:want;
   renderExpenses();
 };
 
@@ -7246,6 +7252,7 @@ window.addEventListener('pageshow',(ev)=>{
     <button class="sheet-close-btn" onclick="closeExpFilterSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div id="expFltTitle" style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:32px"></div>
     <div id="expFltOptions"></div>
+    <button class="btn-save" id="expFltDoneBtn" style="display:none;margin-top:20px" onclick="closeExpFilterSheet()">Done</button>
   </div>
 </div>
 
