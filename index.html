@@ -371,6 +371,8 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-cur-chip.active{border-color:var(--accent);background:var(--tint);color:var(--accent);}
 .exp-total-amount{font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1}
 .exp-split-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.exp-total-filter-row{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.exp-total-filter-row .exp-filter-area{margin-bottom:0;}
 .exp-split-summary-hdr{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:2px 0;}
 .exp-split-summary-hdr svg{flex-shrink:0;}
 .exp-split-rows{margin-top:8px;}
@@ -431,7 +433,9 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-item{cursor:pointer;}
 .exp-item:active{background:var(--tint);}
 .exp-item.exp-settled{box-shadow:inset 3px 0 0 #16a34a;}
+.exp-item.exp-excluded{opacity:.55;}
 .exp-split-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--accent);background:rgba(74,144,226,.12);padding:1px 7px;border-radius:99px;}
+.exp-excluded-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:var(--muted);background:var(--tint);padding:1px 7px;border-radius:99px;}
 .exp-share-amt{font-size:11px;color:var(--accent);font-weight:600;white-space:nowrap;}
 .exp-split-add-row{display:flex;gap:8px;margin-top:8px;}
 .exp-split-add-row input{flex:1;height:40px;border-radius:10px;border:1.5px solid var(--border);padding:0 12px;font-family:'Figtree',sans-serif;font-size:15px;color:var(--ink);background:var(--white);outline:none;min-width:0;}
@@ -881,10 +885,10 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
 .fopt:last-child{border-bottom:none;}
 .fopt-label{font-size:16px;font-weight:500;color:var(--ink);}
 .fopt.fopt-active .fopt-label{color:var(--accent);font-weight:600;}
-.fopt-radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .14s;}
-.fopt.fopt-active .fopt-radio{border-color:var(--accent);background:var(--accent);}
-.fopt-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--white);display:none;}
-.fopt.fopt-active .fopt-radio::after{display:block;}
+.fopt-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .14s;}
+.fopt.fopt-active .fopt-check{border-color:var(--accent);background:var(--accent);}
+.fopt-check::after{content:'';width:10px;height:6px;border-left:2px solid var(--white);border-bottom:2px solid var(--white);transform:rotate(-45deg) translateY(-1px);display:none;}
+.fopt.fopt-active .fopt-check::after{display:block;}
 /* Filter chips */
 .exp-filter-chip{
   display:inline-flex;align-items:center;gap:7px;
@@ -2358,6 +2362,13 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
         <label style="margin:0">Already settled</label>
         <label class="exp-toggle">
           <input type="checkbox" id="expSettled">
+          <span class="exp-toggle-track"></span>
+        </label>
+      </div>
+      <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+        <label style="margin:0">Exclude from total</label>
+        <label class="exp-toggle">
+          <input type="checkbox" id="expExcludeFromTotal">
           <span class="exp-toggle-track"></span>
         </label>
       </div>
@@ -5482,9 +5493,10 @@ function renderExpenses(){
     })
     :allExpenses;
 
-  // Overall totals by currency (respects filters)
+  // Overall totals by currency (respects filters; excludes expenses flagged
+  // "Exclude from total" — they still show in the list, just not counted here)
   const totals={};
-  expenses.forEach(e=>{totals[e.currency]=(totals[e.currency]||0)+e.amount;});
+  expenses.forEach(e=>{if(e.excludeFromTotal)return;totals[e.currency]=(totals[e.currency]||0)+e.amount;});
   const availCurs=Object.keys(totals);
   const isMultiCurrency=availCurs.length>1;
   const baseCur=isMultiCurrency
@@ -5778,6 +5790,22 @@ function renderExpenses(){
       </div></div>`
     :'';
 
+  // One removable chip per active filter value, so a single pick can be
+  // dropped without opening the sheet — shown below the total card.
+  const _xSvgTiny='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  const activeFilterChips=[];
+  window._expFilterGroups.forEach(g=>{
+    g.set.forEach(v=>{
+      const opt=g.opts.find(o=>o.v===v);
+      activeFilterChips.push({key:g.key,value:v,label:opt?opt.l:v});
+    });
+  });
+  const activeFiltersRowHtml=activeFilterChips.length
+    ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${activeFilterChips.map(c=>
+        `<button class="exp-filter-chip active" onclick="removeExpFilterValue('${c.key}','${encodeURIComponent(c.value)}')">${esc(c.label)}${_xSvgTiny}</button>`
+      ).join('')}</div></div>`
+    :'';
+
   // Group expenses by date (undated go last)
   const byDate=new Map();
   expenses.forEach(e=>{
@@ -5811,7 +5839,8 @@ function renderExpenses(){
     const splitNames=(e.splitWith||[]);
     const meIncludedInItem=split===1||(e.splitWays>(e.splitWith?.length||0));
     const splitBadge=split?`<span class="exp-split-badge">÷${split}</span>`:'';
-    const metaParts=[e.category,payIcon,splitBadge].filter(Boolean);
+    const excludedBadge=e.excludeFromTotal?`<span class="exp-excluded-badge">Excluded</span>`:'';
+    const metaParts=[e.category,payIcon,splitBadge,excludedBadge].filter(Boolean);
     // Build the full participant list: prepend "you" when me is included
     const allSplitPeople=meIncludedInItem?['you',...splitNames]:splitNames;
     const settledSet=_expSettledSet(e);
@@ -5834,7 +5863,7 @@ function renderExpenses(){
       const label=isMe?'you':esc(p);
       return`<button type="button" class="exp-person-pill${done?' done':''}" onclick="toggleParticipantSettled('${e.id}','${encodeURIComponent(p)}',event)">${done?_checkSvgSmall:''}${isMe?`<strong>${label}</strong>`:label}</button>`;
     }).join('')}</div>`:'';
-    return`<div class="exp-item${e.settled?" exp-settled":""}" onclick="editExpense('${e.id}')">
+    return`<div class="exp-item${e.settled?" exp-settled":""}${e.excludeFromTotal?" exp-excluded":""}" onclick="editExpense('${e.id}')">
       <div class="exp-cat-icon" style="background:${cat.bg}">
         <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon}</svg>
       </div>
@@ -5856,7 +5885,7 @@ function renderExpenses(){
     ?sortedKeys.map(key=>{
         const items=byDate.get(key);
         const dayTotals={};
-        items.forEach(e=>{dayTotals[e.currency]=(dayTotals[e.currency]||0)+e.amount;});
+        items.forEach(e=>{if(e.excludeFromTotal)return;dayTotals[e.currency]=(dayTotals[e.currency]||0)+e.amount;});
         const dayTotalStr=Object.entries(dayTotals).map(([cur,amt])=>
           `${cur} ${amt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
         ).join(' · ');
@@ -5881,8 +5910,9 @@ function renderExpenses(){
       </div>
       ${totalHtml}
       ${splitSummaryHtml}
+      ${filterBarHtml?`<div class="exp-total-filter-row">${filterBarHtml}</div>`:''}
     </div>
-    ${filterBarHtml}
+    ${activeFiltersRowHtml}
     ${groupsHtml}`;
 }
 
@@ -5900,7 +5930,7 @@ function _renderExpFiltersSheetBody(){
       const active=o.v===''?g.set.size===0:g.set.has(o.v);
       return`<div class="fopt${active?' fopt-active':''}" data-fkey="${g.key}" data-fval="${esc(o.v)}" onclick="selectExpFilter(this)">
         <span class="fopt-label">${esc(o.l)}</span>
-        <span class="fopt-radio"></span>
+        <span class="fopt-check"></span>
       </div>`;
     }).join('');
     return`<div class="exp-flt-group"><div class="exp-sheet-section-label">${esc(g.title)}</div>${rows}</div>`;
@@ -5929,6 +5959,14 @@ window.selectExpFilter=function(el){
 
 window.clearExpFilters=function(){
   _expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled.clear();_expFilterSplit.clear();
+  renderExpenses();
+};
+// Drop a single active filter value from its group's set, e.g. tapping the
+// "X" on one of the removable chips shown under the total card.
+window.removeExpFilterValue=function(key,encodedValue){
+  const group=(window._expFilterGroups||[]).find(g=>g.key===key);
+  if(!group)return;
+  group.set.delete(decodeURIComponent(encodedValue));
   renderExpenses();
 };
 
@@ -6093,6 +6131,7 @@ window.openAddExpense=function(){
   const disp=document.getElementById('expDateDisplay');
   disp.textContent=_calFmt(todayStr);disp.className='cal-trigger-val';
   document.getElementById('expNotes').value='';
+  document.getElementById('expExcludeFromTotal').checked=false;
   ['expAmountError','expLabelError'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent='';e.classList.remove('show');}});
   document.getElementById('exp-modal-body')?.scrollTo(0,0);
   document.getElementById('expAmount').classList.remove('error');
@@ -6152,6 +6191,7 @@ window.editExpense=function(id){
   if(e.date){disp.textContent=_calFmt(e.date);disp.className='cal-trigger-val';}
   else{disp.textContent='Select date';disp.className='cal-trigger-val empty';}
   document.getElementById('expNotes').value=e.notes||'';
+  document.getElementById('expExcludeFromTotal').checked=!!e.excludeFromTotal;
   ['expAmountError','expLabelError'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent='';e.classList.remove('show');}});
   document.getElementById('expAmount').classList.remove('error');
   document.getElementById('expLabel').classList.remove('error');
@@ -6194,6 +6234,7 @@ window.saveExpense=function(){
     ?participants.filter(p=>_settledPeople.has(p))
     :(document.getElementById('expSettled').checked?['you']:[]);
   const settled=participants.length>0&&participants.every(p=>settledPeople.includes(p));
+  const excludeFromTotal=document.getElementById('expExcludeFromTotal').checked;
   const amountErr=document.getElementById('expAmountError');
   const labelErr=document.getElementById('expLabelError');
   const amountRow=document.getElementById('expAmount').closest('.amount-cur-row');
@@ -6216,7 +6257,7 @@ window.saveExpense=function(){
 
   const trip=getTrip();if(!trip)return;
   if(!trip.expenses)trip.expenses=[];
-  const expData={label,amount,currency,category,date,notes,payWith,paidBy,settled,settledPeople,splitWith,splitWays};
+  const expData={label,amount,currency,category,date,notes,payWith,paidBy,settled,settledPeople,splitWith,splitWays,excludeFromTotal};
   if(_editingExpenseId){
     const idx=trip.expenses.findIndex(e=>e.id===_editingExpenseId);
     if(idx>-1){
