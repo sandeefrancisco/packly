@@ -1076,6 +1076,9 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
 .item-row:last-child{border-bottom:none}
 .item-row.done{opacity:.42}
 .item-row.done .item-label{text-decoration:line-through;color:var(--muted)}
+.item-row.excluded{opacity:.5}
+.item-row.excluded .item-label{color:var(--muted)}
+.item-excluded-tag{flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--muted);background:var(--tint);padding:2px 7px;border-radius:99px;}
 
 .round-cb{
   width:24px;height:24px;border-radius:50%;border:2px solid #C5C3D8;flex-shrink:0;
@@ -2144,6 +2147,10 @@ button.exp-cat-select{display:inline-flex;align-items:center;white-space:nowrap;
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 15 11"/><path d="M12 3v11"/><path d="M20 21H4"/></svg>
     Move to category…
   </button>
+  <button class="sheet-action" id="itemActionExclude">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>
+    <span id="itemActionExcludeLabel">Exclude from packing</span>
+  </button>
   <button class="sheet-action danger" id="itemActionDelete">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
     Delete
@@ -2980,6 +2987,13 @@ window.openItemActions=function(item,sec,labelEl){
     openRenameItem(item,sec);
   };
   document.getElementById('itemActionMove').onclick=()=>{closeItemActions();openMoveCat(item,sec);};
+  document.getElementById('itemActionExcludeLabel').textContent=item.excluded?'Include in packing':'Exclude from packing';
+  document.getElementById('itemActionExclude').onclick=()=>{
+    item.excluded=!item.excluded;
+    saveAll(trips);
+    closeItemActions();
+    renderChecklist();
+  };
   document.getElementById('itemActionDelete').onclick=()=>{
     closeItemActions();
     confirmDelete('Remove item?',`"${item.label}" will be removed from this list.`,()=>{
@@ -3883,7 +3897,10 @@ function tripCountdown(dateFrom, dateTo){
 
 function stats(trip){
   let total=0,done=0;
-  trip.sections.forEach(s=>{total+=s.items.length;done+=s.items.filter(i=>i.done).length;});
+  trip.sections.forEach(s=>{
+    const active=s.items.filter(i=>!i.excluded);
+    total+=active.length;done+=active.filter(i=>i.done).length;
+  });
   return{total,done};
 }
 
@@ -3940,14 +3957,18 @@ window.exportTrip=function(id){
       const items=sec.items||[];
       if(!items.length){lines.push('  (empty)');return;}
       items.forEach(item=>{
-        const check=item.done?'✓':'○';
+        const check=item.excluded?'–':(item.done?'✓':'○');
         const qty=item.qty>1?' (×'+item.qty+')':'';
-        lines.push('  '+check+' '+item.label+qty);
+        const excludedNote=item.excluded?' (excluded)':'';
+        lines.push('  '+check+' '+item.label+qty+excludedNote);
       });
     });
     // Summary
     let totalItems=0,doneItems=0;
-    sections.forEach(s=>{totalItems+=s.items.length;doneItems+=s.items.filter(i=>i.done).length;});
+    sections.forEach(s=>{
+      const active=s.items.filter(i=>!i.excluded);
+      totalItems+=active.length;doneItems+=active.filter(i=>i.done).length;
+    });
     lines.push('');
     lines.push('Packed: '+doneItems+'/'+totalItems+' items');
   }
@@ -4445,7 +4466,8 @@ function buildSection(sec){
   const trip=getTrip();
   const secs=trip.sections;
   const idx=secs.findIndex(s=>s.id===sec.id);
-  const doneC=sec.items.filter(i=>i.done).length;
+  const activeItems=sec.items.filter(i=>!i.excluded);
+  const doneC=activeItems.filter(i=>i.done).length;
   const openSet=getOpenSet(trip.id);
   const isOpen=openSet.has(sec.id); // default collapsed unless explicitly opened
 
@@ -4469,7 +4491,7 @@ function buildSection(sec){
   const right=document.createElement('div');
   right.className='section-label-right';
   right.innerHTML=`
-    <span class="section-count-badge">${doneC}/${sec.items.length}</span>
+    <span class="section-count-badge">${doneC}/${activeItems.length}</span>
     <button class="sec-opts-btn" aria-label="Section options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg></button>`;
 
   right.querySelector('.sec-opts-btn').onclick=e=>{
@@ -4540,7 +4562,7 @@ function buildSection(sec){
 
 function buildItemRow(item,sec){
   const row=document.createElement('div');
-  row.className='item-row'+(item.done?' done':'');
+  row.className='item-row'+(item.done?' done':'')+(item.excluded?' excluded':'');
   row.dataset.iid=item.id;
   row.dataset.sid=sec.id;
 
@@ -4576,7 +4598,14 @@ function buildItemRow(item,sec){
   opts.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>';
   opts.onclick=e=>{e.stopPropagation();openItemActions(item,sec,lbl);};
 
-  row.appendChild(cb);row.appendChild(lbl);row.appendChild(stepper);row.appendChild(opts);
+  row.appendChild(cb);row.appendChild(lbl);
+  if(item.excluded){
+    const tag=document.createElement('span');
+    tag.className='item-excluded-tag';
+    tag.textContent='Excluded';
+    row.appendChild(tag);
+  }
+  row.appendChild(stepper);row.appendChild(opts);
   return row;
 }
 
