@@ -1275,6 +1275,7 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 .field{margin-bottom:24px}
+.exp-toggle-field{display:flex;align-items:center;justify-content:space-between;}
 .field label{display:block;font-size:16px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:8px}
 .field input,.field select{
   width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);
@@ -2338,7 +2339,7 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
         </button>
         <input type="hidden" id="expPaidBy" value="">
       </div>
-      <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+      <div class="field exp-toggle-field">
         <label style="margin:0">Split expense</label>
         <label class="exp-toggle">
           <input type="checkbox" id="expSplitEnabled" onchange="toggleSplitEnabled()">
@@ -2358,14 +2359,14 @@ body.show-itin-fab .itin-fab{opacity:1;pointer-events:auto;transform:scale(1);}
         <p class="exp-split-hint" id="expSplitHint"></p>
         <div id="expSettledPeople" class="exp-settled-people"></div>
       </div>
-      <div id="expSettledSimpleField" class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+      <div id="expSettledSimpleField" class="field exp-toggle-field">
         <label style="margin:0">Already settled</label>
         <label class="exp-toggle">
           <input type="checkbox" id="expSettled">
           <span class="exp-toggle-track"></span>
         </label>
       </div>
-      <div class="field" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+      <div class="field exp-toggle-field">
         <label style="margin:0">Exclude from total</label>
         <label class="exp-toggle">
           <input type="checkbox" id="expExcludeFromTotal">
