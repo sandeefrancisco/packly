@@ -5790,6 +5790,22 @@ function renderExpenses(){
       </div></div>`
     :'';
 
+  // One removable chip per active filter value, so a single pick can be
+  // dropped without opening the sheet — shown below the total card.
+  const _xSvgTiny='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  const activeFilterChips=[];
+  window._expFilterGroups.forEach(g=>{
+    g.set.forEach(v=>{
+      const opt=g.opts.find(o=>o.v===v);
+      activeFilterChips.push({key:g.key,value:v,label:opt?opt.l:v});
+    });
+  });
+  const activeFiltersRowHtml=activeFilterChips.length
+    ?`<div class="exp-filter-area"><div class="exp-filter-scroll">${activeFilterChips.map(c=>
+        `<button class="exp-filter-chip active" onclick="removeExpFilterValue('${c.key}','${encodeURIComponent(c.value)}')">${esc(c.label)}${_xSvgTiny}</button>`
+      ).join('')}</div></div>`
+    :'';
+
   // Group expenses by date (undated go last)
   const byDate=new Map();
   expenses.forEach(e=>{
@@ -5896,6 +5912,7 @@ function renderExpenses(){
       ${splitSummaryHtml}
       ${filterBarHtml?`<div class="exp-total-filter-row">${filterBarHtml}</div>`:''}
     </div>
+    ${activeFiltersRowHtml}
     ${groupsHtml}`;
 }
 
@@ -5942,6 +5959,14 @@ window.selectExpFilter=function(el){
 
 window.clearExpFilters=function(){
   _expFilterCats.clear();_expFilterPays.clear();_expFilterPayers.clear();_expFilterSettled.clear();_expFilterSplit.clear();
+  renderExpenses();
+};
+// Drop a single active filter value from its group's set, e.g. tapping the
+// "X" on one of the removable chips shown under the total card.
+window.removeExpFilterValue=function(key,encodedValue){
+  const group=(window._expFilterGroups||[]).find(g=>g.key===key);
+  if(!group)return;
+  group.set.delete(decodeURIComponent(encodedValue));
   renderExpenses();
 };
 
