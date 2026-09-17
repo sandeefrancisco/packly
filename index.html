@@ -371,6 +371,8 @@ svg.lucide-hero{width:36px;height:36px;stroke:#fff;stroke-width:1.5;opacity:.95;
 .exp-cur-chip.active{border-color:var(--accent);background:var(--tint);color:var(--accent);}
 .exp-total-amount{font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1}
 .exp-split-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.exp-total-filter-row{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.exp-total-filter-row .exp-filter-area{margin-bottom:0;}
 .exp-split-summary-hdr{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:2px 0;}
 .exp-split-summary-hdr svg{flex-shrink:0;}
 .exp-split-rows{margin-top:8px;}
@@ -5892,8 +5894,8 @@ function renderExpenses(){
       </div>
       ${totalHtml}
       ${splitSummaryHtml}
+      ${filterBarHtml?`<div class="exp-total-filter-row">${filterBarHtml}</div>`:''}
     </div>
-    ${filterBarHtml}
     ${groupsHtml}`;
 }
 
